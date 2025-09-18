@@ -51,6 +51,8 @@ extern cvar_t	sv_calcphs;
 extern cvar_t	sv_playerslots, maxclients, maxspectators;
 extern cvar_t	sv_nqplayerphysics; //auto setting needs updating on map changes
 
+int loaded_bsps = 0;
+
 /*
 ================
 SV_ModelIndex
@@ -1100,7 +1102,19 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 			Mod_SetModifier(mod);
 
-			sv.world.worldmodel[j] = Mod_ForName (sv.modelname[j], MLV_ERROR);
+			if ( bestdepth == FDEPTH_MISSING )
+			{
+				// Missi: Just generate a blank model for this slot.
+				// Shit solution, but Quake's model list does not handle
+				// null entries well at all (2025.9.19)
+				sv.world.worldmodel[j] = Mod_FindName ("");
+				Q_strncpyz( sv.world.worldmodel[j], "nomap", 5 );
+				continue;
+			}
+			else
+			{
+				sv.world.worldmodel[j] = Mod_ForName (sv.modelname[j], MLV_ERROR);
+			}
 
 			if (FS_FLocateFile(sv.modelname[j],FSLF_IFFOUND, &loc) && FS_GetLocMTime(&loc, &filetime))
 			{
@@ -1335,8 +1349,8 @@ MSV_OpenUserDatabase();
 			}
 			for (i=1 ; i<subs ; i++)
 			{
-				sv.strings.model_precache[1+i+j] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-				sv.models[i+j+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[1+i+j], sv.modelname[j]), MLV_WARN);
+				sv.strings.model_precache[i+MAX_TIME_PERIODS] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+				sv.models[i+MAX_TIME_PERIODS] = Mod_ForName (Mod_FixName(sv.strings.model_precache[MAX_TIME_PERIODS+i], sv.modelname[j]), MLV_WARN);
 			}
 
 			//check player/eyes models for hacks
@@ -1520,6 +1534,9 @@ MSV_OpenUserDatabase();
 
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
+		if ( !sv.world.worldmodel[j] )
+			break;
+
 		if (svprogfuncs)
 		{
 			//world entity is hackily spawned
@@ -1617,6 +1634,9 @@ MSV_OpenUserDatabase();
 //do this and get the precaches/start up the game
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
+		if ( !sv.world.worldmodel[j]->name || !sv.world.worldmodel[j]->name[0] )
+			break;
+
 		if (sv.world.worldmodel[j]->entitiescrc)
 		{
 			char crc[12];
@@ -1662,6 +1682,9 @@ MSV_OpenUserDatabase();
 
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
+		if ( !sv.world.worldmodel[j] )
+			break;
+
 		Q_strncpyz(sv.mapname[j], svs.name, sizeof(sv.mapname[j]));
 		if (svprogfuncs)
 		{
@@ -1800,6 +1823,9 @@ MSV_OpenUserDatabase();
 		}
 		for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 		{
+			if ( !sv.world.worldmodel[j] )
+				break;
+
 			if (extent > (1u<<15)/8
 #ifdef TERRAIN
 			|| sv.world.worldmodel[j]->terrain

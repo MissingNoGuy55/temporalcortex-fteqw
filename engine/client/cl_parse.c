@@ -1520,10 +1520,10 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	{
 		SCR_SetLoadingFile("newmap");
 
-		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
-		{
-			Surf_NewMap (cl.worldmodel[i], i);
-		}
+		//for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		//{
+			Surf_NewMap (cl.worldmodel[0], 0);
+		//}
 
 		pmove.physents[0].model = cl.worldmodel[0];
 
@@ -1677,6 +1677,7 @@ void CL_RequestNextDownload (void)
 
 	int stage;
 	int i;
+	qboolean fail = false;
 	/*already downloading*/
 	if (cls.download && !cls.demoplayback)
 		return;
@@ -1844,7 +1845,12 @@ void CL_RequestNextDownload (void)
 							Con_Printf(CON_ERROR "Couldn't load \"%s\" - corrupt? - cannot fully connect\n", worldname);
 					}
 					else
-						Con_Printf(CON_ERROR "Couldn't find \"%s\" - cannot fully connect\n", worldname);
+					{
+						if ( i == 0 )
+							Con_Printf(CON_ERROR "Couldn't find \"%s\" - cannot fully connect\n", worldname);
+						else
+							fail = true;
+					}
 					break;
 				}
 #ifdef HAVE_MEDIA_ENCODER
@@ -1855,6 +1861,9 @@ void CL_RequestNextDownload (void)
 				}
 #endif
 				//else should probably force the demo speed really fast or something
+
+				if ( fail )
+					continue;
 
 				SCR_SetLoadingStage(LS_NONE);
 				return;

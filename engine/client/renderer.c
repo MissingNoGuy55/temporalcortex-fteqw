@@ -1493,7 +1493,7 @@ qboolean R_ApplyRenderer (rendererstate_t *newr)
 }
 qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 {
-	int i, j, t;
+	int i, j;
 	double start = Sys_DoubleTime();
 
 	COM_WorkerFullSync();
@@ -1707,85 +1707,82 @@ TRACE(("dbg: R_ApplyRenderer: initing mods\n"));
 	Surf_PreNewMap();
 
 #ifndef CLIENTONLY
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	if (sv.world.worldmodel[sv_current_time_period])
 	{
-		if (sv.world.worldmodel[t])
+TRACE(("dbg: R_ApplyRenderer: reloading server map\n"));
+		sv.world.worldmodel[sv_current_time_period] = Mod_ForName (sv.modelname[sv_current_time_period], MLV_WARNSYNC);
+TRACE(("dbg: R_ApplyRenderer: loaded\n"));
+		if (sv.world.worldmodel[sv_current_time_period]->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(sv.world.worldmodel[sv_current_time_period], &sv.world.worldmodel[sv_current_time_period]->loadstate, MLS_LOADING);
+TRACE(("dbg: R_ApplyRenderer: doing that funky phs thang\n"));
+		SV_CalcPHS ();
+
+TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
+
+		if (sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
+			SV_UnspawnServer();
+		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
-	TRACE(("dbg: R_ApplyRenderer: reloading server map\n"));
-			sv.world.worldmodel[t] = Mod_ForName (sv.modelname[t], MLV_WARNSYNC);
-	TRACE(("dbg: R_ApplyRenderer: loaded\n"));
-			if (sv.world.worldmodel[t]->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(sv.world.worldmodel[t], &sv.world.worldmodel[t]->loadstate, MLS_LOADING);
-	TRACE(("dbg: R_ApplyRenderer: doing that funky phs thang\n"));
-			SV_CalcPHS ();
-
-	TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
-
-			if (sv.world.worldmodel[t]->loadstate != MLS_LOADED)
-				SV_UnspawnServer();
-			else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
+			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 			{
-				for (i = 0; i < MAX_PRECACHE_MODELS; i++)
-				{
-					if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[t]->numsubmodels))
-						sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
-					else
-						sv.models[i] = NULL;
-				}
-
-				World_ClearWorld (&sv.world, true);
-	//			ent = sv.world.edicts;
-	//			ent->v->model = PR_NewString(svprogfuncs, sv.worldmodel->name);	//FIXME: is this a problem for normal ents?
+				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
+				else
+					sv.models[i] = NULL;
 			}
+
+			World_ClearWorld (&sv.world, true);
+//			ent = sv.world.edicts;
+//			ent->v->model = PR_NewString(svprogfuncs, sv.worldmodel->name);	//FIXME: is this a problem for normal ents?
+		}
 #ifdef Q2SERVER
-			else if (svs.gametype == GT_QUAKE2)
+		else if (svs.gametype == GT_QUAKE2)
+		{
+			q2edict_t *q2ent;
+			for (i = 0; i < Q2MAX_MODELS; i++)
 			{
-				q2edict_t *q2ent;
-				for (i = 0; i < Q2MAX_MODELS; i++)
-				{
-					if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[t]->numsubmodels))
-						sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[t]));
-					else
-						sv.models[i] = NULL;
-				}
-				for (; i < MAX_PRECACHE_MODELS; i++)
-				{
-					if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[t]->numsubmodels))
-						sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[t]));
-					else
-						sv.models[i] = NULL;
-				}
+				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[sv_current_time_period]));
+				else
+					sv.models[i] = NULL;
+			}
+			for (; i < MAX_PRECACHE_MODELS; i++)
+			{
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_time_period]));
+				else
+					sv.models[i] = NULL;
+			}
 
-				World_ClearWorld (&sv.world, false);
-				q2ent = ge->edicts;
-				for (i=0 ; i<ge->num_edicts ; i++, q2ent = (q2edict_t *)((char *)q2ent + ge->edict_size))
-				{
-					if (!q2ent)
-						continue;
-					if (!q2ent->inuse)
-						continue;
+			World_ClearWorld (&sv.world, false);
+			q2ent = ge->edicts;
+			for (i=0 ; i<ge->num_edicts ; i++, q2ent = (q2edict_t *)((char *)q2ent + ge->edict_size))
+			{
+				if (!q2ent)
+					continue;
+				if (!q2ent->inuse)
+					continue;
 
-					if (q2ent->area.prev)
-					{
-						q2ent->area.prev = q2ent->area.next = NULL;
-						WorldQ2_LinkEdict (&sv.world, q2ent);	// relink ents so touch functions continue to work.
-					}
+				if (q2ent->area.prev)
+				{
+					q2ent->area.prev = q2ent->area.next = NULL;
+					WorldQ2_LinkEdict (&sv.world, q2ent);	// relink ents so touch functions continue to work.
 				}
 			}
+		}
 #endif
 #ifdef Q3SERVER
-			else if (svs.gametype == GT_QUAKE3)
-			{
-				memset(&sv.models, 0, sizeof(sv.models));
-				sv.models[1+t] = Mod_FindName(sv.modelname[t]);
-				//traditionally a q3 server can just keep hold of its world cmodel and nothing is harmed.
-				//this means we just need to reload the worldmodel and all is fine...
-				//there are some edge cases however, like lingering pointers refering to entities.
-			}
-#endif
-			else
-				SV_UnspawnServer();
+		else if (svs.gametype == GT_QUAKE3)
+		{
+			memset(&sv.models, 0, sizeof(sv.models));
+			sv.models[1+sv_current_time_period] = Mod_FindName(sv.modelname[sv_current_time_period]);
+			//traditionally a q3 server can just keep hold of its world cmodel and nothing is harmed.
+			//this means we just need to reload the worldmodel and all is fine...
+			//there are some edge cases however, like lingering pointers refering to entities.
 		}
+#endif
+		else
+			SV_UnspawnServer();
 	}
 #endif
 #ifdef PLUGINS
@@ -1816,105 +1813,102 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #ifdef Q3SERVER
 	if (svs.gametype == GT_QUAKE3)
 	{
-		for (t = 0; t < MAX_TIME_PERIODS; t++)
+		for (int t = 0; t < MAX_TIME_PERIODS; t++)
 			cl.worldmodel[t] = NULL;
 		if (q3)
 			q3->cg.VideoRestarted();
 	}
 	else
 #endif
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	if (cl.worldmodel[0])
 	{
-		if (cl.worldmodel[t])
+		int wmidx = 0;
+		model_t *oldwm = cl.worldmodel[0];
+		cl.worldmodel[0] = NULL;
+		CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid
+
+		//FIXME: this code should not be here. call CL_LoadModels instead? that does csqc loading etc though. :s
+TRACE(("dbg: R_ApplyRenderer: reloading ALL models\n"));
+		for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 		{
-			int wmidx = t;
-			model_t *oldwm = cl.worldmodel[t];
-			cl.worldmodel[t] = NULL;
-			CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid
+			if (!cl.model_name[i])
+				break;
 
-			//FIXME: this code should not be here. call CL_LoadModels instead? that does csqc loading etc though. :s
-	TRACE(("dbg: R_ApplyRenderer: reloading ALL models\n"));
-			for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
-			{
-				if (!cl.model_name[i])
-					break;
+			TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
 
-				TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
-
-				if (oldwm == cl.model_precache[i])
-					wmidx = i;
+			if (oldwm == cl.model_precache[i])
+				wmidx = i;
 
 #ifdef Q2CLIENT	//skip vweps
-				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
-					cl.model_precache[i] = NULL;
-				else
+			if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
+				cl.model_precache[i] = NULL;
+			else
 #endif
-					if (i < MAX_TIME_PERIODS)
-						cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
-					else
-						cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
-			}
+				if (i < MAX_TIME_PERIODS)
+					cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
+				else
+					cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
+		}
 
 #ifdef HAVE_LEGACY
-			for (i=0; i < MAX_VWEP_MODELS; i++)
-			{
-				if (cl.model_name_vwep[i])
-					cl.model_precache_vwep[i] = Mod_ForName (cl.model_name_vwep[i], MLV_SILENT);
-				else
-					cl.model_precache_vwep[i] = NULL;
-			}
+		for (i=0; i < MAX_VWEP_MODELS; i++)
+		{
+			if (cl.model_name_vwep[i])
+				cl.model_precache_vwep[i] = Mod_ForName (cl.model_name_vwep[i], MLV_SILENT);
+			else
+				cl.model_precache_vwep[i] = NULL;
+		}
 #endif
 
 #ifdef CSQC_DAT
-			for (i=1 ; i<MAX_CSMODELS ; i++)
-			{
-				if (!cl.model_csqcname[i][0])
-					break;
+		for (i=1 ; i<MAX_CSMODELS ; i++)
+		{
+			if (!cl.model_csqcname[i][0])
+				break;
 
-				if (oldwm == cl.model_csqcprecache[i])
-					wmidx = -i;
+			if (oldwm == cl.model_csqcprecache[i])
+				wmidx = -i;
 
-				cl.model_csqcprecache[i] = NULL;
-				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
-				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
-			}
-
-			if (wmidx < 0)
-				cl.worldmodel[t] = cl.model_csqcprecache[-wmidx];
-			else
-#endif
-				cl.worldmodel[t] = cl.model_precache[wmidx];
-
-			if (cl.worldmodel[t] && cl.worldmodel[t]->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(cl.worldmodel[t], &cl.worldmodel[t]->loadstate, MLS_LOADING);
-
-	TRACE(("dbg: R_ApplyRenderer: done the models\n"));
-			if (!cl.worldmodel[t] || cl.worldmodel[t]->loadstate != MLS_LOADED)
-			{
-	//			Con_Printf ("\nThe required model file '%s' could not be found.\n\n", cl.model_name[i]);
-	//			Con_Printf ("You may need to download or purchase a client pack in order to play on this server.\n\n");
-
-				CL_Disconnect ("Worldmodel missing after video reload");
-
-				if (newr)
-					memcpy(&currentrendererstate, newr, sizeof(currentrendererstate));
-				return true;
-			}
-
-	TRACE(("dbg: R_ApplyRenderer: checking any wad textures\n"));
-			Mod_NowLoadExternal(cl.worldmodel[t], t);
-
-			for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
-				cl_static_entities[i].ent.model = NULL;
-
-	TRACE(("dbg: R_ApplyRenderer: Surf_NewMap\n"));
-			Surf_NewMap(cl.worldmodel[t], t);
-	TRACE(("dbg: R_ApplyRenderer: efrags\n"));
-
-	//		Skin_FlushAll();
-			Skin_FlushPlayers();
-
+			cl.model_csqcprecache[i] = NULL;
+			TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
+			cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
 		}
+
+		if (wmidx < 0)
+			cl.worldmodel[cl_current_time_period] = cl.model_csqcprecache[-wmidx];
+		else
+#endif
+			cl.worldmodel[cl_current_time_period] = cl.model_precache[wmidx];
+
+		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(cl.worldmodel[cl_current_time_period], &cl.worldmodel[cl_current_time_period]->loadstate, MLS_LOADING);
+
+TRACE(("dbg: R_ApplyRenderer: done the models\n"));
+		if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+		{
+//			Con_Printf ("\nThe required model file '%s' could not be found.\n\n", cl.model_name[i]);
+//			Con_Printf ("You may need to download or purchase a client pack in order to play on this server.\n\n");
+
+			CL_Disconnect ("Worldmodel missing after video reload");
+
+			if (newr)
+				memcpy(&currentrendererstate, newr, sizeof(currentrendererstate));
+			return true;
+		}
+
+TRACE(("dbg: R_ApplyRenderer: checking any wad textures\n"));
+		Mod_NowLoadExternal(cl.worldmodel[cl_current_time_period], cl_current_time_period);
+
+		for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
+			cl_static_entities[i].ent.model = NULL;
+
+TRACE(("dbg: R_ApplyRenderer: Surf_NewMap\n"));
+		Surf_NewMap(cl.worldmodel[cl_current_time_period], cl_current_time_period);
+TRACE(("dbg: R_ApplyRenderer: efrags\n"));
+
+//		Skin_FlushAll();
+		Skin_FlushPlayers();
+
 	}
 
 #ifdef SKELETALOBJECTS

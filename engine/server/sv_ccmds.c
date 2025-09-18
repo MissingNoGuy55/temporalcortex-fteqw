@@ -1019,7 +1019,12 @@ void SV_Map_f (void)
 					if (COM_FCheckExists (expanded))
 						break;
 				}
-				if (!exts[i])
+				// Missi: Only fail here if we really cannot find the present timeline BSP.
+				// Some maps in Temporal Cortex can only be played in the present timeline
+				// (e.g. Airship, TrainFight). Kind of a lame solution, but it works. (2025.9.18)
+				if ( !exts[i] && t > TIME_PERIOD_PRESENT )
+					break;
+				else if (!exts[i])
 				{
 #ifdef HAVE_CLIENT
 					SCR_SetLoadingStage(LS_NONE);
@@ -3548,6 +3553,9 @@ void SV_ChangeTimePeriod( timeperiod_t tTimePeriod )
 {
 	sizebuf_t buf;
 	char bufmem[1024];
+
+	if ( !sv.world.worldmodel[(int)tTimePeriod] )
+		return;
 
 	sv_current_time_period = tTimePeriod;
 
