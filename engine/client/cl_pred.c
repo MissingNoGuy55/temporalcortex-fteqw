@@ -176,7 +176,7 @@ q2trace_t	VARGS CLQ2_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 	trace_t		t;
 
 	// check against world
-	cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
+	cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
 	if (t.fraction < 1.0)
 		t.ent = (struct edict_s *)1;
 
@@ -204,7 +204,7 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 	int			contents;
 	vec3_t		axis[3], relpos;
 
-	contents = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, point);
+	contents = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, point);
 
 	for (i=0 ; i<cl.q2frame.num_entities ; i++)
 	{
@@ -295,7 +295,7 @@ static void CLQ2_PredictMovement (int seat)	//q2 doesn't support split clients.
 
 	frame = 0;
 
-	predignoreentitynum = cl.q2frame.seat[seat].clientnum+1;//cl.playerview[seat].playernum+1;
+	predignoreentitynum = cl.q2frame.seat[seat].clientnum+MAX_TIME_PERIODS;//cl.playerview[seat].playernum+1;
 
 	// run frames
 	while (++ack < current)
@@ -350,7 +350,7 @@ void CL_NudgePosition (void)
 	vec3_t	base;
 	int		x, y;
 
-	if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
+	if (cl.worldmodel[cl_current_time_period]->funcs.PointContents (cl.worldmodel[cl_current_time_period], NULL, pmove.origin) == FTECONTENTS_EMPTY)
 		return;
 
 	VectorCopy (pmove.origin, base);
@@ -360,7 +360,7 @@ void CL_NudgePosition (void)
 		{
 			pmove.origin[0] = base[0] + x * 1.0/8;
 			pmove.origin[1] = base[1] + y * 1.0/8;
-			if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
+			if (cl.worldmodel[cl_current_time_period]->funcs.PointContents (cl.worldmodel[cl_current_time_period], NULL, pmove.origin) == FTECONTENTS_EMPTY)
 				return;
 		}
 	}
@@ -398,7 +398,7 @@ void CL_PredictUsercmd (int pnum, int entnum, player_state_t *from, player_state
 		}
 		return;
 	}
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		return;
 
 	VectorCopy (from->origin, pmove.origin);
@@ -1003,7 +1003,7 @@ void CL_PredictMovePNum (int seat)
 	if (!pv->spectator && (pv->cam_state != CAM_FREECAM || pv->cam_spec_track != -1))	//just in case
 	{
 		if (pv->cam_state != CAM_FREECAM)
-			pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);
+			pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);
 		pv->cam_state = CAM_FREECAM;
 		pv->cam_spec_track = -1;
 	}
@@ -1011,7 +1011,7 @@ void CL_PredictMovePNum (int seat)
 #ifdef Q2CLIENT
 	if (cls.protocol == CP_QUAKE2)
 	{
-		if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+		if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 			return;
 		pv->crouch = 0;
 		CLQ2_PredictMovement(seat);
@@ -1061,14 +1061,14 @@ void CL_PredictMovePNum (int seat)
 	}
 
 	//if we now know where our target player is, we can finally lock on to them.
-	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+1)
+	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+MAX_TIME_PERIODS)
 	{
 		if ((cl.inframes[cl.validsequence & UPDATE_MASK].playerstate[pv->cam_spec_track].messagenum == cl.validsequence) ||
-			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+1].sequence == cl.lerpentssequence) ||
-			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+1, NULL))
+			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+MAX_TIME_PERIODS-1].sequence == cl.lerpentssequence) ||
+			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+MAX_TIME_PERIODS, NULL))
 		{
 			pv->cam_state = CAM_EYECAM;
-			pv->viewentity = pv->cam_spec_track+1;
+			pv->viewentity = pv->cam_spec_track+MAX_TIME_PERIODS;
 			cam_nowlocked = true;
 		}
 	}
@@ -1165,8 +1165,8 @@ void CL_PredictMovePNum (int seat)
 
 	if ((pv->cam_state == CAM_WALLCAM || pv->cam_state == CAM_EYECAM) && trackent && trackent <= cl.allocated_client_slots)
 	{
-		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-1];
-		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-1];
+		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS-1];
+		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS-1];
 	}
 	else
 	{

@@ -624,7 +624,7 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 
 //	to = MULTICAST_ALL;
 	//don't let things crash if the world model went away. can happen in broadcasts when reloading video with the map no longer available causing the server to die with the resulting broadcast messages about players dropping or gib effects appearing
-	if (sv.world.worldmodel->loadstate != MLS_LOADED || !sv.world.worldmodel->nodes)
+	if (sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED || !sv.world.worldmodel[sv_current_time_period]->nodes)
 	{
 		switch(to)
 		{
@@ -657,13 +657,13 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 		case MULTICAST_PHS_R:
 			reliable = true;	// intentional fallthrough
 		case MULTICAST_PHS:
-			if (!sv.world.worldmodel->phs || sv_nopvs.ival)	/*broadcast if no pvs*/
+			if (!sv.world.worldmodel[sv_current_time_period]->phs || sv_nopvs.ival)	/*broadcast if no pvs*/
 				mask = NULL;
 			else
 			{
-				cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, &area1);
+				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], origin, &area1);
 				if (cluster >= 0)
-					mask = sv.world.worldmodel->funcs.ClusterPHS(sv.world.worldmodel, cluster, NULL);
+					mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPHS(sv.world.worldmodel[sv_current_time_period], cluster, NULL);
 				else
 					mask = NULL;
 			}
@@ -676,9 +676,9 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 				mask = NULL;
 			else
 			{
-				cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, &area1);
+				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], origin, &area1);
 				if (cluster >= 0)
-					mask = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, cluster, NULL, PVM_FAST);
+					mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_time_period], cluster, NULL, PVM_FAST);
 				else
 					mask = NULL;
 			}
@@ -737,7 +737,7 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 				{
 					if (oneclient != split)
 					{
-						if (andspecs && split->spectator && split->spec_track > 0 && oneclient == &svs.clients[split->spec_track - 1])
+						if (andspecs && split->spectator && split->spec_track > 0 && oneclient == &svs.clients[split->spec_track - MAX_TIME_PERIODS-1])
 							;
 						else
 							continue;
@@ -770,9 +770,9 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 							break;
 					}
 
-					cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, pos, &area2);
+					cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], pos, &area2);
 					if (cluster>= 0 && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ||
-						(sv.world.worldmodel->funcs.AreasConnected && !sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))))
+						(sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected && !sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], area1, area2))))
 					{
 		//				Con_Printf ("PVS supressed multicast\n");
 						continue;
@@ -942,13 +942,13 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 	case MULTICAST_PHS_R:
 		reliable = true;	// intentional fallthrough
 	case MULTICAST_PHS:
-		if (!sv.world.worldmodel->phs)	/*broadcast if no pvs*/
+		if (!sv.world.worldmodel[sv_current_time_period]->phs)	/*broadcast if no pvs*/
 			mask = NULL;
 		else
 		{
-			cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, NULL);
+			cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], origin, NULL);
 			if (cluster >= 0)
-				mask = sv.world.worldmodel->phs + cluster * sv.world.worldmodel->pvsbytes;
+				mask = sv.world.worldmodel[sv_current_time_period]->phs + cluster * sv.world.worldmodel[sv_current_time_period]->pvsbytes;
 			else
 				mask = NULL;
 		}
@@ -957,9 +957,9 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 	case MULTICAST_PVS_R:
 		reliable = true;	// intentional fallthrough
 	case MULTICAST_PVS:
-		cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, NULL);
+		cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], origin, NULL);
 		if (cluster >= 0)
-			mask = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, cluster, NULL, PVM_FAST);
+			mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_time_period], cluster, NULL, PVM_FAST);
 		else
 			mask = NULL;
 		break;
@@ -1031,7 +1031,7 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 				{
 					vec3_t pos;
 					VectorAdd(split->edict->v->origin, split->edict->v->view_ofs, pos);
-					cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, pos, NULL);
+					cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], pos, NULL);
 					if (cluster>= 0 && !(mask[cluster>>3] & (1<<(cluster&7)) ) )
 					{
 		//				Con_Printf ("PVS supressed multicast\n");
@@ -2611,11 +2611,11 @@ void SV_UpdateClientStats (client_t *client, int pnum, sizebuf_t *msg, client_fr
 
 qboolean SV_CanTrack(client_t *client, int entity)
 {
-	if (entity <= 0 || entity > sv.allocated_client_slots)
+	if (entity <= 0 || entity > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 		return false;
-	if (svs.clients[entity-1].spectator)
+	if (svs.clients[entity-MAX_TIME_PERIODS-1].spectator)
 		return false;
-	if (svs.clients[entity-1].state == cs_spawned || (svs.clients[entity-1].state == cs_free && svs.clients[entity-1].userinfo.numkeys))
+	if (svs.clients[entity-MAX_TIME_PERIODS-1].state == cs_spawned || (svs.clients[entity-MAX_TIME_PERIODS-1].state == cs_free && svs.clients[entity-MAX_TIME_PERIODS-1].userinfo.numkeys))
 		return true;
 	return false;
 }
@@ -2665,7 +2665,7 @@ qboolean SV_SendClientDatagram (client_t *client)
 	if (msg.maxsize <= 0)
 		msg.maxsize = clientlimit;	//its going to overflow. favour ents over unreliables. its a little less fatal
 
-	if (sv.world.worldmodel && !client->controller)
+	if (sv.world.worldmodel[sv_current_time_period] && !client->controller)
 	{
 #ifdef Q2SERVER
 		if (ISQ2CLIENT(client))
@@ -3008,15 +3008,15 @@ void SV_UpdateToReliableMessages (void)
 			if (j)
 			{
 				if ((unsigned int)j >= svprogfuncs->edicttable_length)
-					j = i+1;
+					j = i+MAX_TIME_PERIODS;
 				if (j != host_client->clientcamera)
 				{
 					if (host_client->fteprotocolextensions & PEXT_VIEW2)
 					{
 						ClientReliableWrite_Begin(host_client, svc_setview, 4);
-						ClientReliableWrite_Entity(host_client, j);
+						ClientReliableWrite_Entity(host_client, 3);
 					}
-					if (j == i+1)
+					if (j == i)
 						j = 0;	//self.
 					host_client->viewent = j;
 				}

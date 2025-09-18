@@ -730,7 +730,7 @@ static int my_lua_entity_set(lua_State *L)	//__newindex
 					if (lua_type(L, 3) == LUA_TNIL)
 						eval->function = 0;	//so the engine can distinguish between nil and not.
 					else
-						eval->function = fld->offset | ((entnum+1)<<10);
+						eval->function = fld->offset | ((entnum+MAX_TIME_PERIODS)<<10);
 					lua_pushlightuserdata(L, (void *)(qintptr_t)fld->offset);	//execute only knows a function id, so we need to translate the store to match.
 					lua_replace(L, 2);
 					lua_rawset(L, 1);
@@ -739,14 +739,14 @@ static int my_lua_entity_set(lua_State *L)	//__newindex
 					if (lua_type(L, 3) == LUA_TNIL)
 						eval->string = 0;	//so the engine can distinguish between nil and not.
 					else
-						eval->string = fld->offset | ((entnum+1)<<10);
+						eval->string = fld->offset | ((entnum+MAX_TIME_PERIODS)<<10);
 					lua_pushlightuserdata(L, (void *)(qintptr_t)fld->offset);	//execute only knows a string id, so we need to translate the store to match.
 					lua_replace(L, 2);
 					lua_rawset(L, 1);
 					return 0;
 				case ev_entity:
 					//read the table's entnum field so we know which one its meant to be.
-					lua_getfield(L, 3, "entnum");
+					lua_getfield(L, 1, "entnum");
 					eval->edict = lua_tointegerx(L, -1, NULL);
 					return 0;
 				}
@@ -1136,7 +1136,7 @@ static int bi_lua_pointcontents(lua_State *L)
 {
 	vec3_t pos;
 	lua_readvector(L, 1, pos);
-	lua_pushinteger(L, sv.world.worldmodel->funcs.PointContents(sv.world.worldmodel, NULL, pos));
+	lua_pushinteger(L, sv.world.worldmodel[sv_current_time_period]->funcs.PointContents(sv.world.worldmodel[sv_current_time_period], NULL, pos));
 	return 1;
 }
 
@@ -1235,12 +1235,12 @@ static int bi_lua_sprint_qw(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
 	}
-	SV_ClientPrintf (&svs.clients[entnum-1], level, "%s", str);
+	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIOD-1], level, "%s", str);
 	return 0;
 }
 static int bi_lua_sprint_nq(lua_State *L)
@@ -1252,12 +1252,12 @@ static int bi_lua_sprint_nq(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
 	}
-	SV_ClientPrintf (&svs.clients[entnum-1], level, "%s", str);
+	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIODS-1], level, "%s", str);
 	return 0;
 }
 
@@ -1617,7 +1617,7 @@ static int bi_lua_findradiuschain(lua_State *L)
 	rad = lua_tonumberx(L, 2, NULL);
 	rad = rad*rad;
 
-	for (i=1 ; i<world->num_edicts ; i++)
+	for (i=MAX_TIME_PERIODS ; i<world->num_edicts ; i++)
 	{
 		ent = EDICT_NUM_PB(world->progs, i);
 		if (ED_ISFREE(ent))
@@ -1656,7 +1656,7 @@ static int bi_lua_findradiustable(lua_State *L)
 
 	lua_newtable(L);	//our return value.
 
-	for (i=1 ; i<world->num_edicts ; i++)
+	for (i=MAX_TIME_PERIODS ; i<world->num_edicts ; i++)
 	{
 		ent = EDICT_NUM_PB(world->progs, i);
 		if (ED_ISFREE(ent))
@@ -2846,6 +2846,7 @@ static int QDECL Lua_LoadEnts(pubprogfuncs_t *pf, const char *mapstring, void *c
 	lua_State *L = lua.ctx;
 	struct edict_s *ed = NULL;
 	const char *datastart = mapstring;
+	int t;
 
 	lua_pushglobaltable(L);
 	while (1)
@@ -2900,9 +2901,12 @@ static int QDECL Lua_LoadEnts(pubprogfuncs_t *pf, const char *mapstring, void *c
 		if (!strcmp(com_token, "{"))
 		{
 			if (!ed)	//first entity
-				ed = EDICT_NUM_PB(pf, 0);
+			{
+				ed = EDICT_NUM_PB(pf, t);
+				t++;
+			}
 			else
-				ed = ED_Alloc(pf, false, 0);
+				ed = ED_Alloc(pf, false, t);
 			ed->ereftype = ER_ENTITY;
 			if (pf->parms->entspawn)
 				pf->parms->entspawn(ed, true);
@@ -3019,7 +3023,7 @@ static void QDECL Lua_SetStringField(pubprogfuncs_t *prinst, edict_t *ed, string
 	string_t base;
 	if (ed)
 	{
-		base = (ed->entnum+1)<<10;
+		base = (ed->entnum+MAX_TIME_PERIODS)<<10;
 		val = (char*)fld-(char*)ed->v;
 
 		lua_pushedict(lua.ctx, lua.edicttable[ed->entnum]);

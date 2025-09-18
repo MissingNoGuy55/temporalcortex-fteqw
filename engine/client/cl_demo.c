@@ -564,7 +564,7 @@ qboolean CL_GetDemoMessage (void)
 	{	//read the nq demo
 
 		//if we've finished reading the connection part of the demo, but not finished loading, pause the demo
-		if (cls.signon == 1 && !cl.worldmodel)
+		if (cls.signon == 1 && !cl.worldmodel[cl_current_time_period])
 		{
 			demtime = cl.gametime;
 			return 0;
@@ -1982,7 +1982,7 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, !!cl.paused);
 
 #ifdef PEXT_SETVIEW
-		if (cl.playerview[0].viewentity != cl.playerview[0].playernum+1)	//tell the player if we have a different view entity
+		if (cl.playerview[0].viewentity != cl.playerview[0].playernum+MAX_TIME_PERIODS)	//tell the player if we have a different view entity
 		{
 			MSG_WriteByte (&buf, svc_setview);
 			MSG_WriteEntity (&buf, cl.playerview[0].viewentity);

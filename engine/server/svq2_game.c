@@ -228,13 +228,13 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 	if (ent)
 	{
 		n = Q2NUM_FOR_EDICT(ent);
-		if (n < 1 || n > svs.allocated_client_slots)
+		if (n < MAX_TIME_PERIODS || n > svs.allocated_client_slots)
 		{
 			Sys_Error ("cprintf to a non-client");
 			return;
 		}
 		
-		if (svs.clients[n-1].state < cs_connected)
+		if (svs.clients[n-MAX_TIME_PERIODS-1].state < cs_connected)
 		{
 			Sys_Error ("cprintf to a disconnected client");
 			return;
@@ -246,7 +246,7 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 	va_end (argptr);
 
 	if (ent)
-		SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
+		SV_ClientPrintf (svs.clients+(n-MAX_TIME_PERIODS-1), level, "%s", msg);
 	else
 		Con_Printf ("%s", msg);
 }
@@ -266,10 +266,10 @@ static void VARGS PFQ2_centerprintf (q2edict_t *ent, const char *fmt, ...)
 	int			n;
 	
 	n = Q2NUM_FOR_EDICT(ent);
-	if (n < 1 || n > svs.allocated_client_slots)
+	if (n < MAX_TIME_PERIODS || n > svs.allocated_client_slots)
 		return;	// Com_Error (ERR_DROP, "centerprintf to a non-client");
 
-	if (svs.clients[n-1].state < cs_connected)
+	if (svs.clients[n-MAX_TIME_PERIODS-1].state < cs_connected)
 		return;
 
 	va_start (argptr,fmt);
@@ -314,7 +314,7 @@ PF_Configstring
 void VARGS PFQ2_Configstring (int i, const char *val)
 {
 	int msgsize;
-	int j;
+	int j, t;
 	int q2exremap;
 	client_t *cl;
 	if (i < 0 || i >= Q2MAX_CONFIGSTRINGS)
@@ -351,28 +351,31 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 	Z_Free((char*)sv.strings.configstring[i]);
 	sv.strings.configstring[i] = Z_StrDup(val);
 
-	if (i == Q2CS_NAME)
-		Q_strncpyz(sv.mapname, val, sizeof(sv.mapname));
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	{
+		if (i == Q2CS_NAME)
+			Q_strncpyz(sv.mapname[t], val, sizeof(sv.mapname[t]));
 
-	if (sv.state != ss_loading)
-	{	// send the update to everyone
-		for (j = 0, cl = svs.clients; j < sv.allocated_client_slots; j++, cl++)
-		{
-			if (cl->state != cs_spawned)
-				continue;
-			if (cl->controller)
-				continue;
-			if (cl->protocol == SCP_QUAKE2)
+		if (sv.state != ss_loading)
+		{	// send the update to everyone
+			for (j = 0, cl = svs.clients; j < sv.allocated_client_slots; j++, cl++)
 			{
-				ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
-				ClientReliableWrite_Short(cl, i);
-				ClientReliableWrite_String(cl, val);
-			}
-			else if (cl->protocol == SCP_QUAKE2EX)
-			{
-				ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
-				ClientReliableWrite_Short(cl, q2exremap);
-				ClientReliableWrite_String(cl, val);
+				if (cl->state != cs_spawned)
+					continue;
+				if (cl->controller)
+					continue;
+				if (cl->protocol == SCP_QUAKE2)
+				{
+					ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
+					ClientReliableWrite_Short(cl, i);
+					ClientReliableWrite_String(cl, val);
+				}
+				else if (cl->protocol == SCP_QUAKE2EX)
+				{
+					ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
+					ClientReliableWrite_Short(cl, q2exremap);
+					ClientReliableWrite_String(cl, val);
+				}
 			}
 		}
 	}
@@ -499,7 +502,7 @@ static void VARGS PFQ2_setmodel (q2edict_t *ent, const char *name)
 // if it is an inline model, get the size information for it
 	if (name[0] == '*')
 	{
-		mod = Mod_FindName (Mod_FixName(name, sv.modelname));
+		mod = Mod_FindName (Mod_FixName(name, sv.modelname[sv_current_time_period]));
 		if (mod->loadstate == MLS_LOADING)
 			COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);	//wait for it if needed
 		VectorCopy (mod->mins, ent->mins);
@@ -549,13 +552,13 @@ static qboolean VARGS PFQ2_inPVS (vec3_t p1, vec3_t p2)
 	int		area1, area2;
 	qbyte	*mask;
 
-	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
-	mask = sv.world.worldmodel->funcs.ClusterPVS (sv.world.worldmodel, cluster, NULL, PVM_FAST);
+	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p1, &area1);
+	mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_time_period], cluster, NULL, PVM_FAST);
 
-	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p2, &area2);
+	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;
-	if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))
+	if (!sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], area1, area2))
 		return false;		// a door blocks sight
 	return true;
 }
@@ -574,13 +577,13 @@ static qboolean VARGS PFQ2_inPHS (vec3_t p1, vec3_t p2)
 	int		area1, area2;
 	qbyte	*mask;
 
-	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
-	mask = sv.world.worldmodel->funcs.ClusterPHS (sv.world.worldmodel, cluster, NULL);
+	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p1, &area1);
+	mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_time_period], cluster, NULL);
 
-	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p2, &area2);
+	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;		// more than one bounce away
-	if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))
+	if (!sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], area1, area2))
 		return false;		// a door blocks hearing
 
 	return true;
@@ -589,7 +592,7 @@ static qboolean VARGS PFQ2_inPHS (vec3_t p1, vec3_t p2)
 qboolean VARGS PFQ2_AreasConnected(unsigned int area1, unsigned int area2)
 {
 	//FIXME: requires q2/q3 bsp
-	return sv.world.worldmodel->funcs.AreasConnected(sv.world.worldmodel, area1, area2);
+	return sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected(sv.world.worldmodel[sv_current_time_period], area1, area2);
 }
 
 
@@ -883,8 +886,8 @@ void SVQ2_InitWorld(void)
 
 static void QDECL PFQ2_SetAreaPortalState(unsigned int p, qboolean s)
 {
-	if (sv.world.worldmodel->funcs.SetAreaPortalState)
-		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, p, -1, -1, s);
+	if (sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_time_period], p, -1, -1, s);
 }
 
 static void *VARGS ZQ2_TagMalloc(int size, int tag)

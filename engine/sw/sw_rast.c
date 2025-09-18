@@ -903,7 +903,7 @@ void SW_R_RenderView(void)
 	extern cvar_t gl_mindist;
 	vec3_t newa;
 	int tmpvisents = cl_numvisedicts;	/*world rendering is allowed to add additional ents, but we don't want to keep them for recursive views*/
-	if (!cl.worldmodel || (!cl.worldmodel->nodes && cl.worldmodel->type != mod_heightmap))
+	if (!cl.worldmodel[cl_current_time_period] || (!cl.worldmodel[cl_current_time_period]->nodes && cl.worldmodel[cl_current_time_period]->type != mod_heightmap))
 		r_refdef.flags |= RDF_NOWORLDMODEL;
 
 	//no fbos here

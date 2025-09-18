@@ -104,6 +104,8 @@ extern int sv_max_staticentities;
 extern staticsound_state_t *sv_staticsounds;
 extern int sv_max_staticsounds;
 
+extern timeperiod_t sv_current_time_period;
+
 typedef struct server_s
 {
 	qboolean	active;				// false when server is going down
@@ -136,8 +138,8 @@ typedef struct server_s
 	unsigned	eyes_player_checksum;
 
 //	char		name[64];			// file map name (moved to svs, for restart)
-	char		mapname[256];		// text description of the map
-	char		modelname[MAX_QPATH];		// maps/<name>.bsp, for model_precache[0]
+	char		mapname[MAX_TIME_PERIODS][256];		// text description of the map
+	char		modelname[MAX_TIME_PERIODS][MAX_QPATH];		// maps/<name>.bsp, for model_precache[0]
 
 	world_t world;
 

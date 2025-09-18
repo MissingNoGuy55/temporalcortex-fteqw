@@ -1401,11 +1401,11 @@ qboolean R_CalcModelLighting(entity_t *e, model_t *clmodel)
 		return e->light_known-1;
 	}
 
-	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel)
+	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_time_period])
 	{
 		if (e->flags & RF_WEAPONMODEL)
 		{
-			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, r_refdef.vieworg, shadelight, ambientlight, lightdir);
+			cl.worldmodel[cl_current_time_period]->funcs.LightPointValues(cl.worldmodel[cl_current_time_period], r_refdef.vieworg, shadelight, ambientlight, lightdir);
 			for (i = 0; i < 3; i++)
 			{	/*viewmodels may not be pure black*/
 				if (ambientlight[i] < 24)
@@ -1422,7 +1422,7 @@ qboolean R_CalcModelLighting(entity_t *e, model_t *clmodel)
 			VectorCopy(e->origin, center);
 			center[2] += 24;
 			#endif
-			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, center, shadelight, ambientlight, lightdir);
+			cl.worldmodel[cl_current_time_period]->funcs.LightPointValues(cl.worldmodel[cl_current_time_period], center, shadelight, ambientlight, lightdir);
 		}
 	}
 	else
@@ -1847,9 +1847,9 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 
 			b->buildmeshes = R_GAlias_DrawBatch;
 			b->ent = e;
-			b->envmap = Mod_CubemapForOrigin(cl.worldmodel, e->origin);
+			b->envmap = Mod_CubemapForOrigin(cl.worldmodel[cl_current_time_period], e->origin);
 #if defined(Q3BSPS) || defined(RFBSPS)
-			b->fog = Mod_FogForOrigin(cl.worldmodel, e->origin);
+			b->fog = Mod_FogForOrigin(cl.worldmodel[cl_current_time_period], e->origin);
 #endif
 			b->mesh = NULL;
 			b->firstmesh = 0;
@@ -2791,7 +2791,7 @@ static void R_Sprite_GenerateTrisoup(entity_t *e, int bemode)
 	}
 
 	VectorScale(e->shaderRGBAf, lightmap, rgba[0]);
-	if (frame && frame->lit && !(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel && cl.worldmodel->funcs.LightPointValues)
+	if (frame && frame->lit && !(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.LightPointValues)
 	{
 		R_CalcModelLighting(e, e->model);
 		VectorMul(rgba[0], e->light_avg, rgba[0]);
@@ -2916,13 +2916,13 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 	for (i = 0; i < SHADER_SORT_COUNT; i++)
 		batches[i] = NULL;
 
-	if (cl.worldmodel && !(r_refdef.flags & RDF_NOWORLDMODEL))
+	if (cl.worldmodel[cl_current_time_period] && !(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
-		if (cl.worldmodel->terrain)
+		if (cl.worldmodel[cl_current_time_period]->terrain)
 #if defined(TERRAIN)
 			Terr_DrawTerrainModel(batches, &r_worldentity);
 #endif
-		if (cl.worldmodel->type == mod_alias)
+		if (cl.worldmodel[cl_current_time_period]->type == mod_alias)
 		{
 			r_worldentity.framestate.g[FS_REG].lerpweight[0] = 1;
 			r_worldentity.scale = 1;
@@ -2979,7 +2979,7 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 		}
 #endif
 
-		if (worldpvs && !cl.worldmodel->funcs.EdictInFatPVS(cl.worldmodel, &ent->pvscache, worldpvs, worldareas))
+		if (worldpvs && !cl.worldmodel[cl_current_time_period]->funcs.EdictInFatPVS(cl.worldmodel[cl_current_time_period], &ent->pvscache, worldpvs, worldareas))
 			continue;
 
 		switch(ent->rtype)

@@ -177,7 +177,7 @@ static const char *svc_qwstrings[] =
 	"svcfte_csqcentities_sized",	//92
 	"NEW PROTOCOL(93)",
 	"NEW PROTOCOL(94)",
-	"NEW PROTOCOL(95)",
+	"svctc_timeperiod",
 	"NEW PROTOCOL(96)",
 	"NEW PROTOCOL(97)",
 	"NEW PROTOCOL(98)",
@@ -805,7 +805,7 @@ static void CL_SendDownloadStartRequest(downloadlist_t *pending)
 //Do any reloading for the file that just reloaded.
 void CL_DownloadFinished(qdownload_t *dl)
 {
-	int i;
+	int i, t;
 	char ext[8];
 
 	char filename[MAX_QPATH];
@@ -844,13 +844,13 @@ void CL_DownloadFinished(qdownload_t *dl)
 					if (cl.model_precache[i] && cl.model_precache[i]->loadstate == MLS_FAILED)
 						cl.model_precache[i]->loadstate = MLS_NOTLOADED;
 					CL_CheckModelResources(cl.model_name[i]);
-					cl.model_precache[i] = Mod_ForName(cl.model_name[i], ((i==1)?MLV_WARNSYNC:MLV_WARN));
-					if (i == 1)
+					cl.model_precache[i] = Mod_ForName(cl.model_name[i], ((i<MAX_TIME_PERIODS)?MLV_WARNSYNC:MLV_WARN));
+					if (i < MAX_TIME_PERIODS)
 					{
-						cl.worldmodel = cl.model_precache[i];
+						cl.worldmodel[i] = cl.model_precache[i];
 						//just in case.
-						if (cl.model_precache[1] && cl.model_precache[1]->loadstate == MLS_LOADED)
-							FS_LoadMapPackFile(cl.model_precache[1]->name, cl.model_precache[1]->archive);
+						if (cl.model_precache[i] && cl.model_precache[i]->loadstate == MLS_LOADED)
+							FS_LoadMapPackFile(cl.model_precache[i]->name, cl.model_precache[i]->archive);
 					}
 					break;
 				}
@@ -1368,7 +1368,10 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 	if (cl.playerview[0].playernum == -1)
 	{	//q2 cinematic - don't load the models.
-		cl.worldmodel = cl.model_precache[1] = Mod_ForName ("", MLV_WARN);
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			cl.worldmodel[i] = cl.model_precache[i+1] = Mod_ForName ("", MLV_WARN);
+		}
 	}
 	else
 	{
@@ -1381,7 +1384,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 #if 0
 				SCR_SetLoadingFile(cl.model_name[i]);
 #ifdef CSQC_DAT
-				if (i == 1)
+				if (i < MAX_TIME_PERIODS)
 					CSQC_LoadResource(cl.model_name[i], "map");
 				else
 					CSQC_LoadResource(cl.model_name[i], "model");
@@ -1392,10 +1395,10 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 					cl.model_precache[i] = NULL;
 				else
 #endif
-				if (!cls.timedemo && i!=1 && mod_precache.ival != 1)
-					cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
+				if (!cls.timedemo && i > TIME_PERIOD_FUTURE && mod_precache.ival > TIME_PERIOD_FUTURE)
+					cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1+i]));
 				else
-					cl.model_precache[i] = Mod_ForName (Mod_FixName(cl.model_name[i], cl.model_name[1]), MLV_WARN);
+					cl.model_precache[i] = Mod_ForName (Mod_FixName(cl.model_name[i], cl.model_name[1+i]), MLV_WARN);
 
 				S_ExtraUpdate();
 
@@ -1426,24 +1429,27 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 	if (atstage())
 	{
-		cl.worldmodel = cl.model_precache[1];
-		if (!cl.worldmodel || cl.worldmodel->type == mod_dummy)
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		{
-			if (!cl.model_name[1])
-				Host_EndGame("Worldmodel name wasn't sent\n");
-//			else
-//				return stage;
-//				Host_EndGame("Worldmodel wasn't loaded\n");
-		}
-		//the worldmodel can take a while to load, so be sure to wait.
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
-			return -1;
+			cl.worldmodel[i] = cl.model_precache[i+1];
+			if (!cl.worldmodel[i] || cl.worldmodel[i]->type == mod_dummy)
+			{
+				if (!cl.model_name[1])
+					Host_EndGame("Worldmodel name wasn't sent\n");
+	//			else
+	//				return stage;
+	//				Host_EndGame("Worldmodel wasn't loaded\n");
+			}
+			//the worldmodel can take a while to load, so be sure to wait.
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
+				return -1;
 
-		FS_LoadMapPackFile(cl.worldmodel->name, cl.worldmodel->archive);
+			FS_LoadMapPackFile(cl.worldmodel[i]->name, cl.worldmodel[i]->archive);
+		}
 
 		SCR_SetLoadingFile("csprogs world");
-
 		endstage();
+
 	}
 
 	for (i=1 ; i<MAX_CSMODELS ; i++)
@@ -1472,13 +1478,16 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 		SCR_SetLoadingFile("wads");
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
-			return -1;
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
-		Mod_ParseInfoFromEntityLump(cl.worldmodel);
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
+				return -1;
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[i], &cl.worldmodel[i]->loadstate, MLS_LOADING);
+			Mod_ParseInfoFromEntityLump(cl.worldmodel[i]);
 
-		Wad_NextDownload();
+			Wad_NextDownload(i);
+		}
 
 		endstage();
 	}
@@ -1486,12 +1495,15 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 		SCR_SetLoadingFile("external textures");
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
-		CL_CheckServerInfo(); //some serverinfo rules can change with map type, so make sure they're updated now we're sure we know it properly.
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
-			Mod_NowLoadExternal(cl.worldmodel);
 
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[i], &cl.worldmodel[i]->loadstate, MLS_LOADING);
+			CL_CheckServerInfo(); //some serverinfo rules can change with map type, so make sure they're updated now we're sure we know it properly.
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADED)
+				Mod_NowLoadExternal(cl.worldmodel[i], i);
+		}
 /*#ifdef Q2CLIENT
 		if (cls.protocol == CP_QUAKE2 && cl.worldmodel && !cls.demoplayback &&
 				cl.worldmodel->checksum  != cl.q2mapchecksum &&
@@ -1508,11 +1520,12 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	{
 		SCR_SetLoadingFile("newmap");
 
-//		if (!cl.worldmodel || cl.worldmodel->type == mod_dummy)
-//			Host_EndGame("No worldmodel was loaded\n");
-		Surf_NewMap (cl.worldmodel);
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			Surf_NewMap (cl.worldmodel[i], i);
+		}
 
-		pmove.physents[0].model = cl.worldmodel;
+		pmove.physents[0].model = cl.worldmodel[0];
 
 		endstage();
 	}
@@ -1663,6 +1676,7 @@ void CL_RequestNextDownload (void)
 {
 
 	int stage;
+	int i;
 	/*already downloading*/
 	if (cls.download && !cls.demoplayback)
 		return;
@@ -1778,70 +1792,73 @@ void CL_RequestNextDownload (void)
 				Con_TPrintf(CON_WARNING "Splitscreen requested but not available on this server.\n");
 		}
 
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
-
-		if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+		for( i = 0; i < MAX_TIME_PERIODS; i++)
 		{
-			downloadlist_t *dl = NULL;
-			const char *worldname = cl.worldmodel?cl.worldmodel->name:"unknown";
-			if (cl.worldmodel)
-				for (dl = cl.faileddownloads; dl; dl = dl->next)	//yeah, so it failed... Ignore it.
-					if (!strcmp(dl->rname, cl.worldmodel->name))
-						break;
-			Con_Printf("\n\n-------------\n");
-			switch (dl?dl->failreason:DLFAIL_UNTRIED)
-			{
-			case DLFAIL_UNSUPPORTED:
-				Con_Printf(CON_ERROR "Download of \"%s\" not supported on this server - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_CORRUPTED:
-				Con_Printf(CON_ERROR "Download of \"%s\" corrupt/failed - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_CLIENTCVAR:
-				Con_Printf(CON_ERROR "Downloading of \"%s\" blocked by clientside cvars - tweak cl_download* before retrying\n", worldname);
-				break;
-			case DLFAIL_CLIENTFILE:
-				Con_Printf(CON_ERROR "Disk error downloading \"%s\" - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_SERVERCVAR:
-				Con_Printf(CON_ERROR "Download of \"%s\" denied by server - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_SERVERFILE:
-				Con_Printf(CON_ERROR "Download of \"%s\" unavailable - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_REDIRECTED:
-				Con_Printf(CON_ERROR "Redirection failure downloading \"%s\" - cannot fully connect\n", worldname);
-				break;
-			case DLFAIL_UNTRIED:
-				if (COM_FCheckExists(worldname))
-				{
-					if (!cl.worldmodel)
-						Con_Printf(CON_ERROR "Couldn't load \"%s\" - worldmodel not set - cannot fully connect\n", worldname);
-					else if (cl.worldmodel->loadstate == MLS_FAILED)
-						Con_Printf(CON_ERROR "Couldn't load \"%s\" - corrupt? - cannot fully connect\n", worldname);
-					else if (cl.worldmodel->loadstate == MLS_LOADING)
-						Con_Printf(CON_ERROR "Couldn't load \"%s\" - still loading - cannot fully connect\n", worldname);
-					else if (cl.worldmodel->loadstate == MLS_NOTLOADED)
-						Con_Printf(CON_ERROR "Couldn't load \"%s\" - worldmodel not loaded - cannot fully connect\n", worldname);
-					else
-						Con_Printf(CON_ERROR "Couldn't load \"%s\" - corrupt? - cannot fully connect\n", worldname);
-				}
-				else
-					Con_Printf(CON_ERROR "Couldn't find \"%s\" - cannot fully connect\n", worldname);
-				break;
-			}
-#ifdef HAVE_MEDIA_ENCODER
-			if (cls.demoplayback && Media_Capturing())
-			{
-				Con_Printf(CON_ERROR "Aborting capture\n");
-				CL_StopPlayback();
-			}
-#endif
-			//else should probably force the demo speed really fast or something
+			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[i], &cl.worldmodel[i]->loadstate, MLS_LOADING);
 
-			SCR_SetLoadingStage(LS_NONE);
-			return;
+			if (!cl.worldmodel[i] || cl.worldmodel[i]->loadstate != MLS_LOADED)
+			{
+				downloadlist_t *dl = NULL;
+				const char *worldname = cl.worldmodel[i]?cl.worldmodel[i]->name:"unknown";
+				if (cl.worldmodel[i])
+					for (dl = cl.faileddownloads; dl; dl = dl->next)	//yeah, so it failed... Ignore it.
+						if (!strcmp(dl->rname, cl.worldmodel[i]->name))
+							break;
+				Con_Printf("\n\n-------------\n");
+				switch (dl?dl->failreason:DLFAIL_UNTRIED)
+				{
+				case DLFAIL_UNSUPPORTED:
+					Con_Printf(CON_ERROR "Download of \"%s\" not supported on this server - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_CORRUPTED:
+					Con_Printf(CON_ERROR "Download of \"%s\" corrupt/failed - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_CLIENTCVAR:
+					Con_Printf(CON_ERROR "Downloading of \"%s\" blocked by clientside cvars - tweak cl_download* before retrying\n", worldname);
+					break;
+				case DLFAIL_CLIENTFILE:
+					Con_Printf(CON_ERROR "Disk error downloading \"%s\" - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_SERVERCVAR:
+					Con_Printf(CON_ERROR "Download of \"%s\" denied by server - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_SERVERFILE:
+					Con_Printf(CON_ERROR "Download of \"%s\" unavailable - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_REDIRECTED:
+					Con_Printf(CON_ERROR "Redirection failure downloading \"%s\" - cannot fully connect\n", worldname);
+					break;
+				case DLFAIL_UNTRIED:
+					if (COM_FCheckExists(worldname))
+					{
+						if (!cl.worldmodel[i])
+							Con_Printf(CON_ERROR "Couldn't load \"%s\" - worldmodel not set - cannot fully connect\n", worldname);
+						else if (cl.worldmodel[i]->loadstate == MLS_FAILED)
+							Con_Printf(CON_ERROR "Couldn't load \"%s\" - corrupt? - cannot fully connect\n", worldname);
+						else if (cl.worldmodel[i]->loadstate == MLS_LOADING)
+							Con_Printf(CON_ERROR "Couldn't load \"%s\" - still loading - cannot fully connect\n", worldname);
+						else if (cl.worldmodel[i]->loadstate == MLS_NOTLOADED)
+							Con_Printf(CON_ERROR "Couldn't load \"%s\" - worldmodel not loaded - cannot fully connect\n", worldname);
+						else
+							Con_Printf(CON_ERROR "Couldn't load \"%s\" - corrupt? - cannot fully connect\n", worldname);
+					}
+					else
+						Con_Printf(CON_ERROR "Couldn't find \"%s\" - cannot fully connect\n", worldname);
+					break;
+				}
+#ifdef HAVE_MEDIA_ENCODER
+				if (cls.demoplayback && Media_Capturing())
+				{
+					Con_Printf(CON_ERROR "Aborting capture\n");
+					CL_StopPlayback();
+				}
+#endif
+				//else should probably force the demo speed really fast or something
+
+				SCR_SetLoadingStage(LS_NONE);
+				return;
+			}
 		}
 
 		Cvar_ForceCallback(Cvar_FindVar("r_particlesdesc"));
@@ -1875,7 +1892,7 @@ void CL_RequestNextDownload (void)
 			{
 				if (CL_RemoveClientCommands("qtvspawn"))
 					Con_DPrintf("Multiple prespawns\n");
-				CL_SendClientCommand(true, "qtvspawn %i 0 %i", cl.servercount, COM_RemapMapChecksum(cl.worldmodel, LittleLong(cl.worldmodel->checksum2)));
+				CL_SendClientCommand(true, "qtvspawn %i 0 %i", cl.servercount, COM_RemapMapChecksum(cl.worldmodel[0], LittleLong(cl.worldmodel[0]->checksum2)));
 				SCR_SetLoadingStage(LS_NONE);
 			}
 			else
@@ -1887,8 +1904,8 @@ void CL_RequestNextDownload (void)
 					CL_SendClientCommand(true, "prespawn");
 				else
 				{
-		//			CL_SendClientCommand("prespawn %i 0 %i", cl.servercount, cl.worldmodel->checksum2);
-					CL_SendClientCommand(true, prespawn_name, cl.servercount, COM_RemapMapChecksum(cl.worldmodel, LittleLong(cl.worldmodel->checksum2)));
+		//			CL_SendClientCommand("prespawn %i 0 %i", cl.servercount, cl.worldmodel[i]->checksum2);
+					CL_SendClientCommand(true, prespawn_name, cl.servercount, COM_RemapMapChecksum(cl.worldmodel[0], LittleLong(cl.worldmodel[0]->checksum2)));
 				}
 			}
 		}
@@ -3475,7 +3492,7 @@ static void CLQW_ParseServerData (void)
 			cl.playerview[pnum].playernum = (qbyte)MSG_ReadByte();
 			if (cl.playerview[pnum].playernum >= cl.allocated_client_slots)
 				Host_EndGame("unsupported local player slot\n");
-			cl.playerview[pnum].viewentity = cl.playerview[pnum].playernum+1;
+			cl.playerview[pnum].viewentity = cl.playerview[pnum].playernum+MAX_TIME_PERIODS;
 		}
 	}
 	else 
@@ -3502,7 +3519,7 @@ static void CLQW_ParseServerData (void)
 			if (cl.playerview[clnum].playernum >= cl.allocated_client_slots)
 				Host_EndGame("unsupported local player slot\n");
 
-			cl.playerview[clnum].viewentity = cl.playerview[clnum].playernum+1;
+			cl.playerview[clnum].viewentity = cl.playerview[clnum].playernum+MAX_TIME_PERIODS;
 			if (!(cls.fteprotocolextensions & PEXT_SPLITSCREEN))
 				break;
 
@@ -3510,7 +3527,7 @@ static void CLQW_ParseServerData (void)
 			if (pnum == 128)
 				break;
 		}
-		cl.splitclients = clnum+1;
+		cl.splitclients = clnum+MAX_TIME_PERIODS;
 	}
 
 	// get the full level name
@@ -3702,9 +3719,9 @@ static void CLQ2_ParseServerData (void)
 
 	// parse player entity number
 	cl.playerview[0].playernum = MSG_ReadShort ();
-	cl.playerview[0].viewentity = cl.playerview[0].playernum+1;
+	cl.playerview[0].viewentity = cl.playerview[0].playernum+MAX_TIME_PERIODS;
 	cl.playerview[0].spectator = false;
-	cl.splitclients = 1;
+	cl.splitclients = MAX_TIME_PERIODS;
 
 	if (cls.protocol_q2 == PROTOCOL_VERSION_Q2EX && cl.playerview[0].playernum==-2)
 	{
@@ -3715,7 +3732,7 @@ static void CLQ2_ParseServerData (void)
 		for (i = 0; i < cl.splitclients; i++)
 		{
 			cl.playerview[i].playernum = MSG_ReadShort ();
-			cl.playerview[i].viewentity = cl.playerview[i].playernum+1;
+			cl.playerview[i].viewentity = cl.playerview[i].playernum+MAX_TIME_PERIODS;
 			cl.playerview[i].spectator = false;
 		}
 	}
@@ -4628,7 +4645,7 @@ static void CL_ParseModellist (qboolean lots)
 {
 	int	nummodels;
 	char	*str;
-	int n;
+	int n, t;
 
 // precache models and note certain default indexes
 	if (lots)
@@ -4704,10 +4721,13 @@ static void CL_ParseModellist (qboolean lots)
 
 	SCR_SetLoadingFile("loading data");
 
-	//we need to try to load it now if we can, so any embedded archive will be loaded *before* we start looking for other content...
-	cl.model_precache[1] = cl.model_name[1]?Mod_ForName (cl.model_name[1], MLV_SILENTSYNC):NULL;
-	if (cl.model_precache[1] && cl.model_precache[1]->loadstate == MLS_LOADED)
-		FS_LoadMapPackFile(cl.model_precache[1]->name, cl.model_precache[1]->archive);
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	{
+		//we need to try to load it now if we can, so any embedded archive will be loaded *before* we start looking for other content...
+		cl.model_precache[1+t] = cl.model_name[1+t]?Mod_ForName (cl.model_name[1+t], MLV_SILENTSYNC):NULL;
+		if (cl.model_precache[1+t] && cl.model_precache[1+t]->loadstate == MLS_LOADED)
+			FS_LoadMapPackFile(cl.model_precache[1+t]->name, cl.model_precache[1+t]->archive);
+	}
 
 	Sound_CheckDownloads();
 	Model_CheckDownloads();
@@ -4956,15 +4976,15 @@ parsesoundindex:
 	else if (i == Q2EXCS_MAPCHECKSUM)
 	{
 		int serverchecksum = (int)strtol(s, NULL, 10);
-		if (cl.worldmodel)
+		if (cl.worldmodel[0])
 		{
-			if (cl.worldmodel->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
+			if (cl.worldmodel[0]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[0], &cl.worldmodel[0]->loadstate, MLS_LOADING);
 
 			// the Q2 client normally exits here, however for our purposes we might as well ignore it
-			if (cl.worldmodel->checksum != serverchecksum &&
-				cl.worldmodel->checksum2!= serverchecksum)
-				Con_Printf(CON_WARNING "WARNING: Client checksum does not match server checksum (%i != %i)", cl.worldmodel->checksum2, serverchecksum);
+			if (cl.worldmodel[0]->checksum != serverchecksum &&
+				cl.worldmodel[0]->checksum2!= serverchecksum)
+				Con_Printf(CON_WARNING "WARNING: Client checksum does not match server checksum (%i != %i)", cl.worldmodel[0]->checksum2, serverchecksum);
 		}
 
 		cl.q2mapchecksum = serverchecksum;
@@ -5121,7 +5141,7 @@ void R_StaticEntityToRTLight(int i);
 static void CL_ParseStaticProt (int baselinetype)
 {
 	entity_t *ent;
-	int		i;
+	int		i, t;
 	entity_state_t	es;
 	vec3_t mins,maxs;
 
@@ -5223,8 +5243,10 @@ static void CL_ParseStaticProt (int baselinetype)
 		AngleVectors(es.angles, ent->axis[0], ent->axis[1], ent->axis[2]);
 	VectorInverse(ent->axis[1]);
 
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
-		return;
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		if (!cl.worldmodel[t] || cl.worldmodel[t]->loadstate != MLS_LOADED)
+			return;
+
 	if (ent->model)
 	{
 		//FIXME: wait for model to load so we know the correct size?
@@ -5237,7 +5259,9 @@ static void CL_ParseStaticProt (int baselinetype)
 		VectorCopy(es.origin, mins);
 		VectorCopy(es.origin, maxs);
 	}
-	cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &cl_static_entities[i].ent.pvscache, mins, maxs);
+
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		cl.worldmodel[t]->funcs.FindTouchedLeafs(cl.worldmodel[t], &cl_static_entities[i].ent.pvscache, mins, maxs);
 
 #ifdef RTLIGHTS
 	//and now handle any rtlight fields on it
@@ -5430,7 +5454,7 @@ static void CLQ2_ParseStartSoundPacket(void)
 	{	//a 'sexed' sound
 		if (ent > 0 && ent <= MAX_CLIENTS)
 		{
-			char *model = InfoBuf_ValueForKey(&cl.players[ent-1].userinfo, "skin");
+			char *model = InfoBuf_ValueForKey(&cl.players[ent-MAX_TIME_PERIODS-1].userinfo, "skin");
 			char *skin;
 			skin = strchr(model, '/');
 			if (skin)
@@ -7483,8 +7507,8 @@ static void CL_ParsePortalState(void)
 		return;
 #endif
 
-	if (cl.worldmodel && cl.worldmodel->loadstate==MLS_LOADED && cl.worldmodel->funcs.SetAreaPortalState)
-		cl.worldmodel->funcs.SetAreaPortalState(cl.worldmodel, p, a1, a2, state);
+	if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate==MLS_LOADED && cl.worldmodel[cl_current_time_period]->funcs.SetAreaPortalState)
+		cl.worldmodel[cl_current_time_period]->funcs.SetAreaPortalState(cl.worldmodel[cl_current_time_period], p, a1, a2, state);
 }
 
 static void CL_ParseBaseAngle(int seat)
@@ -7790,7 +7814,7 @@ void CLQW_ParseServerMessage (void)
 			for (i = 0; i < cl.splitclients && i < MAX_SPLITS; i++)
 			{
 				cl.playerview[i].playernum = MSG_ReadByte();
-				cl.playerview[i].viewentity = cl.playerview[i].playernum+1;
+				cl.playerview[i].viewentity = cl.playerview[i].playernum+MAX_TIME_PERIODS;
 				if (i>=j)	//its new.
 					cl.playerview[i].chatstate = 0;
 			}
@@ -8252,6 +8276,11 @@ void CLQW_ParseServerMessage (void)
 #endif
 			Con_Printf("Unable to parse gamecode packet\n");
 			break;
+
+		case svctc_timeperiod:
+			cl_current_time_period = MSG_ReadLong();
+			break;
+
 		}
 
 		packetusage_pending[cmd] += MSG_GetReadCount()-cmdstart;

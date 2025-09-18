@@ -1318,7 +1318,7 @@ static void	(D3D8_R_RenderView)				(void)
 		RQ_BeginFrame();
 		if (!(r_refdef.flags & RDF_NOWORLDMODEL))
 		{
-			if (cl.worldmodel)
+			if (cl.worldmodel[cl_current_time_period])
 				P_DrawParticles ();
 		}
 		Surf_DrawWorld();

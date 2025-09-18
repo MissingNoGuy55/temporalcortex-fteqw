@@ -313,7 +313,7 @@ ddef16_t *ED_FindGlobal16 (progfuncs_t *progfuncs, const char *name)
 	ddef16_t		*def;
 	unsigned int			i;
 
-	for (i=1 ; i<pr_progs->numglobaldefs ; i++)
+	for (i=MAX_TIME_PERIODS ; i<pr_progs->numglobaldefs ; i++)
 	{
 		def = &pr_globaldefs16[i];
 		if (!strcmp(def->s_name+progfuncs->funcs.stringtable,name) )
@@ -2052,6 +2052,7 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 	ddef32_t *d32;
 	void *oldglobals = NULL;
 	int oldglobalssize = 0;
+	int t = 0;
 
 	extern edictrun_t tempedict;
 
@@ -2436,7 +2437,10 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 			}
 
 			if (!ed)	//first entity
-				ed = (edictrun_t *)EDICT_NUM(progfuncs, 0);
+			{
+				ed = (edictrun_t *)EDICT_NUM(progfuncs, t);
+				t++;
+			}
 			else
 				ed = (edictrun_t *)ED_Alloc(&progfuncs->funcs, false, 0);
 			ed->ereftype = ER_ENTITY;

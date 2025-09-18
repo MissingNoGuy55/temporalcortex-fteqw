@@ -272,55 +272,61 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 	int i;
 	wedict_t *ent;
 #endif
-	int maxdepth;
-	vec3_t mins, maxs;
-	if (w->worldmodel)
+
+	int t;
+
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
-		VectorCopy(w->worldmodel->mins, mins);
-		VectorCopy(w->worldmodel->maxs, maxs);
-	}
-	else
-	{
-		VectorSet(mins, -4096, -4096, -4096);
-		VectorSet(maxs, 4096, 4096, 4096);
-	}
-
-	World_InitBoxHull ();
-
-#if !defined(USEAREAGRID)
-	memset (&w->portallist, 0, sizeof(w->portallist));
-	ClearLink (&w->portallist.edicts);
-	w->portallist.axis = -1;
-#endif
-
-	maxdepth = 8;
-
-	if (!w->areanodes || w->areanodedepth != maxdepth)
-	{
-		Z_Free(w->areanodes);
-		w->areanodedepth = maxdepth;
-		w->areanodes = Z_Malloc(sizeof(*w->areanodes) * (pow(2, w->areanodedepth+1)-1));
-	}
-	else
-		memset (w->areanodes, 0, sizeof(*w->areanodes)*w->numareanodes);
-	w->numareanodes = 0;
-	World_CreateAreaNode (w, 0, mins, maxs);
-
-#if !defined(USEAREAGRID)
-	if (relink)
-	{
-		for (i=0 ; i<w->num_edicts ; i++)
+		int maxdepth;
+		vec3_t mins, maxs;
+		if (w->worldmodel[t])
 		{
-			ent = WEDICT_NUM_PB(w->progs, i);
-			if (!ent)
-				continue;
-			ent->area.prev = ent->area.next = NULL;
-			if (ED_ISFREE(ent))
-				continue;
-			World_LinkEdict (w, ent, false);	// relink ents so touch functions continue to work.
+			VectorCopy(w->worldmodel[t]->mins, mins);
+			VectorCopy(w->worldmodel[t]->maxs, maxs);
 		}
-	}
+		else
+		{
+			VectorSet(mins, -4096, -4096, -4096);
+			VectorSet(maxs, 4096, 4096, 4096);
+		}
+
+		World_InitBoxHull ();
+
+	#if !defined(USEAREAGRID)
+		memset (&w->portallist, 0, sizeof(w->portallist));
+		ClearLink (&w->portallist.edicts);
+		w->portallist.axis = -1;
+	#endif
+
+		maxdepth = 8;
+
+		if (!w->areanodes || w->areanodedepth != maxdepth)
+		{
+			Z_Free(w->areanodes);
+			w->areanodedepth = maxdepth;
+			w->areanodes = Z_Malloc(sizeof(*w->areanodes) * (pow(2, w->areanodedepth+1)-1));
+		}
+		else
+			memset (w->areanodes, 0, sizeof(*w->areanodes)*w->numareanodes);
+		w->numareanodes = 0;
+		World_CreateAreaNode (w, 0, mins, maxs);
+
+#if !defined(USEAREAGRID)
+		if (relink)
+		{
+			for (i=0 ; i<w->num_edicts ; i++)
+			{
+				ent = WEDICT_NUM_PB(w->progs, i);
+				if (!ent)
+					continue;
+				ent->area.prev = ent->area.next = NULL;
+				if (ED_ISFREE(ent))
+					continue;
+				World_LinkEdict (w, ent, false);	// relink ents so touch functions continue to work.
+			}
+		}
 #endif
+	}
 }
 #endif
 
@@ -328,18 +334,21 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 static void World_ClearWorld_AreaGrid (world_t *w, qboolean relink)
 {
 	int numareas = 1;
-	int i, j;
+	int i, j, t;
 	wedict_t *ent;
 	vec3_t mins, maxs, size;
-	if (w->worldmodel)
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
-		VectorCopy(w->worldmodel->mins, mins);
-		VectorCopy(w->worldmodel->maxs, maxs);
-	}
-	else
-	{
-		VectorSet(mins, -4096, -4096, -4096);
-		VectorSet(maxs, 4096, 4096, 4096);
+		if (w->worldmodel[t])
+		{
+			VectorCopy(w->worldmodel[t]->mins, mins);
+			VectorCopy(w->worldmodel[t]->maxs, maxs);
+		}
+		else
+		{
+			VectorSet(mins, -4096, -4096, -4096);
+			VectorSet(maxs, 4096, 4096, 4096);
+		}
 	}
 	Vector2Set(w->gridsize, 128, 128);
 	for (i = 0; i < 2; i++)
@@ -524,7 +533,8 @@ void QDECL World_LinkEdict (world_t *w, wedict_t *ent, qboolean touch_triggers)
 		World_UnlinkEdict (ent);	// unlink from old position
 #endif
 	
-	if (ent == w->edicts)
+	//if (ent == w->edicts)
+	if ( ent->entnum < MAX_TIME_PERIODS )
 		return;		// don't add the world
 
 	if (ED_ISFREE(ent))
@@ -650,9 +660,9 @@ void QDECL World_LinkEdict (world_t *w, wedict_t *ent, qboolean touch_triggers)
 	}
 	
 // link to PVS leafs
-	if (w->worldmodel && w->worldmodel->loadstate == MLS_LOADED && w->worldmodel->funcs.FindTouchedLeafs)
+	if (w->worldmodel[sv_current_time_period] && w->worldmodel[sv_current_time_period]->loadstate == MLS_LOADED && w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs)
 	{
-		w->worldmodel->funcs.FindTouchedLeafs(w->worldmodel, &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
+		w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_time_period], &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
 	}
 
 	if (ent->v->solid == SOLID_NOT && !sv_gameplayfix_linknonsolid.ival)
@@ -795,7 +805,7 @@ void VARGS WorldQ2_LinkEdict(world_t *w, q2edict_t *ent)
 // link to PVS leafs
 	{
 		pvscache_t cache;
-		w->worldmodel->funcs.FindTouchedLeafs(w->worldmodel, &cache, ent->absmin, ent->absmax);
+		w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_time_period], &cache, ent->absmin, ent->absmax);
 
 		//evilness: copy into the q2 state (we don't have anywhere else to store it, and there's a chance that the gamecode will care).
 		ent->num_clusters = cache.num_leafs;
@@ -855,12 +865,12 @@ SV_PointContents
 */
 int World_PointContentsWorldOnly (world_t *w, vec3_t p)
 {
-	return w->worldmodel->funcs.PointContents(w->worldmodel, NULL, p);
+	return w->worldmodel[sv_current_time_period]->funcs.PointContents(w->worldmodel[sv_current_time_period], NULL, p);
 }
 
 int World_PointContentsAllBSPs (world_t *w, vec3_t p)
 {
-	int c = w->worldmodel->funcs.PointContents(w->worldmodel, NULL, p);
+	int c = w->worldmodel[sv_current_time_period]->funcs.PointContents(w->worldmodel[sv_current_time_period], NULL, p);
 	c |= World_ContentsOfAllLinks(w, p);
 	return c;
 }
@@ -1530,7 +1540,7 @@ static void World_ClipToEverything (world_t *w, moveclip_t *clip)
 	int e;
 	trace_t		trace;
 	wedict_t		*touch;
-	for (e=1 ; e<w->num_edicts ; e++)
+	for (e=MAX_TIME_PERIODS ; e<w->num_edicts ; e++)
 	{
 		touch = (wedict_t*)EDICT_NUM_PB(w->progs, e);
 
@@ -2405,13 +2415,13 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 		//z pos/height are assumed to be different from all the others.
 		for (i = 0; i < MAX_MAP_HULLSM; i++)
 		{
-			if (!w->worldmodel->hulls[i].available)
+			if (!w->worldmodel[sv_current_time_period]->hulls[i].available)
 				continue;
 #define sq(x) ((x)*(x))
-			diff = sq(w->worldmodel->hulls[i].clip_maxs[2] - maxs[2]) +
-				sq(w->worldmodel->hulls[i].clip_mins[2] - mins[2]) +
-				sq(w->worldmodel->hulls[i].clip_maxs[1] - maxs[1]) +
-				sq(w->worldmodel->hulls[i].clip_mins[0] - mins[0]);
+			diff = sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_maxs[2] - maxs[2]) +
+				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_mins[2] - mins[2]) +
+				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_maxs[1] - maxs[1]) +
+				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_mins[0] - mins[0]);
 			if (diff < best)
 			{
 				best = diff;
@@ -2428,7 +2438,7 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	if ((clip.type & MOVE_LAGGED) && w == &sv.world && passedict->entnum && passedict->entnum <= sv.allocated_client_slots && sv_antilag.ival==3)
 	{
 		vec3_t nudge;
-		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-1]))
+		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-MAX_TIME_PERIODS-1]))
 		{
 			VectorSubtract(pmove.origin, passedict->v->origin, nudge);
 
@@ -2556,20 +2566,20 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 				if (passedict->entnum && passedict->entnum <= sv.allocated_client_slots)
 				{
 					clip.type |= MOVE_LAGGED;
-					w->lagents = svs.clients[passedict->entnum-1].laggedents;
-					w->maxlagents = svs.clients[passedict->entnum-1].laggedents_count;
-					w->lagentsfrac = svs.clients[passedict->entnum-1].laggedents_frac;
-					w->lagentstime = svs.clients[passedict->entnum-1].laggedents_time;
+					w->lagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents;
+					w->maxlagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_count;
+					w->lagentsfrac = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_frac;
+					w->lagentstime = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_time;
 				}
 				else if (passedict->v->owner)
 				{
 					if (passedict->v->owner && passedict->v->owner <= sv.allocated_client_slots)
 					{
 						clip.type |= MOVE_LAGGED;
-						w->lagents = svs.clients[passedict->v->owner-1].laggedents;
-						w->maxlagents = svs.clients[passedict->v->owner-1].laggedents_count;
-						w->lagentsfrac = svs.clients[passedict->v->owner-1].laggedents_frac;
-						w->lagentstime = svs.clients[passedict->v->owner-1].laggedents_time;
+						w->lagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents;
+						w->maxlagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_count;
+						w->lagentsfrac = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_frac;
+						w->lagentstime = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_time;
 					}
 				}
 			}
@@ -2720,7 +2730,7 @@ trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 // clip to world
-	w->worldmodel->funcs.NativeTrace(w->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+	w->worldmodel[sv_current_time_period]->funcs.NativeTrace(w->worldmodel[sv_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
 	clip.trace.ent = ge->edicts;
 
 	if (clip.trace.fraction == 0)
@@ -2800,7 +2810,7 @@ void World_RBE_Start(world_t *world)
 {
 	if (world_current_physics_engine)
 	{
-		if (world->worldmodel)
+		if (world->worldmodel[sv_current_time_period])
 			world_current_physics_engine(world);
 	}
 }

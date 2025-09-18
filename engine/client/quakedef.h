@@ -104,6 +104,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //define	PARANOID			// speed sapping error checking
 
+typedef enum
+{
+	TIME_PERIOD_PRESENT,
+	TIME_PERIOD_PAST,
+	TIME_PERIOD_FUTURE,
+	MAX_TIME_PERIODS
+} timeperiod_t;
+
 #include <float.h>
 #include <math.h>
 #include <string.h>

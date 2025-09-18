@@ -66,11 +66,11 @@ qboolean World_CheckBottom (world_t *world, wedict_t *ent, vec3_t up)
 	
 	VectorAdd (ent->v->origin, ent->v->mins, mins);
 #ifdef Q1BSPS
-	if (world->worldmodel->fromgame == fg_quake || world->worldmodel->fromgame == fg_halflife)
+	if (world->worldmodel[sv_current_time_period]->fromgame == fg_quake || world->worldmodel[sv_current_time_period]->fromgame == fg_halflife)
 	{
 		//quake's hulls are weird. sizes are defined as from mins to mins+hullsize. the actual maxs is ignored other than for its size.
 		hull_t *hull;
-		hull = Q1BSP_ChooseHull(world->worldmodel, ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+		hull = Q1BSP_ChooseHull(world->worldmodel[sv_current_time_period], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
 		//ignore the hull's offset. the minpoint is the minpoint. lets fix up the size though, just in case.
 		VectorSubtract (mins, hull->clip_mins, maxs);
 		VectorAdd (maxs, hull->clip_maxs, maxs);
@@ -1292,7 +1292,7 @@ void QCBUILTIN PF_route_calculate (pubprogfuncs_t *prinst, struct globalvars_s *
 	VectorCopy(route->ed->v->origin, route->start);
 	VectorCopy(end, route->end);
 
-	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel);
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[sv_current_time_period]);
 	if (!route->waynet)
 	{
 		Z_Free(route);
@@ -1321,7 +1321,7 @@ static void Route_Visualise_f(void)
 	VectorCopy(r_refdef.vieworg, route->start);
 	VectorCopy(targ, route->end);
 
-	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel);
+	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel[sv_current_time_period]);
 	if (!route->waynet)
 	{
 		Z_Free(route);
@@ -1346,7 +1346,7 @@ void PR_Route_Visualise (void)
 	struct waypointnetwork_s *wn;
 	size_t u;
 
-	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel):NULL;
+	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel[sv_current_time_period]):NULL;
 	if (wn)
 	{
 		if (route_shownodes.ival)

@@ -220,7 +220,7 @@ struct world_s
 	wedict_t		*edicts;			// can NOT be array indexed.
 	struct pubprogfuncs_s *progs;
 	qboolean		usesolidcorpse;	//to disable SOLID_CORPSE when running hexen2 due to conflict.
-	model_t			*worldmodel;
+	model_t			*worldmodel[MAX_TIME_PERIODS];
 	unsigned int	spawncount;	//number of times it got restarted, so we can stop events from happening after vm restarts
 	qboolean		remasterlogic;	//workarounds needed
 

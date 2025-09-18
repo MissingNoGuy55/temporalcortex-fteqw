@@ -3187,7 +3187,7 @@ void CLQ1_AddVisibleBBoxes(void)
 				"alphagen vertex\n"
 			"}\n"
 		"}\n");
-	for (i = 1; i < w->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < w->num_edicts; i++)
 	{
 		e = WEDICT_NUM_PB(w->progs, i);
 		if (ED_ISFREE(e))
@@ -3353,7 +3353,7 @@ void CL_AddDecal(shader_t *shader, vec3_t origin, vec3_t up, vec3_t side, vec3_t
 	ctx.t = t;
 	VectorCopy(rgbvalue, ctx.rgbavalue);
 	ctx.rgbavalue[3] = alphavalue;
-	Mod_ClipDecal(cl.worldmodel, origin, ctx.axis[0], ctx.axis[1], ctx.axis[2], max(radius, vradius), 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[cl_current_time_period], origin, ctx.axis[0], ctx.axis[1], ctx.axis[2], max(radius, vradius), 0,0, CL_AddDecal_Callback, &ctx);
 
 	if (!t->numidx)
 		cl_numstris--;
@@ -3422,7 +3422,7 @@ void R_AddItemTimer(vec3_t shadoworg, float yaw, float radius, float percent, ve
 
 	ctx.t = t;
 	Vector4Set(ctx.rgbavalue, rgb[0], rgb[1], rgb[2], percent);
-	Mod_ClipDecal(cl.worldmodel, shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[cl_current_time_period], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 	if (!t->numidx)
 		cl_numstris--;
 }
@@ -3501,7 +3501,7 @@ void CLQ1_AddShadow(entity_t *ent)
 
 	ctx.t = t;
 	Vector4Set(ctx.rgbavalue, 0, 0, 0, r_blobshadows*((ent->flags & RF_TRANSLUCENT)?ent->shaderRGBAf[3]:1));
-	Mod_ClipDecal(cl.worldmodel, shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[cl_current_time_period], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 	if (!t->numidx)
 		cl_numstris--;
 }
@@ -3647,7 +3647,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 	if (r_drawflame.ival < 0 || r_drawentities.ival == 0)
 		return;
 
-	if (!cl.worldmodel)
+	if (!cl.worldmodel[cl_current_time_period])
 		return;
 
 	for (i = 0; i < cl.num_statics; i++)
@@ -3675,7 +3675,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 			}
 			if (!clmodel || clmodel->loadstate == MLS_LOADING)
 				continue;
-			if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+			if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 				continue;
 
 			stat->ent.model = clmodel;
@@ -3702,7 +3702,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 				VectorCopy(stat->state.origin, mins);
 				VectorCopy(stat->state.origin, maxs);
 			}
-			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &stat->ent.pvscache, mins, maxs);
+			cl.worldmodel[cl_current_time_period]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_time_period], &stat->ent.pvscache, mins, maxs);
 		}
 		else if (clmodel->loadstate != MLS_LOADED)
 		{
@@ -3712,7 +3712,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 		}
 
 		/*pvs test*/
-		if (pvs && !cl.worldmodel->funcs.EdictInFatPVS(cl.worldmodel, &stat->ent.pvscache, pvs, areas))
+		if (pvs && !cl.worldmodel[cl_current_time_period]->funcs.EdictInFatPVS(cl.worldmodel[cl_current_time_period], &stat->ent.pvscache, pvs, areas))
 			continue;
 
 
@@ -4571,7 +4571,7 @@ void CL_LinkPacketEntities (void)
 				VectorAdd(model->mins, ent->origin, absmin);
 				VectorAdd(model->maxs, ent->origin, absmax);
 			}
-			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &ent->pvscache, absmin, absmax);
+			cl.worldmodel[cl_current_time_period]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_time_period], &ent->pvscache, absmin, absmax);
 		}
 
 		cl_numvisedicts++;
@@ -5317,15 +5317,15 @@ void CLQW_ParsePlayerinfo (void)
 		int num;
 		num = MSG_ReadByte();
 
-		if (!cl.worldmodel || cl.worldmodel->fromgame != fg_quake)
+		if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->fromgame != fg_quake)
 		{
 			VectorScale(state->szmins, num/56.0f, state->szmins);
 			VectorScale(state->szmaxs, num/56.0f, state->szmaxs);
 		}
 		else
 		{
-			VectorCopy(cl.worldmodel->hulls[num&(MAX_MAP_HULLSM-1)].clip_mins, state->szmins);
-			VectorCopy(cl.worldmodel->hulls[num&(MAX_MAP_HULLSM-1)].clip_maxs, state->szmaxs);
+			VectorCopy(cl.worldmodel[cl_current_time_period]->hulls[num&(MAX_MAP_HULLSM-1)].clip_mins, state->szmins);
+			VectorCopy(cl.worldmodel[cl_current_time_period]->hulls[num&(MAX_MAP_HULLSM-1)].clip_maxs, state->szmaxs);
 		}
 		if (num & 128)
 		{	//this hack is for hexen2.
@@ -5431,7 +5431,7 @@ guess_pm_type:
 	}
 #endif
 
-	if (cl.worldmodel && cl.do_lerp_players && cl_predict_players.ival)
+	if (cl.worldmodel[cl_current_time_period] && cl.do_lerp_players && cl_predict_players.ival)
 	{
 		player_state_t exact;
 		msec -= 1000 * (cls.latency*cl_predict_players_latency.value-cl_predict_players_nudge.value);
@@ -5586,7 +5586,7 @@ void CL_LinkPlayers (void)
 	extern cvar_t	cl_demospeed;
 	int displayseq;
 
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		return;
 
 	if (cl.paused)
@@ -6115,7 +6115,7 @@ void CL_SetSolidEntities (void)
 #endif
 
 	memset(&pmove.physents[0], 0, sizeof(physent_t));
-	pmove.physents[0].model = cl.worldmodel;
+	pmove.physents[0].model = cl.worldmodel[cl_current_time_period];
 	VectorClear (pmove.physents[0].origin);
 	pmove.physents[0].info = 0;
 	pmove.numphysent = 1;
@@ -6222,7 +6222,7 @@ void CL_SetUpPlayerPrediction(qboolean dopred)
 	if (playertime > realtime)
 		playertime = realtime;
 
-	if (cl_nopred.value || /*cls.demoplayback ||*/ cl.paused || cl.worldmodel->loadstate != MLS_LOADED)
+	if (cl_nopred.value || /*cls.demoplayback ||*/ cl.paused || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		return;
 
 	if (cls.demoplayback)

@@ -303,7 +303,7 @@ static void Q3G_LinkEntity(q3sharedEntity_t *ent)
 	ent->r.absmax[2] += 1;
 
 // link to PVS leafs
-	sv3.world->worldmodel->funcs.FindTouchedLeafs(sv3.world->worldmodel, &sent->pvscache, ent->r.absmin, ent->r.absmax);
+	sv3.world->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(sv3.world->worldmodel[sv_current_time_period], &sent->pvscache, ent->r.absmin, ent->r.absmax);
 	//FIXME: return if no leafs
 
 	ent->r.linkcount++;
@@ -335,8 +335,8 @@ static void SVQ3_ClearWorld(void)
 	vec3_t mins, maxs, size;
 	if (sv3.world->worldmodel)
 	{
-		VectorCopy(sv3.world->worldmodel->mins, mins);
-		VectorCopy(sv3.world->worldmodel->maxs, maxs);
+		VectorCopy(sv3.world->worldmodel[sv_current_time_period]->mins, mins);
+		VectorCopy(sv3.world->worldmodel[sv_current_time_period]->maxs, maxs);
 	}
 	else
 	{
@@ -430,7 +430,7 @@ static void SVQ3_Trace(q3trace_t *result, vec3_t start, vec3_t mins, vec3_t maxs
 	if (!maxs)
 		maxs = vec3_origin;
 
-	sv3.world->worldmodel->funcs.NativeTrace(sv3.world->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, capsule, contentmask, &tr);
+	sv3.world->worldmodel[sv_current_time_period]->funcs.NativeTrace(sv3.world->worldmodel[sv_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, capsule, contentmask, &tr);
 	result->allsolid = tr.allsolid;
 	result->contents = tr.contents;
 	VectorCopy(tr.endpos, result->endpos);
@@ -564,7 +564,7 @@ static int SVQ3_PointContents(vec3_t pos, int entnum)
 
 	int cont;
 
-	cont = sv3.world->worldmodel->funcs.NativeContents (sv3.world->worldmodel, 0, 0, NULL, pos, vec3_origin, vec3_origin);
+	cont = sv3.world->worldmodel[sv_current_time_period]->funcs.NativeContents (sv3.world->worldmodel[sv_current_time_period], 0, 0, NULL, pos, vec3_origin, vec3_origin);
 
 	if ((unsigned)entnum >= MAX_GENTITIES)
 		ourowner = -1;
@@ -807,12 +807,12 @@ static void SVQ3_Adjust_Area_Portal_State(q3sharedEntity_t *ge, qboolean open)
 	q3serverEntity_t *se = SENTITY_FOR_GENTITY(ge);
 	if (se->pvscache.areanum == -1 || se->pvscache.areanum2 == -1) //not linked properly.
 		return;
-	sv3.world->worldmodel->funcs.SetAreaPortalState(sv3.world->worldmodel, -1, se->pvscache.areanum, se->pvscache.areanum2, open);
+	sv3.world->worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv3.world->worldmodel[sv_current_time_period], -1, se->pvscache.areanum, se->pvscache.areanum2, open);
 }
 
 static qboolean SV_InPVS(vec3_t p1, vec3_t p2)
 {
-	model_t *worldmodel = sv3.world->worldmodel;
+	model_t *worldmodel = sv3.world->worldmodel[sv_current_time_period];
 
 	if (!worldmodel || worldmodel->loadstate != MLS_LOADED)
 		return false;	//still loading, don't give bad results.
@@ -1823,8 +1823,8 @@ void SV_InitBotLib(void)
 	if (!bot_enable)
 		return;	//o.O
 
-	if (sv3.world && sv3.world->worldmodel)
-		cvarfuncs->SetString("sv_mapChecksum", va("%i", sv3.world->worldmodel->checksum));
+	if (sv3.world && sv3.world->worldmodel[sv_current_time_period])
+		cvarfuncs->SetString("sv_mapChecksum", va("%i", sv3.world->worldmodel[sv_current_time_period]->checksum));
 
 	memset(&import, 0, sizeof(import));
 	import.Print = BL_Print;
@@ -1897,12 +1897,12 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 	sv3.server_state_static = server_state_static;
 	sv3.server_state = server_state;
 	sv3.world = &server_state->world;
-	if (sv3.world->worldmodel->type == mod_heightmap)
+	if (sv3.world->worldmodel[sv_current_time_period]->type == mod_heightmap)
 	{
 	}
 	else
 	{
-		if (sv3.world->worldmodel->fromgame == fg_quake || sv3.world->worldmodel->fromgame == fg_halflife || sv3.world->worldmodel->fromgame == fg_quake2)
+		if (sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_quake || sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_halflife || sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_quake2)
 			return false;	//always fail on q1bsp
 	}
 
@@ -2308,7 +2308,7 @@ static qboolean SVQ3_EntityIsVisible(q3client_frame_t *snap, q3sharedEntity_t *e
 		}
 	}
 
-	return sv3.world->worldmodel->funcs.EdictInFatPVS(sv3.world->worldmodel, &sent->pvscache, bitvector, NULL/*using the snapshots areabits rather than the bsp's*/);
+	return sv3.world->worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv3.world->worldmodel[sv_current_time_period], &sent->pvscache, bitvector, NULL/*using the snapshots areabits rather than the bsp's*/);
 }
 
 #ifdef Q3OVERQW
@@ -2423,10 +2423,10 @@ void SVQ3_BuildClientSnapshot( client_t *client )
 	VectorCopy( ps->origin, org );
 	org[2] += ps->viewheight;
 
-	bitvector = sv3.world->worldmodel->funcs.ClusterPVS(sv3.world->worldmodel, sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, org, &clientarea), &pvsbuffer, PVM_REPLACE);
+	bitvector = sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[sv_current_time_period], sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], org, &clientarea), &pvsbuffer, PVM_REPLACE);
 
 	// calculate the visible areas
-	snap->areabytes = sv3.world->worldmodel->funcs.WriteAreaBits(sv3.world->worldmodel, snap->areabits, sizeof(snap->areabits), clientarea, false);
+	snap->areabytes = sv3.world->worldmodel[sv_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[sv_current_time_period], snap->areabits, sizeof(snap->areabits), clientarea, false);
 
 	// grab the current playerState_t
 	memcpy(&snap->ps, ps, sizeof(snap->ps));
@@ -2450,9 +2450,9 @@ void SVQ3_BuildClientSnapshot( client_t *client )
 				continue;
 
 			//merge pvs bits so we can see other ents through it
-			sv3.world->worldmodel->funcs.ClusterPVS(sv3.world->worldmodel, sv3.world->worldmodel->funcs.ClusterForPoint(sv3.world->worldmodel, ent->s.origin2, &portalarea), &pvsbuffer, PVM_MERGE);
+			sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[sv_current_time_period], sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv3.world->worldmodel[sv_current_time_period], ent->s.origin2, &portalarea), &pvsbuffer, PVM_MERGE);
 			//and areabits too
-			sv3.world->worldmodel->funcs.WriteAreaBits(sv3.world->worldmodel, snap->areabits, snap->areabytes, portalarea, true);
+			sv3.world->worldmodel[sv_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[sv_current_time_period], snap->areabits, snap->areabytes, portalarea, true);
 		}
 
 		// add all visible entities

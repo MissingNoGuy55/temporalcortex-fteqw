@@ -1050,7 +1050,7 @@ static qintptr_t QVM_PointContents (void *offset, quintptr_t mask, const qintptr
 	v[0] = VM_FLOAT(arg[0]);
 	v[1] = VM_FLOAT(arg[1]);
 	v[2] = VM_FLOAT(arg[2]);
-	return sv.world.worldmodel->funcs.PointContents(sv.world.worldmodel, NULL, v);
+	return sv.world.worldmodel[sv_current_time_period]->funcs.PointContents(sv.world.worldmodel[sv_current_time_period], NULL, v);
 }
 static qintptr_t QVM_NextEnt (void *offset, quintptr_t mask, const qintptr_t *arg)
 {	//input output are entity numbers
@@ -1698,7 +1698,7 @@ static qintptr_t QVM_Add_Bot (void *offset, quintptr_t mask, const qintptr_t *ar
 			cl->datagram.allowoverflow = true;
 			cl->datagram.maxsize = 0;
 
-			cl->edict = EDICT_NUM_PB(sv.world.progs, i+1);
+			cl->edict = EDICT_NUM_PB(sv.world.progs, i+MAX_TIME_PERIODS);
 
 			InfoBuf_SetKey(&cl->userinfo, "name", name);
 			InfoBuf_SetKey(&cl->userinfo, "topcolor", va("%i", top));
@@ -1727,9 +1727,9 @@ static qintptr_t QVM_Remove_Bot (void *offset, quintptr_t mask, const qintptr_t 
 {
 	//kicks NOW. which generally makes it unsafe for players (calling from StartFrame should be okay).
 	int entnum = VM_LONG(arg[0]);
-	if (entnum >= 1 && entnum <= svs.allocated_client_slots)
+	if (entnum > TIME_PERIOD_FUTURE && entnum <= svs.allocated_client_slots)
 	{
-		client_t *cl = &svs.clients[entnum-1];
+		client_t *cl = &svs.clients[entnum-MAX_TIME_PERIODS];
 		SV_DropClient(cl);
 	}
 
@@ -1749,9 +1749,9 @@ static qintptr_t QVM_SetBotCMD (void *offset, quintptr_t mask, const qintptr_t *
 	int buttons = VM_LONG(arg[8]);
 	int impulse = VM_LONG(arg[9]);
 
-	if (edn >= 1 && edn <= svs.allocated_client_slots)
+	if (edn > TIME_PERIOD_FUTURE && edn <= svs.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
-		client_t *cl = &svs.clients[edn-1];
+		client_t *cl = &svs.clients[edn-MAX_TIME_PERIODS];
 		cl->lastcmd.msec = msec;
 		cl->lastcmd.angles[0] = ANGLE2SHORT(angles_x);
 		cl->lastcmd.angles[1] = ANGLE2SHORT(angles_y);
@@ -1851,7 +1851,7 @@ static qintptr_t QVM_NextClient (void *offset, quintptr_t mask, const qintptr_t 
 	while (start < sv.allocated_client_slots)
 	{
 		if (svs.clients[start].state == cs_spawned)
-			return (qintptr_t)(vevars + (start+1) * sv.world.edict_size);
+			return (qintptr_t)(vevars + (start+MAX_TIME_PERIODS) * sv.world.edict_size);
 		start++;
 	}
 	return 0;
@@ -1889,16 +1889,16 @@ static qintptr_t QVM_VisibleTo (void *offset, quintptr_t mask, const qintptr_t *
 
 		//FIXME: make a FatPVS that uses a pvscache_t
 		VectorAdd(viewer->v->origin, viewer->v->view_ofs, org);
-		sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &pvs, false);
+		sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org, &pvs, false);
 		for (e = first; e < last; e++)
 		{
 			ed = q1qvmprogfuncs.edicttable[e];
 			if (ED_ISFREE(ed))
 				continue;	//free ents can't be visible (should not be linked, but oh well)
-			if (e >= 1 && e <= sv.allocated_client_slots && svs.clients[e - 1].state != cs_spawned)
+			if (e >= TIME_PERIOD_FUTURE && e <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && svs.clients[e - MAX_TIME_PERIODS].state != cs_spawned)
 				continue;	//player ents are weird, skip them for mods that do weird stuff.
 
-			if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ed->pvsinfo, pvs.buffer, areas))
+			if (sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &ed->pvsinfo, pvs.buffer, areas))
 			{	//one of the viewer's clusters can see the viewee.
 				results[e - first] = true;
 				ret+=1;
@@ -2103,8 +2103,8 @@ static qintptr_t QVM_VisibleTo_FTE (void *offset, quintptr_t mask, const qintptr
 			int areas[] = {2,viewer->areanum, viewer->areanum2};
 			for (i = 0; i < viewer->num_leafs; i++)
 			{
-				qbyte *pvs = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, viewer->leafnums[i], NULL, PVM_FAST);
-				if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, viewee, pvs, areas))
+				qbyte *pvs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_time_period], viewer->leafnums[i], NULL, PVM_FAST);
+				if (sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], viewee, pvs, areas))
 					return true;	//viewer can see viewee
 			}
 		}

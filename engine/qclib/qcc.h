@@ -24,6 +24,9 @@
 #define MAX_OSPATH 1024
 #endif
 
+// Missi: Needs to match what's in quakedef.h! (2025.9.15)
+#define MAX_TIME_PERIODS 3
+
 #ifdef __MINGW32_VERSION
 	#define MINGW
 #endif

@@ -399,7 +399,7 @@ static pubsubserver_t *MSV_Loop_GetLocalServer(void)
 	f->Close = MSV_Loop_Close;
 
 	s = MSV_Link_Server(f, 0, "");
-	Q_strncpyz(s->name, sv.mapname, sizeof(s->name));
+	Q_strncpyz(s->name, sv.mapname[0], sizeof(s->name));
 	svs.clusterserverid = s->id;
 	return s;
 }
@@ -511,6 +511,7 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 {
 	extern cvar_t sv_playerslots;
 	int plslots;	//not really used, but affects whether we open public sockets or not.
+	int t;
 
 	//this command will likely be used in configs. don't ever allow subservers to act as entire new clusters
 	if (SSV_IsSubServer())
@@ -531,7 +532,8 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 	if (!*svs.name)
 		Q_strncpyz(svs.name, "start", sizeof(svs.name));
 
-	Q_strncpyz(sv.modelname, svs.name, sizeof(sv.modelname));
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		Q_strncpyz(sv.modelname[t], svs.name, sizeof(sv.modelname[t]));
 
 	if (use_database)
 	{
@@ -585,7 +587,8 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 
 	//get on with it now...
 	if (singleplayer && !use_database)
-		MSV_FindSubServerName(va(":%s", sv.modelname));
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+			MSV_FindSubServerName(va(":%s", sv.modelname[t]));
 }
 void MSV_MapCluster_f(void)
 {
@@ -1501,7 +1504,7 @@ void SSV_ReadFromControlServer(void)
 
 			(void)to;
 
-			Con_Printf("%s: got tookplayer\n", sv.modelname);
+			Con_Printf("%s: got tookplayer\n", sv.modelname[sv_current_time_period]);
 
 			for (i = 0; i < svs.allocated_client_slots; i++)
 			{
@@ -1515,20 +1518,20 @@ void SSV_ReadFromControlServer(void)
 			{
 				if (!*addr)
 				{
-					Con_Printf("%s: tookplayer: failed\n", sv.modelname);
+					Con_Printf("%s: tookplayer: failed\n", sv.modelname[sv_current_time_period]);
 					Z_Free(cl->transfer);
 					cl->transfer = NULL;
 				}
 				else
 				{
-					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname);
+					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname[sv_current_time_period]);
 //					SV_StuffcmdToClient(cl, va("connect \"%s\"\n", addr));
 					SV_StuffcmdToClient(cl, va("cl_transfer \"%s\"\n", addr));
 					cl->redirect = 2;
 				}
 			}
 			else
-				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname);
+				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname[sv_current_time_period]);
 		}
 		break;
 
@@ -1789,9 +1792,13 @@ qboolean MSV_ClusterLoginReply(netadr_t *legacyclientredirect, unsigned int serv
 	char tmpbuf[256];
 	netadr_t serveraddr;
 	pubsubserver_t *s = NULL;
+	int t;
 
 	if (!s)
-		s = MSV_FindSubServerName(va(":%s", sv.modelname));
+	{
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+			s = MSV_FindSubServerName(va(":%s", sv.modelname[t]));
+	}
 
 	if (!s || !MSV_AddressForServer(&serveraddr, clientaddr->type, s))
 		SV_RejectMessage(SCP_QUAKEWORLD, "Unable to find lobby.\n");

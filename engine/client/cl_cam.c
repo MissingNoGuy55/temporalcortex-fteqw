@@ -549,7 +549,7 @@ void Cam_Unlock(playerview_t *pv)
 	{
 		CL_SendSeatClientCommand(true, pv-cl.playerview, "ptrack");
 		pv->cam_state = CAM_FREECAM;
-		pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);	//free floating
+		pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);	//free floating
 		SCR_CenterPrint(pv-cl.playerview, NULL, true);
 		Sbar_Changed();
 
@@ -572,7 +572,7 @@ void Cam_Lock(playerview_t *pv, int playernum)
 	}
 	pv->cam_spec_track = playernum;
 	pv->cam_state = CAM_PENDING;
-	pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);	//free floating until actually locked
+	pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);	//free floating until actually locked
 	SCR_CenterPrint(pv-cl.playerview, NULL, true);
 
 	
@@ -581,13 +581,6 @@ void Cam_Lock(playerview_t *pv, int playernum)
 	if (cls.demoplayback == DPB_MVD)
 	{
 		memcpy(&pv->stats, cl.players[playernum].stats, sizeof(pv->stats));
-//		pv->cam_state = CAM_;
-	
-//		pv->viewentity = playernum+1;
-		/*
-		pv->cam_state = cl_chasecam.ival?CAM_EYECAM:CAM_PENDING;	//instantly lock if the player is valid.
-		pv->viewentity = playernum+1;
-		*/
 
 #ifdef QUAKESTATS
 		if (cls.z_ext & Z_EXT_VIEWHEIGHT)
@@ -608,15 +601,6 @@ void Cam_Lock(playerview_t *pv, int playernum)
 
 trace_t Cam_DoTrace(vec3_t vec1, vec3_t vec2)
 {
-#if 0
-	memset(&pmove, 0, sizeof(pmove));
-
-	pmove.numphysent = 1;
-	memset(&pmove.physents[0], 0, sizeof(physent_t));
-	VectorClear (pmove.physents[0].origin);
-	pmove.physents[0].model = cl.worldmodel;
-#endif
-
 	VectorCopy (vec1, pmove.origin);
 	return PM_PlayerTrace(pmove.origin, vec2, MASK_PLAYERSOLID);
 }
@@ -727,7 +711,7 @@ static qboolean InitFlyby(playerview_t *pv, vec3_t selforigin, vec3_t playerorig
 	}
 
 	pv->cam_state = CAM_WALLCAM;
-	pv->viewentity = pv->playernum+1;//pv->cam_spec_track+1;
+	pv->viewentity = pv->playernum+MAX_TIME_PERIODS;//pv->cam_spec_track+1;
 	VectorCopy(vec, pv->cam_desired_position); 
 	return true;
 }
@@ -764,7 +748,7 @@ static void Cam_CheckHighTarget(playerview_t *pv)
 void Cam_SelfTrack(playerview_t *pv)
 {
 	vec3_t vec;
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		return;
 
 	if (selfcam == 1)
@@ -839,13 +823,13 @@ void Cam_Track(playerview_t *pv, usercmd_t *cmd)
 	vec3_t vec;
 	float len;
 
-	if (!pv->spectator || !cl.worldmodel)	//can happen when the server changes level
+	if (!pv->spectator || !cl.worldmodel[cl_current_time_period])	//can happen when the server changes level
 		return;
 	
 	if (autotrackmode != TM_USER && pv->cam_state == CAM_FREECAM)
 		Cam_CheckHighTarget(pv);
 
-	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel->loadstate != MLS_LOADED)
+	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		return;
 
 	if (CAM_ISLOCKED(pv) && (!cl.players[pv->cam_spec_track].name[0] || cl.players[pv->cam_spec_track].spectator))
@@ -1150,7 +1134,7 @@ void Cam_FinishMove(playerview_t *pv, usercmd_t *cmd)
 			Cam_Lock(pv, i);
 			return;
 		}
-		i = (i + 1) % cl.allocated_client_slots;
+		i = (i + MAX_TIME_PERIODS) % cl.allocated_client_slots;
 	} while (i != end);
 	// stay on same guy?
 	i = pv->cam_spec_track;

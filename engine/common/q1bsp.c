@@ -1806,7 +1806,7 @@ start:
 	{
 		pleaf = (mleaf_t *)node;
 
-		c = (pleaf - cl.worldmodel->leafs)-1;
+		c = (pleaf - cl.worldmodel[cl_current_time_period]->leafs)-1;
 		q1frustumvis[c>>3] |= 1<<(c&7);
 
 		mark = pleaf->firstmarksurface;
@@ -1856,7 +1856,7 @@ start:
 
 	if (c)
 	{
-		surf = cl.worldmodel->surfaces + node->firstsurface;
+		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 
 		if (dot < 0 -BACKFACE_EPSILON)
 			side = SURF_PLANEBACK;
@@ -1937,7 +1937,7 @@ static void Q1BSP_OrthoRecursiveWorldNode (mnode_t *node, unsigned int clipflags
 
 	if (c)
 	{
-		surf = cl.worldmodel->surfaces + node->firstsurface;
+		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 
 		for ( ; c ; c--, surf++)
 		{
@@ -2072,7 +2072,7 @@ static void Q1BSP_PrepareFrame(model_t *model, refdef_t *refdef, int area, int c
 	q1frustumvis = vis->buffer;
 	memset(q1frustumvis, 0, model->pvsbytes);
 
-	if (model != cl.worldmodel)
+	if (model != cl.worldmodel[cl_current_time_period])
 		; //global abuse...
 	else if (r_refdef.useperspective)
 		Q1BSP_RecursiveWorldNode (model->nodes, 0x1f);
@@ -2980,9 +2980,9 @@ void SCR_ScreenShot_Cubemap(vec3_t origin, int size);
 static void Mod_FindCubemaps(qboolean build)
 {
 	struct bspxrw bspctx;
-	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel->name))
+	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[cl_current_time_period]->name))
 	{
-		const char *entlump = Mod_GetEntitiesString(cl.worldmodel), *lmp;
+		const char *entlump = Mod_GetEntitiesString(cl.worldmodel[cl_current_time_period]), *lmp;
 		int nest;
 		char key[1024];
 		char value[1024];
@@ -3058,14 +3058,14 @@ static void Mod_FindCubemaps(qboolean build)
 		if (nenvmap)
 		{
 			qsort(envmap, nenvmap, sizeof(*envmap), envmapsort);	//sort them by size
-			if (ZF_ReallocElements((void**)&envmapidx, &nenvmapidx, cl.worldmodel->numsurfaces, sizeof(*envmapidx)))
+			if (ZF_ReallocElements((void**)&envmapidx, &nenvmapidx, cl.worldmodel[cl_current_time_period]->numsurfaces, sizeof(*envmapidx)))
 			{
-				for(i = 0; i < cl.worldmodel->numsurfaces; i++)
-					envmapidx[i] = Mod_NearestCubeForSurf(cl.worldmodel->surfaces+i, envmap, nenvmap);
+				for(i = 0; i < cl.worldmodel[cl_current_time_period]->numsurfaces; i++)
+					envmapidx[i] = Mod_NearestCubeForSurf(cl.worldmodel[cl_current_time_period]->surfaces+i, envmap, nenvmap);
 			}
 
 			Mod_BSPXRW_SetLump(&bspctx, "ENVMAP", envmap, nenvmap*sizeof(*envmap));
-			Mod_BSPXRW_SetLump(&bspctx, "SURFENVMAP", envmapidx, cl.worldmodel->numsurfaces*sizeof(*envmapidx));
+			Mod_BSPXRW_SetLump(&bspctx, "SURFENVMAP", envmapidx, cl.worldmodel[cl_current_time_period]->numsurfaces*sizeof(*envmapidx));
 			Mod_BSPXRW_Write(&bspctx);
 
 			if (build)
@@ -3116,7 +3116,7 @@ static void Mod_BuildCubemaps_f(void)
 static void Mod_Realign_f(void)
 {
 	struct bspxrw bspctx;
-	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel->name))
+	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[cl_current_time_period]->name))
 		Mod_BSPXRW_Write(&bspctx);
 }
 static searchpathfuncs_t *Mod_BSPX_List_ArchiveFile_handle;
@@ -3138,8 +3138,8 @@ static void Mod_BSPX_List_f(void)
 	int i;
 	struct bspxrw ctx;
 	char *fname = Cmd_Argv(1);
-	if (!*fname && cl.worldmodel)
-		fname = cl.worldmodel->name;
+	if (!*fname && cl.worldmodel[cl_current_time_period])
+		fname = cl.worldmodel[cl_current_time_period]->name;
 	if (Mod_BSPXRW_Read(&ctx, fname))
 	{
 		Con_Printf("%s:\n", fname);

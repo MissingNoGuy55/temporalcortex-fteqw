@@ -503,7 +503,7 @@ trace_t PM_PlayerTrace (vec3_t start, vec3_t end, unsigned int solidmask)
 
 			if (trace.allsolid)
 			{
-				for (j = i+1; j < pmove.numphysent && trace.allsolid; j++)
+				for (j = i+MAX_TIME_PERIODS; j < pmove.numphysent && trace.allsolid; j++)
 				{
 					pe = &pmove.physents[j];
 					if (pe->isportal)

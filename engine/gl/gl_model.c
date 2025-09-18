@@ -1544,14 +1544,14 @@ static void Mod_FinishTexture(model_t *mod, texture_t *tx, const char *loadname,
 }
 #endif
 
-void Mod_NowLoadExternal(model_t *loadmodel)
+void Mod_NowLoadExternal(model_t *loadmodel, int num)
 {
 	//for halflife bsps where wads are loaded after the map.
 #if !defined(SERVERONLY)
 	int i;
 	texture_t	*tx;
 	char loadname[32];
-	COM_FileBase (cl.worldmodel->name, loadname, sizeof(loadname));
+	COM_FileBase (cl.worldmodel[num]->name, loadname, sizeof(loadname));
 	
 	if (!strncmp(loadname, "b_", 2))
 		Q_strncpyz(loadname, "bmodels", sizeof(loadname));
@@ -2202,11 +2202,11 @@ static void Mod_ShowEnt_f(void)
 		mod = Mod_ForName(n, MLV_WARN);
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
-		mod = sv.world.worldmodel;
+		mod = sv.world.worldmodel[sv_current_time_period];
 #endif
 #ifndef SERVERONLY
 	if (cls.state && !mod)
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 #endif
 	if (mod && mod->loadstate == MLS_LOADING)
 		COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);
@@ -2251,11 +2251,11 @@ static void Mod_SaveEntFile_f(void)
 		mod = Mod_ForName(n, MLV_WARN);
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
-		mod = sv.world.worldmodel;
+		mod = sv.world.worldmodel[sv_current_time_period];
 #endif
 #ifndef SERVERONLY
 	if (cls.state && !mod)
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 #endif
 	if (mod && mod->loadstate == MLS_LOADING)
 		COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);
@@ -5537,11 +5537,11 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 	}
 
 #ifdef SERVERONLY
-	isnotmap = !!sv.world.worldmodel;
+	isnotmap = !!sv.world.worldmodel[sv_current_time_period];
 #else
-	if ((!cl.worldmodel && cls.state>=ca_connected)
+	if ((!cl.worldmodel[cl_current_time_period] && cls.state>=ca_connected)
 #ifndef CLIENTONLY
-		|| (!sv.world.worldmodel && sv.state)
+		|| (!sv.world.worldmodel[sv_current_time_period] && sv.state)
 #endif
 		)
 		isnotmap = false;

@@ -1681,7 +1681,7 @@ static void	(D3D11_R_RenderView)				(void)
 		RQ_BeginFrame();
 		
 		if (!(r_refdef.flags & RDF_NOWORLDMODEL))
-			if (!r_worldentity.model || r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel)
+			if (!r_worldentity.model || r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_time_period])
 			{
 				D3D11_Set2D ();
 				R2D_ImageColours(0, 0, 0, 1);

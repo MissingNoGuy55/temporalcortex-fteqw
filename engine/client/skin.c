@@ -656,7 +656,7 @@ void	Skin_Skins_f (void)
 	{
 		SCR_SetLoadingStage(LS_NONE);
 
-		CL_SendClientCommand(true, "begin %i", cl.servercount);
+		CL_SendClientCommand(true, "begin %i", cl.servercoun);
 	}
 }
 #endif

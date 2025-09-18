@@ -1777,7 +1777,7 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 	vrect_t rect;
 	rect = r_refdef.vrect;
 
-	if (cl.worldmodel && crosshaircorrect.ival)
+	if (cl.worldmodel[cl_current_time_period] && crosshaircorrect.ival)
 	{
 		float adj;
 		trace_t tr;
@@ -1793,7 +1793,7 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 
 		memset(&tr, 0, sizeof(tr));
 		tr.fraction = 1;
-		cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
+		cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
 		start[2]-=16;
 		if (tr.fraction != 1)
 		{
@@ -2507,7 +2507,7 @@ void SCR_SetUpToDrawConsole (void)
 	//android has an onscreen imm that we don't want to obscure
 	fullscreenpercent = scr_consize.value;
 #endif
-	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel && cl.worldmodel->loadstate != MLS_LOADED))
+	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED))
 	{
 		//force console to fullscreen if we're loading stuff (but don't necessarily force focus)
 //		Key_Dest_Add(kdm_console);
@@ -3104,7 +3104,7 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	unsigned int bb, bw, bh, bd;
 	refdef_t oldrefdef;
 
-	if (!cls.state || !cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+	if (!cls.state || !cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 	{
 		Con_Printf("Please start a map first\n");
 		return;
@@ -3144,8 +3144,13 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	if (!*fname || ext == fname)
 	{	//generate a default filename if none exists yet.
 		char base[MAX_QPATH];
+#ifdef TEMPORALCORTEX
+		COM_FileBase(cl.worldmodel[cl_current_time_period]->name, base, sizeof(base));
+		fname = va("%s/%i_%i_%i", base, (int)r_refdef.vieworg[0], (int)r_refdef.vieworg[1], (int)r_refdef.vieworg[2]);
+#else
 		COM_FileBase(cl.worldmodel->name, base, sizeof(base));
 		fname = va(fnamefmt, base, (int)origin[0], (int)origin[1], (int)origin[2]);
+#endif
 	}
 	if (!strcmp(ext, ".ktx") || !strcmp(ext, ".dds"))
 	{

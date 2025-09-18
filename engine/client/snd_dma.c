@@ -3536,7 +3536,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 // calc ambient sound levels
 	for (i = 0; i < NUM_AMBIENTS; i++)
 		ambientlevel[i] = 0;
-	if (cl.worldmodel && cl.worldmodel->type == mod_brush && cl.worldmodel->fromgame == fg_quake && cl.worldmodel->loadstate == MLS_LOADED)
+	if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->type == mod_brush && cl.worldmodel[cl_current_time_period]->fromgame == fg_quake && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
 	{
 		if (ambient_level.value)
 		{
@@ -3545,7 +3545,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 				int seat = max(1,cl.splitclients);
 				while(seat --> 0)
 				{
-					l = Q1BSP_LeafForPoint(cl.worldmodel, listener[seat].origin);
+					l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_time_period], listener[seat].origin);
 					if (!l)
 						continue;
 
@@ -3555,7 +3555,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 			}
 			else
 			{
-				l = Q1BSP_LeafForPoint(cl.worldmodel, listener[sc->seat].origin);
+				l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_time_period], listener[sc->seat].origin);
 				if (l)
 					for (i = 0; i < NUM_AMBIENTS; i++)
 						ambientlevel[i] = l->ambient_sound_level[i];

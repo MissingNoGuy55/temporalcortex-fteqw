@@ -138,7 +138,7 @@ static void CSQC_ChangeLocalPlayer(int seat)
 		if (csqc_playerview->viewentity)
 			*csqcg.player_localentnum = csqc_playerview->viewentity;
 		else if (csqc_playerview->spectator && Cam_TrackNum(csqc_playerview) >= 0)
-			*csqcg.player_localentnum = Cam_TrackNum(csqc_playerview) + 1;
+			*csqcg.player_localentnum = Cam_TrackNum(csqc_playerview) + MAX_TIME_PERIODS;
 		else if (csqc_playerview == &csqc_nullview)
 			*csqcg.player_localentnum = 0;
 		else
@@ -683,7 +683,7 @@ static int CS_FindModel(const char *name, int *free)
 	if (!name || !*name)
 		return 0;
 
-	fixedname = Mod_FixName(name, csqc_world.worldmodel->publicname);
+	fixedname = Mod_FixName(name, csqc_world.worldmodel[cl_current_time_period]->publicname);
 
 	for (i = 1; i < MAX_CSMODELS; i++)
 	{
@@ -714,7 +714,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 	else if (index < 0 && index > -MAX_CSMODELS)
 	{
 		if (!cl.model_csqcprecache[-index])
-			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel?csqc_world.worldmodel->publicname:NULL), MLV_WARN);
+			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[cl_current_time_period]?csqc_world.worldmodel[cl_current_time_period]->publicname:NULL), MLV_WARN);
 		return cl.model_csqcprecache[-index];
 	}
 	else
@@ -991,8 +991,8 @@ static void QCBUILTIN PF_cs_makestatic (pubprogfuncs_t *prinst, struct globalvar
 		memset(state, 0, sizeof(*state));
 		cl_static_entities[cl.num_statics].emit = trailkey_null;
 		cl_static_entities[cl.num_statics].mdlidx = in->v->modelindex;
-		if (cl.worldmodel && cl.worldmodel->funcs.FindTouchedLeafs)
-			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &cl_static_entities[cl.num_statics].ent.pvscache, in->v->absmin, in->v->absmax);
+		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.FindTouchedLeafs)
+			cl.worldmodel[cl_current_time_period]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_time_period], &cl_static_entities[cl.num_statics].ent.pvscache, in->v->absmin, in->v->absmax);
 		else
 			memset(&cl_static_entities[cl.num_statics].ent.pvscache, 0, sizeof(cl_static_entities[cl.num_statics].ent.pvscache));
 		cl.num_statics++;
@@ -1388,7 +1388,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	int oldself = *csqcg.self;
 	RSpeedMark();
 
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 	{
 		if (mask & MASK_DELTA)
 		{
@@ -1408,7 +1408,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	{
 		//hopelessly inefficient version for compat with DP.
 		maxe = *prinst->parms->num_edicts;
-		for (e=1; e < maxe; e++)
+		for (e=MAX_TIME_PERIODS; e < maxe; e++)
 		{
 			ent = (void*)EDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ent))
@@ -1439,7 +1439,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	else
 	{
 		maxe = *prinst->parms->num_edicts;
-		for (e=1; e < maxe; e++)
+		for (e=MAX_TIME_PERIODS; e < maxe; e++)
 		{
 			ent = (void*)EDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ent))
@@ -1465,7 +1465,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	}
 	*csqcg.self = oldself;
 
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 	{
 		if (mask & MASK_STDVIEWMODEL)
 		{
@@ -2706,10 +2706,10 @@ static void QCBUILTIN PF_R_RenderScene(pubprogfuncs_t *prinst, struct globalvars
 	if (csqc_worldchanged)
 	{
 		csqc_worldchanged = false;
-		cl.worldmodel = r_worldentity.model = csqc_world.worldmodel;
-		if (cl.worldmodel)
-			FS_LoadMapPackFile(cl.worldmodel->name, cl.worldmodel->archive);
-		Surf_NewMap(csqc_world.worldmodel);
+		cl.worldmodel[cl_current_time_period] = r_worldentity.model = csqc_world.worldmodel[cl_current_time_period];
+		if (cl.worldmodel[cl_current_time_period])
+			FS_LoadMapPackFile(cl.worldmodel[cl_current_time_period]->name, cl.worldmodel[cl_current_time_period]->archive);
+		Surf_NewMap(csqc_world.worldmodel[cl_current_time_period], cl_current_time_period);
 		CL_UpdateWindowTitle();
 
 		World_RBE_Shutdown(&csqc_world);
@@ -2718,7 +2718,7 @@ static void QCBUILTIN PF_R_RenderScene(pubprogfuncs_t *prinst, struct globalvars
 
 	R2D_ImageColours(1,1,1,1);	//apparently does matter.
 
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 		R_PushDlights ();
 
 	r_refdef.playerview = csqc_playerview;
@@ -3061,7 +3061,7 @@ static void QCBUILTIN PF_cs_pointcontents(pubprogfuncs_t *prinst, struct globalv
 
 	v = G_VECTOR(OFS_PARM0);
 
-	cont = w->worldmodel?World_PointContentsWorldOnly(w, v):FTECONTENTS_EMPTY;
+	cont = w->worldmodel[cl_current_time_period] ? World_PointContentsWorldOnly(w, v):FTECONTENTS_EMPTY;
 	if (cont & FTECONTENTS_SOLID)
 		G_FLOAT(OFS_RETURN) = Q1CONTENTS_SOLID;
 	else if (cont & FTECONTENTS_SKY)
@@ -3084,7 +3084,7 @@ static void QCBUILTIN PF_cs_pointcontentsmask(pubprogfuncs_t *prinst, struct glo
 
 	v = G_VECTOR(OFS_PARM0);
 
-	if (!w->worldmodel || w->worldmodel->loadstate != MLS_LOADED)
+	if (!w->worldmodel[cl_current_time_period] || w->worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		cont = FTECONTENTS_EMPTY;
 	else if (prinst->callargc < 1 || G_FLOAT(OFS_PARM1))
 		cont = World_PointContentsWorldOnly(w, v);
@@ -3110,7 +3110,7 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_csqcname[-modelindex], true);
 		if (!cl.model_csqcprecache[-modelindex])
-			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel->publicname), MLV_WARN);
+			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[cl_current_time_period]->publicname), MLV_WARN);
 		model = cl.model_csqcprecache[-modelindex];
 	}
 	else
@@ -3132,7 +3132,7 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 
 		if (!ent->entnum)
 		{	//setmodel(world, "maps/foo.bsp"); may be used to switch the csqc's worldmodel.
-			csqc_world.worldmodel = model;
+			csqc_world.worldmodel[cl_current_time_period] = model;
 			csqc_worldchanged = true;
 
 			VectorAdd(ent->v->origin, ent->v->mins, ent->v->absmin);
@@ -3200,7 +3200,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 		if (!strcmp(cl.model_name[i], modelname))
 		{
 			if (!cl.model_precache[i])
-				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel->publicname), MLV_WARN);
+				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[cl_current_time_period]->publicname), MLV_WARN);
 			break;
 		}
 	}
@@ -3211,7 +3211,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 	{
 		if (!freei)
 			Host_EndGame("CSQC ran out of model slots\n");
-		fixedname = Mod_FixName(modelname, csqc_world.worldmodel->publicname);
+		fixedname = Mod_FixName(modelname, csqc_world.worldmodel[cl_current_time_period]->publicname);
 		Q_strncpyz(cl.model_csqcname[-freei], fixedname, sizeof(cl.model_csqcname[-freei]));	//allocate a slot now
 		modelindex = freei;
 
@@ -4200,7 +4200,7 @@ static void QCBUILTIN PF_cs_runplayerphysics (pubprogfuncs_t *prinst, struct glo
 		return;
 	}
 
-	if (!csqc_world.worldmodel)
+	if (!csqc_world.worldmodel[cl_current_time_period])
 		return;	//urm..
 
 	VALGRIND_MAKE_MEM_UNDEFINED(&pmove, sizeof(pmove));
@@ -4303,11 +4303,11 @@ static void QCBUILTIN PF_cs_getentitytoken (pubprogfuncs_t *prinst, struct globa
 	if (prinst->callargc)
 	{
 		const char *s = PR_GetStringOfs(prinst, OFS_PARM0);
-		if (*s == 0 && csqc_world.worldmodel)
+		if (*s == 0 && csqc_world.worldmodel[cl_current_time_period])
 		{
-			if (csqc_world.worldmodel->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(csqc_world.worldmodel, &csqc_world.worldmodel->loadstate, MLS_LOADING);
-			s = Mod_GetEntitiesString(csqc_world.worldmodel);
+			if (csqc_world.worldmodel[cl_current_time_period]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(csqc_world.worldmodel[cl_current_time_period], &csqc_world.worldmodel[cl_current_time_period]->loadstate, MLS_LOADING);
+			s = Mod_GetEntitiesString(csqc_world.worldmodel[cl_current_time_period]);
 		}
 		csqcmapentitydata = s;
 		G_INT(OFS_RETURN) = 0;
@@ -5245,8 +5245,8 @@ static void QCBUILTIN PF_cs_OpenPortal (pubprogfuncs_t *prinst, struct globalvar
 	wedict_t *ent = G_WEDICT(prinst, OFS_PARM0);
 	int portal = ent->xv->style;
 	int area1 = ent->pvsinfo.areanum, area2 = ent->pvsinfo.areanum2;
-	if (csqc_world.worldmodel->funcs.SetAreaPortalState)
-		csqc_world.worldmodel->funcs.SetAreaPortalState(csqc_world.worldmodel, portal, area1, area2, state);
+	if (csqc_world.worldmodel[cl_current_time_period]->funcs.SetAreaPortalState)
+		csqc_world.worldmodel[cl_current_time_period]->funcs.SetAreaPortalState(csqc_world.worldmodel[cl_current_time_period], portal, area1, area2, state);
 }
 
 static void QCBUILTIN PF_cs_droptofloor (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
@@ -5280,11 +5280,11 @@ static void QCBUILTIN PF_cl_getlight (pubprogfuncs_t *prinst, struct globalvars_
 {
 	vec3_t ambient, diffuse, dir;
 
-	if (csqc_world.worldmodel->lightmaps.maxstyle >= cl_max_lightstyles || !csqc_world.worldmodel || csqc_world.worldmodel->loadstate != MLS_LOADED || !csqc_world.worldmodel->funcs.LightPointValues)
+	if (csqc_world.worldmodel[cl_current_time_period]->lightmaps.maxstyle >= cl_max_lightstyles || !csqc_world.worldmodel[cl_current_time_period] || csqc_world.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED || !csqc_world.worldmodel[cl_current_time_period]->funcs.LightPointValues)
 		VectorSet(G_VECTOR(OFS_RETURN), 0, 0, 0);
 	else
 	{
-		csqc_world.worldmodel->funcs.LightPointValues(csqc_world.worldmodel, G_VECTOR(OFS_PARM0), ambient, diffuse, dir);
+		csqc_world.worldmodel[cl_current_time_period]->funcs.LightPointValues(csqc_world.worldmodel[cl_current_time_period], G_VECTOR(OFS_PARM0), ambient, diffuse, dir);
 		VectorMA(ambient, 0.5, diffuse, G_VECTOR(OFS_RETURN));
 	}
 }
@@ -5608,7 +5608,7 @@ void CSQC_EntStateToCSQC(unsigned int flags, float lerptime, entity_state_t *src
 }
 void CSQC_PlayerStateToCSQC(int pnum, player_state_t *srcp, csqcedict_t *ent)
 {
-	ent->xv->entnum = pnum+1;
+	ent->xv->entnum = pnum+MAX_TIME_PERIODS;
 
 	ent->v->modelindex = srcp->modelindex;
 //	ent->xv->vw_index = srcp->modelindex2;
@@ -5880,10 +5880,10 @@ static void QCBUILTIN PF_getentity(pubprogfuncs_t *prinst, struct globalvars_s *
 		return;
 	}
 
-	if (entnum > 0 && entnum <= cl.allocated_client_slots && cl.lerpplayers[entnum-1].sequence == cl.lerpentssequence)
+	if (entnum > TIME_PERIOD_FUTURE && entnum <= cl.allocated_client_slots + TIME_PERIOD_FUTURE && cl.lerpplayers[entnum-MAX_TIME_PERIODS-1].sequence == cl.lerpentssequence)
 	{
-		player_state_t *ps = &cl.inframes[cl.validsequence&UPDATE_MASK].playerstate[entnum-1];
-		le = &cl.lerpplayers[entnum-1];
+		player_state_t *ps = &cl.inframes[cl.validsequence&UPDATE_MASK].playerstate[entnum-MAX_TIME_PERIODS-1];
+		le = &cl.lerpplayers[entnum-MAX_TIME_PERIODS-1];
 
 		switch(fldnum)
 		{
@@ -5936,10 +5936,10 @@ static void QCBUILTIN PF_getentity(pubprogfuncs_t *prinst, struct globalvars_s *
 			AngleVectorsIndex(le->angles, ps->modelindex, NULL, NULL, G_VECTOR(OFS_RETURN));
 			break;
 		case GE_PANTSCOLOR:
-			G_FLOAT(OFS_RETURN) = cl.players[entnum-1].dbottomcolor;
+			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS-1].dbottomcolor;
 			break;
 		case GE_SHIRTCOLOR:
-			G_FLOAT(OFS_RETURN) = cl.players[entnum-1].dtopcolor;
+			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS-1].dtopcolor;
 			break;
 		case GE_LIGHT:
 			G_FLOAT(OFS_RETURN) = 0;
@@ -8003,7 +8003,7 @@ pbool PDECL CSQC_CheckHeaderCrc(pubprogfuncs_t *progs, progsnum_t num, int crc, 
 double  csqctime;
 qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int checksum, size_t progssize)
 {
-	int i;
+	int i, t;
 	string_t *str;
 	csqcedict_t *worldent;
 	char *cheats;
@@ -8143,7 +8143,9 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 		csqc_world.progs = csqcprogs;
 		csqc_world.usesolidcorpse = true;
 		PR_Configure(csqcprogs, PR_ReadBytesString(pr_csqc_memsize.string), MAX_PROGS, pr_enable_profiling.ival);
-		csqc_world.worldmodel = cl.worldmodel;
+		csqc_world.worldmodel[0] = cl.worldmodel[0];
+		csqc_world.worldmodel[1] = cl.worldmodel[1];
+		csqc_world.worldmodel[2] = cl.worldmodel[2];
 		csqc_world.Event_Touch = CSQC_Event_Touch;
 		csqc_world.Event_Think = CSQC_Event_Think;
 		csqc_world.Event_Sound = CSQC_Event_Sound;
@@ -8216,8 +8218,8 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 		PF_InitTempStrings(csqcprogs);
 
 		csqc_world.physicstime = 0;
-		if (!csqc_world.worldmodel)
-			csqc_world.worldmodel = Mod_ForName("", MLV_SILENT); 
+		if (!csqc_world.worldmodel[cl_current_time_period])
+			csqc_world.worldmodel[cl_current_time_period] = Mod_ForName("", MLV_SILENT);
 		csqc_worldchanged = false;
 
 		memset(csqcent, 0, sizeof(*csqcent)*maxcsqcentities);	//clear the server->csqc entity translations.
@@ -8243,35 +8245,38 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 		if (csqcg.CSQC_GenerateMaterial)
 			Material_RegisterLoader(&csqc_world, &csqcmaterialloader);
 
-		//world edict becomes readonly
-		worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, 0);
-		worldent->ereftype = ER_ENTITY;
-
-		for (i = 0; i < csqcprogs->numprogs; i++)
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
-			func_t f = PR_FindFunction (csqcprogs, "initents", i);
-			if (f)
+			//world edict becomes readonly
+			worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, t);
+			worldent->ereftype = ER_ENTITY;
+
+			for (i = 0; i < csqcprogs->numprogs; i++)
 			{
-				void *pr_globals = PR_globals(csqcprogs, PR_CURRENT);
-				G_PROG(OFS_PARM0) = i-1;
-				PR_ExecuteProgram(csqcprogs, f);
+				func_t f = PR_FindFunction (csqcprogs, "initents", i);
+				if (f)
+				{
+					void *pr_globals = PR_globals(csqcprogs, PR_CURRENT);
+					G_PROG(OFS_PARM0) = i-1;
+					PR_ExecuteProgram(csqcprogs, f);
+				}
 			}
-		}
 
-		/*DP compat*/
-		str = (string_t*)csqcprogs->GetEdictFieldValue(csqcprogs, (edict_t*)worldent, "message", ev_string, NULL);
-		if (str)
-			*str = PR_NewString(csqcprogs, cl.levelname);
+			/*DP compat*/
+			str = (string_t*)csqcprogs->GetEdictFieldValue(csqcprogs, (edict_t*)worldent, "message", ev_string, NULL);
+			if (str)
+				*str = PR_NewString(csqcprogs, cl.levelname);
 
-		str = (string_t*)PR_FindGlobal(csqcprogs, "mapname", 0, NULL);
-		if (str)
-		{
-			char *s = InfoBuf_ValueForKey(&cl.serverinfo, "map");
-			if (!*s)
-				s = cl.model_name[1];
-			if (!s || !*s)
-				s = "unknown";
-			*str = PR_NewString(csqcprogs, s);
+			str = (string_t*)PR_FindGlobal(csqcprogs, "mapname", t, NULL);
+			if (str)
+			{
+				char *s = InfoBuf_ValueForKey(&cl.serverinfo, "map");
+				if (!*s)
+					s = cl.model_name[1];
+				if (!s || !*s)
+					s = "unknown";
+				*str = PR_NewString(csqcprogs, s);
+			}
 		}
 
 		if (csqcg.deathmatch)
@@ -8323,10 +8328,10 @@ void CSQC_RendererRestarted(qboolean initing)
 		if (csqc_worldchanged)
 		{
 			csqc_worldchanged = false;
-			cl.worldmodel = r_worldentity.model = csqc_world.worldmodel;
-			if (cl.worldmodel)
-				FS_LoadMapPackFile(cl.worldmodel->name, cl.worldmodel->archive);
-			Surf_NewMap(csqc_world.worldmodel);
+			cl.worldmodel[cl_current_time_period] = r_worldentity.model = csqc_world.worldmodel[cl_current_time_period];
+			if (cl.worldmodel[cl_current_time_period])
+				FS_LoadMapPackFile(cl.worldmodel[cl_current_time_period]->name, cl.worldmodel[cl_current_time_period]->archive);
+			Surf_NewMap(csqc_world.worldmodel[cl_current_time_period], cl_current_time_period);
 			CL_UpdateWindowTitle();
 
 			World_RBE_Shutdown(&csqc_world);
@@ -8335,7 +8340,7 @@ void CSQC_RendererRestarted(qboolean initing)
 	}
 	else
 	{	//FIXME: this might be awkward in the purecsqc case.
-		csqc_world.worldmodel = cl.worldmodel;
+		csqc_world.worldmodel[cl_current_time_period] = cl.worldmodel[cl_current_time_period];
 
 		for (i = 0; i < MAX_CSMODELS; i++)
 		{
@@ -8367,6 +8372,7 @@ void CSQC_WorldLoaded(void)
 	csqcedict_t *worldent;
 	int tmp;
 	int wmodelindex;
+	int t;
 
 	if (!csqcprogs)
 		return;
@@ -8376,41 +8382,47 @@ void CSQC_WorldLoaded(void)
 	if (csqc_isdarkplaces)
 		CSQC_FindGlobals(false);
 
-	csqc_world.worldmodel = cl.worldmodel;
+	csqc_world.worldmodel[0] = cl.worldmodel[0];
+	csqc_world.worldmodel[1] = cl.worldmodel[1];
+	csqc_world.worldmodel[2] = cl.worldmodel[2];
 
 	csqcmapentitydataloaded = true;
-	csqcmapentitydata = Mod_GetEntitiesString(csqc_world.worldmodel);
-
-	World_RBE_Start(&csqc_world);
-
-	worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, 0);
-	worldent->v->solid = SOLID_BSP;
-	wmodelindex = CS_FindModel(csqc_world.worldmodel?csqc_world.worldmodel->name:"", &tmp);
-	tmp = csqc_worldchanged;
-	csqc_setmodel(csqcprogs, worldent, wmodelindex);
-	csqc_worldchanged = tmp;
-
-	worldent->readonly = false;	//just in case
-
-	World_ClearWorld(&csqc_world, true);
-
-	if (csqc_isdarkplaces)
+	
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
-		if (csqcg.CSQC_Init)
+		csqcmapentitydata = Mod_GetEntitiesString(csqc_world.worldmodel[t]);
+
+		World_RBE_Start(&csqc_world);
+
+		worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, t);
+		worldent->v->solid = SOLID_BSP;
+		wmodelindex = CS_FindModel(csqc_world.worldmodel[t] ? csqc_world.worldmodel[t]->name:"", &tmp);
+		tmp = csqc_worldchanged;
+		csqc_setmodel(csqcprogs, worldent, wmodelindex);
+		csqc_worldchanged = tmp;
+
+		worldent->readonly = false;	//just in case
+
+		World_ClearWorld(&csqc_world, true);
+
+		if (csqc_isdarkplaces)
 		{
-			void *pr_globals = PR_globals(csqcprogs, PR_CURRENT);
-			G_FLOAT(OFS_PARM0) = CSQC_API_VERSION;	//api version
-			(((string_t *)pr_globals)[OFS_PARM1] = PR_TempString(csqcprogs, FULLENGINENAME));
-			G_FLOAT(OFS_PARM2) = version_number();
-			PR_ExecuteProgram(csqcprogs, csqcg.CSQC_Init);
+			if (csqcg.CSQC_Init)
+			{
+				void *pr_globals = PR_globals(csqcprogs, PR_CURRENT);
+				G_FLOAT(OFS_PARM0) = CSQC_API_VERSION;	//api version
+				(((string_t *)pr_globals)[OFS_PARM1] = PR_TempString(csqcprogs, FULLENGINENAME));
+				G_FLOAT(OFS_PARM2) = version_number();
+				PR_ExecuteProgram(csqcprogs, csqcg.CSQC_Init);
+			}
 		}
+
+		if (csqcg.CSQC_WorldLoaded)
+			PR_ExecuteProgram(csqcprogs, csqcg.CSQC_WorldLoaded);
+		csqcmapentitydata = NULL;
+
+		worldent->readonly = true;
 	}
-
-	if (csqcg.CSQC_WorldLoaded)
-		PR_ExecuteProgram(csqcprogs, csqcg.CSQC_WorldLoaded);
-	csqcmapentitydata = NULL;
-
-	worldent->readonly = true;
 }
 
 void CSQC_CoreDump(void)
@@ -8831,7 +8843,7 @@ qboolean CSQC_DrawView(void)
 	//work out which packet entities are solid
 	CL_SetSolidEntities ();
 	CL_TransitionEntities();
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 		CL_PredictMove ();
 
 	if (csqcg.cltime)
@@ -8862,7 +8874,7 @@ qboolean CSQC_DrawView(void)
 	//always revert to a usable default.
 	CSQC_ChangeLocalPlayer(cl_forceseat.ival?(cl_forceseat.ival - 1) % cl.splitclients:0);
 	DropPunchAngle (csqc_playerview);	//FIXME: this seems like the wrong place for this.
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 		Surf_LessenStains();
 
 #ifdef HAVE_LEGACY
@@ -9562,7 +9574,7 @@ void CSQC_ParseEntities(qboolean sized)
 
 	if (!csqcg.CSQC_Ent_Update || !csqcg.self)
 		Host_EndGame("CSQC has no CSQC_Ent_Update function\n");
-	if (!csqc_world.worldmodel || csqc_world.worldmodel->loadstate != MLS_LOADED)
+	if (!csqc_world.worldmodel[cl_current_time_period] || csqc_world.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 		Host_EndGame("world is not yet initialised\n");
 
 	pr_globals = PR_globals(csqcprogs, PR_CURRENT);

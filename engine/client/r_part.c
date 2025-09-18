@@ -141,7 +141,7 @@ static void R_Clutter_Insert_Soup(clutter_build_ctx_t *ctx, shader_t *shader, ve
 		soup->idx[soup->numidx++] = soup->numverts+*index++;
 
 
-	cl.worldmodel->funcs.LightPointValues(cl.worldmodel, origin, diffuse, ambient, ldir);
+	cl.worldmodel[cl_current_time_period]->funcs.LightPointValues(cl.worldmodel[cl_current_time_period], origin, diffuse, ambient, ldir);
 	VectorScale(ambient, 1/255.0, ambient);
 	VectorScale(diffuse, 1/255.0, diffuse);
 
@@ -355,7 +355,7 @@ void R_Clutter_Emit(batch_t **batches)
 	batch_t *b;
 	qboolean rebuildlimit = false;
 
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
 		return;
 
 	if (qrenderer != QR_OPENGL && qrenderer != QR_VULKAN)	//vbo only!
@@ -417,7 +417,7 @@ void R_Clutter_Emit(batch_t **batches)
 			cctx.y = y;
 			cctx.z = z;
 			cctx.w = (sect-cluttersector)+1;
-			Mod_ClipDecal(cl.worldmodel, org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
+			Mod_ClipDecal(cl.worldmodel[cl_current_time_period], org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
 			sect->loadingmodel = cctx.loadingmodel;
 
 			for (i = 0; i < cctx.numsoups; i++)

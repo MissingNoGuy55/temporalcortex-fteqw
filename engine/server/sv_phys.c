@@ -347,9 +347,9 @@ static void WPhys_PortalTransform(world_t *w, wedict_t *ent, wedict_t *portal, v
 	PR_ExecuteProgram (w->progs, portal->xv->camera_transform);
 	VectorAngles(w->g.v_forward, w->g.v_up, ent->v->angles, true);
 #ifndef CLIENTONLY
-	if (ent->entnum > 0 && ent->entnum <= svs.allocated_client_slots)
+	if (ent->entnum > TIME_PERIOD_FUTURE && ent->entnum <= svs.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
-		client_t *cl = &svs.clients[ent->entnum-1];
+		client_t *cl = &svs.clients[ent->entnum-MAX_TIME_PERIODS];
 		ent->v->angles[0] *= r_meshpitch.value;
 		VectorCopy(ent->v->angles, ent->v->v_angle);
 		ent->v->angles[0] *= r_meshpitch.value;
@@ -642,7 +642,7 @@ static trace_t WPhys_PushEntity (world_t *w, wedict_t *ent, vec3_t push, unsigne
 	/*hexen2's movetype_swim does not allow swimming entities to move out of water. this implementation is quite hacky, but matches hexen2 well enough*/
 	if (ent->v->movetype == MOVETYPE_H2SWIM)
 	{
-		if (!(w->worldmodel->funcs.PointContents(w->worldmodel, NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
+		if (!(w->worldmodel[sv_current_time_period]->funcs.PointContents(w->worldmodel[sv_current_time_period], NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
 		{
 			VectorCopy(ent->v->origin, trace.endpos);
 			trace.fraction = 0;
@@ -745,7 +745,7 @@ static qboolean WPhys_PushAngles (world_t *w, wedict_t *pusher, vec3_t move, vec
 
 // see if any solid entities are inside the final position
 	if (pusher->v->movetype != MOVETYPE_H2PUSHPULL)
-	for (e = 1; e < w->num_edicts; e++)
+	for (e = MAX_TIME_PERIODS; e < w->num_edicts; e++)
 	{
 		check = WEDICT_NUM_PB(w->progs, e);
 		if (ED_ISFREE(check))
@@ -955,7 +955,7 @@ qboolean WPhys_Push (world_t *w, wedict_t *pusher, vec3_t move, vec3_t amove)
 
 // see if any solid entities are inside the final position
 	num_moved = 0;
-	for (e=1 ; e<w->num_edicts ; e++)
+	for (e=MAX_TIME_PERIODS ; e<w->num_edicts ; e++)
 	{
 		check = WEDICT_NUM_PB(w->progs, e);
 		if (ED_ISFREE(check))
@@ -2185,12 +2185,12 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 
 #ifndef CLIENTONLY
 	edict_t *svent = (edict_t*)ent;
-	if (ent->entnum > 0 && ent->entnum <= sv.allocated_client_slots && w == &sv.world)
+	if (ent->entnum > TIME_PERIOD_FUTURE && ent->entnum <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && w == &sv.world)
 	{	//a client woo.
 		qboolean readyforjump = false;
 
 #if defined(NQPROT) && defined(HAVE_LEGACY)
-		if (svs.clients[ent->entnum-1].state == cs_connected)
+		if (svs.clients[ent->entnum-MAX_TIME_PERIODS].state == cs_connected)
 		{	//nq is buggy and calls playerprethink/etc while the player is still connecting.
 			//some mods depend on this, hopefully unintentionally (as is the case with Arcane Dimensions).
 			//so don't do anything if we're qw, but use crappy behaviour for nq+h2.
@@ -2200,14 +2200,14 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 		else
 #endif
 		{
-			if (svs.clients[ent->entnum-1].state < cs_spawned)
+			if (svs.clients[ent->entnum-MAX_TIME_PERIODS].state < cs_spawned)
 				return;		// unconnected slot
 		}
 
-		if (svs.clients[ent->entnum-1].protocol == SCP_BAD)
+		if (svs.clients[ent->entnum-MAX_TIME_PERIODS].protocol == SCP_BAD)
 			svent->v->fixangle = FIXANGLE_NO;	//bots never get fixangle cleared otherwise
 
-		host_client = &svs.clients[ent->entnum-1];
+		host_client = &svs.clients[ent->entnum-MAX_TIME_PERIODS];
 		SV_ClientThink();
 
 		if (!host_client->spectator)
@@ -2496,11 +2496,11 @@ void World_Physics_Frame(world_t *w)
 			World_LinkEdict (w, ent, true);	// force retouch even for stationary
 
 #ifdef HAVE_SERVER
-		if (i > 0 && i <= sv.allocated_client_slots && w == &sv.world)
+		if (i > TIME_PERIOD_FUTURE && i <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && w == &sv.world)
 		{
-			if (!svs.clients[i-1].isindependant)
+			if (!svs.clients[i-MAX_TIME_PERIODS].isindependant)
 			{
-				if (sv_nqplayerphysics.ival || SV_PlayerPhysicsQC || svs.clients[i-1].state < cs_spawned)
+				if (sv_nqplayerphysics.ival || SV_PlayerPhysicsQC || svs.clients[i-MAX_TIME_PERIODS].state < cs_spawned)
 				{
 					WPhys_RunEntity (w, ent);
 					WPhys_RunNewmis (w);
@@ -2510,20 +2510,20 @@ void World_Physics_Frame(world_t *w)
 					unsigned int newt;
 					unsigned int delt;
 					newt = sv.time*1000;
-					delt = newt - svs.clients[i-1].lastruncmd;
+					delt = newt - svs.clients[i-MAX_TIME_PERIODS].lastruncmd;
 					if (delt > (int)(1000/77.0) || delt < -10)
 					{
 						float ft = host_frametime;
-						host_client = &svs.clients[i-1];
-						sv_player = svs.clients[i-1].edict;
+						host_client = &svs.clients[i-MAX_TIME_PERIODS];
+						sv_player = svs.clients[i-MAX_TIME_PERIODS].edict;
 
 						SV_PreRunCmd();
 #ifndef NEWSPEEDCHEATPROT
-						svs.clients[i-1].last_check = 0;
+						svs.clients[i-MAX_TIME_PERIODS].last_check = 0;
 #endif
-						svs.clients[i-1].lastcmd.msec = bound(0, delt, 255);
-						SV_RunCmd (&svs.clients[i-1].lastcmd, true);
-						svs.clients[i-1].lastcmd.impulse = 0;
+						svs.clients[i-MAX_TIME_PERIODS].lastcmd.msec = bound(0, delt, 255);
+						SV_RunCmd (&svs.clients[i-MAX_TIME_PERIODS].lastcmd, true);
+						svs.clients[i-MAX_TIME_PERIODS].lastcmd.impulse = 0;
 						SV_PostRunCmd();
 						host_client->lastruncmd = sv.time*1000;
 						*w->g.frametime = host_frametime = ft;

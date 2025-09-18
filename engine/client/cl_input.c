@@ -2327,7 +2327,7 @@ void CL_UseIndepPhysics(qboolean allow)
 
 void CL_UpdateSeats(void)
 {
-	if (!cls.netchan.message.cursize && cl.allocated_client_slots > 1 && cls.state == ca_active && cl.splitclients && (cls.fteprotocolextensions & PEXT_SPLITSCREEN) && cl.worldmodel)
+	if (!cls.netchan.message.cursize && cl.allocated_client_slots > 1 && cls.state == ca_active && cl.splitclients && (cls.fteprotocolextensions & PEXT_SPLITSCREEN) && cl.worldmodel[cl_current_time_period])
 	{
 		int targ = bound(1, cl_splitscreen.ival+1, MAX_SPLITS);
 		if (cl.splitclients < targ)

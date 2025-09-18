@@ -1209,14 +1209,14 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 		//use the player's origin for r_viewleaf, because there's not much we can do anyway*/
 		VectorCopy(r_origin, r_refdef.pvsorigin);
 
-		if (cl.worldmodel && cl.worldmodel->funcs.ClusterPVS && !r_novis.ival)
+		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS && !r_novis.ival)
 		{
 			int clust, i, j;
 			float d;
 			vec3_t point;
 			r_refdef.forcevis = false;
 			r_refdef.forcedvis = NULL;
-			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel->pvsbytes);
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_time_period]->pvsbytes);
 			for (i = batch->firstmesh; i < batch->meshes; i++)
 			{
 				mesh = batch->mesh[i];
@@ -1231,11 +1231,11 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 				d += 0.1;	//an epsilon on the far side
 				VectorMA(point, d, plane.normal, point);
 
-				clust = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, point, NULL);
+				clust = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], point, NULL);
 				if (i == batch->firstmesh)
-					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_REPLACE);
+					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_REPLACE);
 				else
-					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_MERGE);
+					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_MERGE);
 			}
 //			memset(newvis, 0xff, pvsbytes);
 		}
@@ -2048,9 +2048,9 @@ void GLR_RenderView (void)
 	if (!(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
 		//FIXME: fbo stuff
-		if (!r_worldentity.model || !cl.worldmodel)
+		if (!r_worldentity.model || !cl.worldmodel[cl_current_time_period])
 			r_refdef.flags |= RDF_NOWORLDMODEL;
-		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel)
+		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_time_period])
 		{
 			GL_Set2D (false);
 			R2D_ImageColours(0, 0, 0, 1);

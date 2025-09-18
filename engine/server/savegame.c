@@ -39,63 +39,66 @@ struct loadinfo_s
 //Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current
 void SV_SavegameComment (char *text, size_t textsize)
 {
-	int		i;
+	int		i, t;
 	char	kills[20];
 	char	datetime[64];
 	time_t	timeval;
 
-	char *mapname = sv.mapname;
-
-	for (i=0 ; i<textsize-1 ; i++)
-		text[i] = ' ';
-	text[textsize-1] = '\0';
-	if (!mapname)
-		strcpy( text, "Unnamed_Level");
-	else
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
-		i = strlen(mapname);
-		if (i > 22)
-			i = 22;
-		memcpy (text, mapname, i);
-	}
+		char *mapname = sv.mapname[t];
 
-	kills[0] = '\0';
-#ifdef Q2SERVER
-	if (ge)	//q2
-	{
+		for (i=0 ; i<textsize-1 ; i++)
+			text[i] = ' ';
+		text[textsize-1] = '\0';
+		if (!mapname)
+			strcpy( text, "Unnamed_Level");
+		else
+		{
+			i = strlen(mapname);
+			if (i > 22)
+				i = 22;
+			memcpy (text, mapname, i);
+		}
+
 		kills[0] = '\0';
-	}
-	else
+#ifdef Q2SERVER
+		if (ge)	//q2
+		{
+			kills[0] = '\0';
+		}
+		else
 #endif
 #ifdef HLSERVER
-	if (svs.gametype == GT_HALFLIFE)
-	{
-		sprintf (kills,"");
-	}
-	else
+		if (svs.gametype == GT_HALFLIFE)
+		{
+			sprintf (kills,"");
+		}
+		else
 #endif
-	{
-		if ((int)pr_global_struct->killed_monsters || (int)pr_global_struct->total_monsters)
-			sprintf (kills,"kills:%3i/%3i", (int)pr_global_struct->killed_monsters, (int)pr_global_struct->total_monsters);
-	}
+		{
+			if ((int)pr_global_struct->killed_monsters || (int)pr_global_struct->total_monsters)
+				sprintf (kills,"kills:%3i/%3i", (int)pr_global_struct->killed_monsters, (int)pr_global_struct->total_monsters);
+		}
 
-	time(&timeval);
-	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime( &timeval ));
+		time(&timeval);
+		strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime( &timeval ));
 
-	memcpy (text+22, kills, strlen(kills));
-	if (textsize > 39)
-	{
-		Q_strncpyz(text+39, datetime, textsize-39);
-	}
+		memcpy (text+22, kills, strlen(kills));
+		if (textsize > 39)
+		{
+			Q_strncpyz(text+39, datetime, textsize-39);
+		}
 // convert space to _ to make stdio happy
-	for (i=0 ; i<textsize-1 ; i++)
-	{
-		if (text[i] == ' ')
-			text[i] = '_';
-		else if (text[i] == '\n')
-			text[i] = '\0';
+		for (i=0 ; i<textsize-1 ; i++)
+		{
+			if (text[i] == ' ')
+				text[i] = '_';
+			else if (text[i] == '\n')
+				text[i] = '\0';
+		}
+		text[textsize-1] = '\0';
 	}
-	text[textsize-1] = '\0';
 }
 
 pbool PDECL SV_ExtendedSaveData(pubprogfuncs_t *progfuncs, void *loadctx, const char **ptr)
@@ -466,6 +469,8 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 	int pt;
 
 	int modelpos;
+	
+	int t;
 
 	qofs_t filelen, filepos;
 	char *file;
@@ -574,7 +579,7 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 				sv.strings.q2_extrasounds[i] = NULL;
 			}
 			//Read portal state
-			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, s, (file+filelen)-s);
+			sv.world.worldmodel[sv_current_time_period]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[sv_current_time_period], s, (file+filelen)-s);
 			FS_FreeFile(file);
 		}
 
@@ -747,13 +752,15 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 //			svprogfuncs->EntFree (svprogfuncs, EDICT_NUM_PB(svprogfuncs, i), false);
 
 		//and now we can stomp on everything. yay.
-		sv.world.edicts[0].readonly = false;
-		G_FLOAT(OFS_PARM0) = PR_QCFile_From_Buffer(svprogfuncs, name, file, line-file, filelen);
-		G_FLOAT(OFS_PARM1) = sv.world.num_edicts;
-		G_FLOAT(OFS_PARM2) = sv.allocated_client_slots;
-		PR_ExecuteProgram(svprogfuncs, restorefunc);
-		sv.world.edicts[0].readonly = true;
-
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		{
+			sv.world.edicts[t].readonly = false;
+			G_FLOAT(OFS_PARM0) = PR_QCFile_From_Buffer(svprogfuncs, name, file, line-file, filelen);
+			G_FLOAT(OFS_PARM1) = sv.world.num_edicts;
+			G_FLOAT(OFS_PARM2) = sv.allocated_client_slots;
+			PR_ExecuteProgram(svprogfuncs, restorefunc);
+			sv.world.edicts[t].readonly = true;
+		}
 		//in case they forgot to setorigin everything after blindly loading its fields...
 		World_ClearWorld (&sv.world, true);
 
@@ -842,7 +849,7 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 	for (i=0 ; i<svs.allocated_client_slots ; i++)
 	{
 		if (i < sv.allocated_client_slots)
-			ent = EDICT_NUM_PB(svprogfuncs, i+1);
+			ent = EDICT_NUM_PB(svprogfuncs, i+MAX_TIME_PERIODS);
 		else
 			ent = NULL;
 		svs.clients[i].edict = ent;
@@ -1022,7 +1029,7 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 			}
 			VFS_WRITE(f, "", 1);
 
-			portalblobsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &portalblob);
+			portalblobsize = sv.world.worldmodel[sv_current_time_period]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[sv_current_time_period], &portalblob);
 			VFS_WRITE(f, portalblob, portalblobsize);
 
 			VFS_CLOSE(f);
@@ -1195,7 +1202,7 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 			//FIXME: frik files?
 			//FIXME: qc threads?
 
-			//	portalblobsize = CM_WritePortalState(sv.world.worldmodel, &portalblob);
+			//	portalblobsize = CM_WritePortalState(sv.world.worldmodel[sv_current_time_period], &portalblob);
 			//	VFS_WRITE(f, portalblob, portalblobsize);
 		}
 
@@ -1207,7 +1214,7 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 	{
 		for (clnum=0; clnum < sv.allocated_client_slots; clnum++)
 		{
-			edict_t *ed = EDICT_NUM_PB(svprogfuncs, clnum+1);
+			edict_t *ed = EDICT_NUM_PB(svprogfuncs, clnum+MAX_TIME_PERIODS);
 			ed->ereftype = ER_ENTITY;
 		}
 	}
@@ -1772,7 +1779,7 @@ static void SV_GameLoaded(loadplayer_t *lp, size_t slots, const char *savename)
 		{
 			cl->name = PR_AddString(svprogfuncs, cl->namebuf, sizeof(cl->namebuf), false);
 			cl->team = PR_AddString(svprogfuncs, cl->teambuf, sizeof(cl->teambuf), false);
-			cl->edict = EDICT_NUM_PB(svprogfuncs, clnum+1);
+			cl->edict = EDICT_NUM_PB(svprogfuncs, clnum+MAX_TIME_PERIODS-1);
 
 #ifdef HEXEN2
 			if (cl->edict)

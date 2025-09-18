@@ -3846,7 +3846,7 @@ static void P_ReadPointFile_f (void)
 	int pt_pointfile;
 	unsigned int spawned = 0, total = 0;
 
-	COM_StripExtension(cl.worldmodel->name, name, sizeof(name));
+	COM_StripExtension(cl.worldmodel[cl_current_time_period]->name, name, sizeof(name));
 	strcat(name, ".pts");
 
 	f = FS_OpenVFS(name, "rb", FS_GAME);
@@ -4125,9 +4125,9 @@ static void P_AddRainParticles(model_t *mod, vec3_t axis[3], vec3_t eorg, float 
 			if (VectorLength(vdist) > (1024+512)*frandom())
 				continue;
 
-			if (cl.worldmodel->funcs.InfoForPoint)
+			if (cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint)
 			{
-				cl.worldmodel->funcs.InfoForPoint(cl.worldmodel, worg, &area, &cluster, &contentbits);
+				cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint(cl.worldmodel[cl_current_time_period], worg, &area, &cluster, &contentbits);
 				if (contentbits & FTECONTENTS_SOLID)
 					continue;
 				if (r_refdef.scenevis && !(r_refdef.scenevis[cluster>>3] & (1<<(cluster&7))))
@@ -4687,10 +4687,10 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 		return 1;
 
 	// inwater check, switch only once
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
 	{
 		int cont;
-		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
+		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, org);
 
 		if (cont & FTECONTENTS_FLUID)
 			ptype = &part_type[ptype->inwater];
@@ -4708,10 +4708,10 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 
 	while(ptype)
 	{
-		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel && cl.worldmodel->loadstate==MLS_LOADED)
+		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate==MLS_LOADED)
 		{
 			int cont;
-			cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
+			cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, org);
 
 			if ((ptype->flags & PT_TROVERWATER) && (cont & ptype->fluidmask))
 				goto skip;
@@ -4742,7 +4742,7 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 				return 0;
 
 			ctx.entity = 0;
-			ctx.model = cl.worldmodel;
+			ctx.model = cl.worldmodel[cl_current_time_period];
 			if (!ctx.model)
 				return 0;
 
@@ -5634,10 +5634,10 @@ static void P_ParticleTrailSpawn (vec3_t startpos, vec3_t end, part_type_t *ptyp
 			P_ParticleTrail(start, end, ptype->assoc, timeinterval, dlkey, NULL, NULL);
 	}
 
-	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel)
+	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_time_period])
 	{
 		int cont;
-		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
+		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, startpos);
 
 		if ((ptype->flags & PT_TROVERWATER) && (cont & ptype->fluidmask))
 			return;
@@ -6150,10 +6150,10 @@ static int PScript_ParticleTrail (vec3_t startpos, vec3_t end, int type, float t
 		return 1;
 
 	// inwater check, switch only once
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
 	{
 		int cont;
-		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
+		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, startpos);
 
 		if (cont & FTECONTENTS_FLUID)
 			ptype = &part_type[ptype->inwater];
@@ -7530,7 +7530,7 @@ static void PScript_DrawParticleTypes (void)
 								ctx.entity = e;
 								if (!ctx.entity)
 								{
-									model = cl.worldmodel;
+									model = cl.worldmodel[cl_current_time_period];
 									VectorCopy(p->org, ctx.center);
 								}
 								else if ((unsigned)ctx.entity < (unsigned)cl.maxlerpents)
@@ -7767,7 +7767,7 @@ static void PScript_DrawParticles (void)
 		entity_t *ent;
 		int i;
 		
-		P_AddRainParticles(cl.worldmodel, r_worldentity.axis, r_worldentity.origin, pframetime);
+		P_AddRainParticles(cl.worldmodel[cl_current_time_period], r_worldentity.axis, r_worldentity.origin, pframetime);
 
 		for (i = 0; i < cl_numvisedicts ; i++)
 		{

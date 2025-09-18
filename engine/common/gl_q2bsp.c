@@ -4572,7 +4572,7 @@ static void Q2BSP_MarkLights (dlight_t *light, dlightbitmask_t bit, mnode_t *nod
 	}
 
 // mark the polygons
-	surf = cl.worldmodel->surfaces + node->firstsurface;
+	surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 	for (i=0 ; i<node->numsurfaces ; i++, surf++)
 	{
 		if (surf->dlightframe != r_dlightframecount)

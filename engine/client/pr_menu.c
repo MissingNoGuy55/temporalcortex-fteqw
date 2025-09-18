@@ -1761,7 +1761,7 @@ void QCBUILTIN PF_menu_findchain (pubprogfuncs_t *prinst, struct globalvars_s *p
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = PR_GetStringOfs(prinst, OFS_PARM1);
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = (menuedict_t *)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -1793,7 +1793,7 @@ void QCBUILTIN PF_menu_findchainfloat (pubprogfuncs_t *prinst, struct globalvars
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = G_FLOAT(OFS_PARM1);
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = (menuedict_t*)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -1822,7 +1822,7 @@ void QCBUILTIN PF_menu_findchainflags (pubprogfuncs_t *prinst, struct globalvars
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = G_FLOAT(OFS_PARM1);
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = (menuedict_t*)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -3360,7 +3360,9 @@ qboolean MP_Init (void)
 
 		//'world' edict
 //		EDICT_NUM_PB(menu_world.progs, 0)->readonly = true;
-		EDICT_NUM_PB(menu_world.progs, 0)->ereftype = ER_ENTITY;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PRESENT)->ereftype = ER_ENTITY;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PAST)->ereftype = ER_ENTITY;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_FUTURE)->ereftype = ER_ENTITY;
 
 
 		mpfuncs.init = PR_FindFunction(menu_world.progs, "m_init", PR_ANY);
@@ -3384,7 +3386,9 @@ qboolean MP_Init (void)
 			PR_ExecuteProgram(menu_world.progs, mpfuncs.init);
 		inmenuprogs--;
 
-		EDICT_NUM_PB(menu_world.progs, 0)->readonly = true;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PRESENT)->readonly = true;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PAST)->readonly = true;
+		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_FUTURE)->readonly = true;
 
 		Con_DPrintf("Initialized menu.dat\n");
 		return true;
@@ -3573,7 +3577,7 @@ void MP_RendererRestarted(void)
 	if (!menu_world.progs)
 		return;
 
-	menu_world.worldmodel = cl.worldmodel;
+	menu_world.worldmodel[cl_current_time_period] = cl.worldmodel[cl_current_time_period];
 
 	for (i = 0; i < MAX_CSMODELS; i++)
 	{

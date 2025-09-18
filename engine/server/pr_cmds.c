@@ -265,13 +265,13 @@ void PDECL ED_Spawned (struct edict_s *ent, int loading)
 
 pbool PDECL ED_CanFree (edict_t *ed)
 {
-	if (ed == (edict_t*)sv.world.edicts)
+	if (ed < (edict_t*)sv.world.edicts + MAX_TIME_PERIODS)
 	{
 		if (developer.value)
 			PR_RunWarning(svprogfuncs, "cannot free world entity\n");
 		return false;
 	}
-	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots)
+	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+MAX_TIME_PERIODS)
 	{
 		PR_RunWarning(svprogfuncs, "cannot free player entities\n");
 		return false;
@@ -555,7 +555,7 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 	{
 		model_t *mod;
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
+			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname[sv_current_time_period]), MLV_WARN);
 		mod = sv.models[modelindex];
 		if (mod && mod->loadstate != MLS_LOADED)
 		{
@@ -1420,7 +1420,7 @@ static void PR_ApplyCompilation_f (void)
 
 	for (i=0 ; i<sv.allocated_client_slots ; i++)
 	{
-		ent = EDICT_NUM_PB(svprogfuncs, i+1);
+		ent = EDICT_NUM_PB(svprogfuncs, i+MAX_TIME_PERIODS);
 
 		svs.clients[i].edict = ent;
 	}
@@ -1640,7 +1640,7 @@ static void PR_FallbackSpawn_Misc_Model(pubprogfuncs_t *progfuncs, edict_t *self
 	void *pr_globals;
 	eval_t *val;
 
-	if (sv.world.worldmodel && sv.world.worldmodel->type==mod_brush && sv.world.worldmodel->fromgame == fg_quake3 && !force)
+	if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->type==mod_brush && sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake3 && !force)
 	{	//on q3bsp, these are expected to be handled directly by q3map2, but it doesn't always strip it.
 		ED_Free(progfuncs, self);
 		return;
@@ -2142,7 +2142,7 @@ void Q_InitProgs(enum initprogs_e flags)
 		}
 		prnum = 0;
 
-		switch (sv.world.worldmodel->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
+		switch (sv.world.worldmodel[sv_current_time_period]->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
 		{
 		case fg_quake2:
 			if (COM_FDepthFile("q2bsp.dat", true)!=FDEPTH_MISSING)
@@ -3088,7 +3088,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			//qw dedicated servers only load bsps (better)
 			if (mod)
 			{
-				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
+				mod = Mod_ForName (Mod_FixName(m, sv.modelname[sv_current_time_period]), MLV_WARNSYNC);
 				if (mod)
 				{
 					while(mod->loadstate == MLS_LOADING)
@@ -3230,13 +3230,13 @@ static void QCBUILTIN PF_sprint (pubprogfuncs_t *prinst, struct globalvars_s *pr
 		s = PF_VarString(prinst, 2, pr_globals);
 	}
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if ( entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE )
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return;
 	}
 
-	client = &svs.clients[entnum-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 
 	SV_ClientPrintf (client, level, "%s", s);
 
@@ -3269,12 +3269,12 @@ static void QCBUILTIN PF_isbackbuffered (pubprogfuncs_t *prinst, struct globalva
 	client_t	*client;
 
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 	{
 		Con_Printf ("PF_isbackbuffered: Not a client\n");
 		return;
 	}
-	client = &svs.clients[entnum-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 
 	G_FLOAT(OFS_RETURN) = client->num_backbuf>0;
 }
@@ -3299,13 +3299,13 @@ void PF_centerprint_Internal (int entnum, qboolean plaque, const char *s)
 		return;
 #endif
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 	{
 		PR_RunWarning(sv.world.progs, "tried to centerprint to a non-client\n");
 		return;
 	}
 
-	cl = &svs.clients[entnum-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 	if (cl->centerprintstring)
 		Z_Free(cl->centerprintstring);
 	cl->centerprintstring = NULL;
@@ -3943,12 +3943,12 @@ void PF_newcheckclient (pubprogfuncs_t *prinst, world_t *w)
 
 // get the PVS for the entity
 	VectorAdd (ent->v->origin, ent->v->view_ofs, checkorg);
-	if (sv.world.worldmodel->type == mod_heightmap || sv_nopvs.ival)
+	if (sv.world.worldmodel[sv_current_time_period]->type == mod_heightmap || sv_nopvs.ival)
 		w->lastcheckpvs = NULL;
 	else
 	{
-		cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, checkorg, NULL);
-		w->lastcheckpvs = sv.world.worldmodel->funcs.ClusterPVS (sv.world.worldmodel, cluster, &checkpvsbuffer, PVM_FAST);
+		cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], checkorg, NULL);
+		w->lastcheckpvs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_time_period], cluster, &checkpvsbuffer, PVM_FAST);
 	}
 
 	w->lastcheck = i;
@@ -4002,7 +4002,7 @@ int PF_checkclient_Internal (pubprogfuncs_t *prinst)
 
 	if (w->lastcheckpvs)
 	{
-		clust = w->worldmodel->funcs.ClusterForPoint(w->worldmodel, view, NULL);
+		clust = w->worldmodel[sv_current_time_period]->funcs.ClusterForPoint(w->worldmodel[sv_current_time_period], view, NULL);
 		if ( (clust<0) || !(w->lastcheckpvs[clust>>3] & (1<<(clust&7)) ) )
 		{
 			return 0;
@@ -4049,10 +4049,10 @@ void PF_stuffcmd_Internal(int entnum, const char *str, unsigned int flags)
 		return;
 	}
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return;
 
-	cl = &svs.clients[entnum-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 
 	if (strcmp(str, "disconnect\n") == 0)
 	{
@@ -4127,10 +4127,10 @@ static void QCBUILTIN PF_dropclient (pubprogfuncs_t *prinst, struct globalvars_s
 	client_t	*cl;
 
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return;
 
-	cl = &svs.clients[entnum-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 
 	// so long and thanks for all the fish
 	if (cl->netchan.remote_address.type == NA_LOOPBACK)
@@ -4165,7 +4165,7 @@ static void QCBUILTIN PF_spawnclient (pubprogfuncs_t *prinst, struct globalvars_
 			svs.clients[i].datagram.allowoverflow = true;
 			svs.clients[i].datagram.maxsize = 0;
 
-			svs.clients[i].edict = EDICT_NUM_PB(prinst, i+1);
+			svs.clients[i].edict = EDICT_NUM_PB(prinst, i+MAX_TIME_PERIODS);
 
 			SV_SetUpClientEdict (&svs.clients[i], svs.clients[i].edict);
 
@@ -4181,7 +4181,7 @@ static void QCBUILTIN PF_spawnclient (pubprogfuncs_t *prinst, struct globalvars_
 static void QCBUILTIN PF_clienttype (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	int entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
 		G_FLOAT(OFS_RETURN) = CLIENTTYPE_NOTACLIENT;	//not a client slot
 		return;
@@ -4224,7 +4224,7 @@ static void QCBUILTIN PF_cvar (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 	else if (!strcmp(str, "pr_map_builtin"))
 		G_FLOAT(OFS_RETURN) = PR_EnableEBFSBuiltin("map_builtin", 0);
 	else if (!strcmp(str, "halflifebsp"))
-		G_FLOAT(OFS_RETURN) = sv.world.worldmodel->fromgame == fg_halflife;
+		G_FLOAT(OFS_RETURN) = sv.world.worldmodel[sv_current_time_period]->fromgame == fg_halflife;
 	else
 	{
 		cvar_t *cv = PF_Cvar_FindOrGet(str);
@@ -4241,7 +4241,7 @@ static void QCBUILTIN PF_sv_getlight (pubprogfuncs_t *prinst, struct globalvars_
 	/*not shared with client - clients get more lights*/
 	float *point = G_VECTOR(OFS_PARM0);
 	vec3_t diffuse, ambient, dir;
-	model_t *wm = sv.world.worldmodel;
+	model_t *wm = sv.world.worldmodel[sv_current_time_period];
 
 	if (wm && wm->loadstate == MLS_LOADED && wm->funcs.LightPointValues && wm->lightmaps.maxstyle<cl_max_lightstyles)
 	{
@@ -4548,7 +4548,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				sv.strings.model_precache[i] = PR_AddString(prinst, s, 0, false);
 			s = sv.strings.model_precache[i];
 			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
-				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname), MLV_WARNSYNC);
+				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[sv_current_time_period]), MLV_WARNSYNC);
 			else
 			{
 				/*touch the file, so any packs will be referenced*/
@@ -4995,8 +4995,8 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 
 	//figure out the angle we're allowed to aim at
 	i = NUM_FOR_EDICT(prinst, ent);
-	if (i>0 && i<sv.allocated_client_slots)
-		bestdist = svs.clients[i-1].autoaimdot;
+	if (i>TIME_PERIOD_FUTURE && i<sv.allocated_client_slots+MAX_TIME_PERIODS)
+		bestdist = svs.clients[i-MAX_TIME_PERIODS].autoaimdot;
 	else
 		bestdist = sv_aim.value;
 	if (bestdist >= 1)
@@ -5028,7 +5028,7 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 	bestdist = sv_aim.value;
 	bestent = NULL;
 
-	for (i=1 ; i<sv.world.num_edicts ; i++ )
+	for (i=MAX_TIME_PERIODS ; i<sv.world.num_edicts ; i++ )
 	{
 		check = EDICT_NUM_PB(prinst, i);
 		if (check->v->takedamage != DAMAGE_AIM)
@@ -5090,7 +5090,7 @@ sizebuf_t *QWWriteDest (int		dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
 		}
 	case MSG_BROADCAST:
 		return &sv.datagram;
@@ -5100,12 +5100,12 @@ sizebuf_t *QWWriteDest (int		dest)
 #if 0
 		ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 		entnum = NUM_FOR_EDICT(ent);
-		if (entnum < 1 || entnum > sv.allocated_client_slots)
+		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		{
 			PR_BIError ("WriteDest: not a client");
 			return &sv.reliable_datagram;
 		}
-		return &svs.clients[entnum-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
 #endif
 
 	case MSG_ALL:
@@ -5138,7 +5138,7 @@ sizebuf_t *NQWriteDest (int dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
 		}
 
 	case MSG_BROADCAST:
@@ -5149,12 +5149,12 @@ sizebuf_t *NQWriteDest (int dest)
 #if 0
 		ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 		entnum = NUM_FOR_EDICT(ent);
-		if (entnum < 1 || entnum > sv.allocated_client_slots)
+		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		{
 			PR_BIError (prinst, "WriteDest: not a client");
 			return &sv.nqreliable_datagram;
 		}
-		return &svs.clients[entnum-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
 #endif
 
 	case MSG_ALL:
@@ -5192,11 +5192,11 @@ client_t *Write_GetClient(void)
 
 	ent = PROG_TO_EDICT(svprogfuncs, pr_global_struct->msg_entity);
 	entnum = NUM_FOR_EDICT(svprogfuncs, ent);
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return NULL;//PR_RunError ("WriteDest: not a client");
-	if (svs.clients[entnum-1].protocol == SCP_BAD)
+	if (svs.clients[entnum-MAX_TIME_PERIODS-1].protocol == SCP_BAD)
 		return NULL;	//don't try writing to bots... we don't want the overflows.
-	return &svs.clients[entnum-1];
+	return &svs.clients[entnum-MAX_TIME_PERIODS-1];
 }
 
 static int PF_Write_BoundForNetwork(pubprogfuncs_t *prinst, int minv, int v, int maxv)
@@ -6227,14 +6227,14 @@ void QCBUILTIN PF_setspawnparms (pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	ent = G_EDICT(prinst, OFS_PARM0);
 	i = NUM_FOR_EDICT(prinst, ent);
-	if (i < 1 || i > sv.allocated_client_slots)
+	if (i < MAX_TIME_PERIODS || i > sv.allocated_client_slots + TIME_PERIOD_FUTURE )
 	{
 		PR_BIError (prinst, "Entity is not a client");
 		return;
 	}
 
 	// copy spawn parms out of the client_t
-	client = svs.clients + (i-1);
+	client = svs.clients + (i-MAX_TIME_PERIODS-1);
 
 	SV_SpawnParmsToQC(client);
 }
@@ -6310,8 +6310,8 @@ void QCBUILTIN PF_logfrag (pubprogfuncs_t *prinst, struct globalvars_s *pr_globa
 	ent1 = G_EDICT(prinst, OFS_PARM0);
 	ent2 = G_EDICT(prinst, OFS_PARM1);
 
-	e1 = NUM_FOR_EDICT(prinst, ent1)-1;
-	e2 = NUM_FOR_EDICT(prinst, ent2)-1;
+	e1 = NUM_FOR_EDICT(prinst, ent1)-MAX_TIME_PERIODS-1;
+	e2 = NUM_FOR_EDICT(prinst, ent2)-MAX_TIME_PERIODS-1;
 
 	if (e1 < 0 || e1 >= sv.allocated_client_slots
 	|| e2 < 0 || e2 >= sv.allocated_client_slots)
@@ -6395,12 +6395,12 @@ char *PF_infokey_Internal (int entnum, const char *key)
 	char	*value;
 	static char ov[256];
 
-	if (entnum == 0)
+	if (entnum < MAX_TIME_PERIODS)
 	{
 		if (pr_imitatemvdsv.value && !strcmp(key, "*version"))
 			value = "2.40";
 		else if (!strcmp(key, "modelname"))	//for compat with mvdsv.
-			value = sv.modelname;
+			value = sv.modelname[sv_current_time_period];
 		else
 		{
 			if ((value = InfoBuf_ValueForKey(&svs.info, key)) == NULL || !*value)
@@ -6409,7 +6409,7 @@ char *PF_infokey_Internal (int entnum, const char *key)
 	}
 	else if (entnum <= sv.allocated_client_slots)
 	{
-		client_t *pl = &svs.clients[entnum-1];
+		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 		client_t *controller = pl->controller?pl->controller:pl;
 		value = ov;
 		if (!strcmp(key, "ip"))
@@ -6435,9 +6435,9 @@ char *PF_infokey_Internal (int entnum, const char *key)
 		else if (!strcmp(key, "csqcactive") || !strcmp(key, "*csqcactive"))
 			sprintf(ov, "%d", controller->csqcactive);
 		else if (!strcmp(key, "ping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-1], false));
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS-1], false));
 		else if (!strcmp(key, "svping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-1], true));
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS-1], true));
 		else if (!strcmp(key, "guid"))
 			sprintf(ov, "%s", pl->guid);
 		else if (!strcmp(key, "*cert_dn"))
@@ -6601,7 +6601,7 @@ static void QCBUILTIN PF_infokey_blob (pubprogfuncs_t *prinst, struct globalvars
 			value = InfoBuf_BlobForKey(&svs.localinfo, key, &blobsize, NULL);
 	}
 	else if (e1 <= (unsigned)sv.allocated_client_slots)
-		value = InfoBuf_BlobForKey (&svs.clients[e1-1].userinfo, key, &blobsize, NULL);
+		value = InfoBuf_BlobForKey (&svs.clients[e1-MAX_TIME_PERIODS-1].userinfo, key, &blobsize, NULL);
 	else
 		value = NULL;
 
@@ -7341,9 +7341,9 @@ static void QCBUILTIN PF_checkextension (pubprogfuncs_t *prinst, struct globalva
 		{
 			ext = &QSG_Extensions[i];
 
-			if (ext->extensioncheck && clnum >= 1 && clnum <= sv.allocated_client_slots)
+			if (ext->extensioncheck && clnum > 0 && clnum <= sv.allocated_client_slots)
 			{
-				client_t *cl = &svs.clients[clnum-1];
+				client_t *cl = &svs.clients[clnum-MAX_TIME_PERIODS];
 				extcheck_t check = {prinst->parms->user, cl->fteprotocolextensions, cl->fteprotocolextensions2};
 				if (!ext->extensioncheck(&check))
 					return;	//blocked by some setting somewhere, somehow.
@@ -7816,8 +7816,8 @@ static void QCBUILTIN PF_OpenPortal	(pubprogfuncs_t *prinst, struct globalvars_s
 			}
 		}
 	}
-	if (sv.world.worldmodel->funcs.SetAreaPortalState)
-		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, portal, area1, area2, state);
+	if (sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_time_period], portal, area1, area2, state);
 }
 
 //EXTENSION: KRIMZON_SV_PARSECLIENTCOMMAND
@@ -7832,15 +7832,15 @@ static void QCBUILTIN PF_clientcommand (pubprogfuncs_t *prinst, struct globalvar
 
 	//find client for this entity
 	i = NUM_FOR_EDICT(prinst, G_EDICT(prinst, OFS_PARM0));
-	if (i <= 0 || i > sv.allocated_client_slots)
+	if (i <= 0 || i > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 		PR_BIError(prinst, "PF_clientcommand: entity is not a client");
 	else
 	{
-		host_client = &svs.clients[i-1];
+		host_client = &svs.clients[i-MAX_TIME_PERIODS-1];
 		sv_player = host_client->edict;
 		if (host_client->state == cs_connected || host_client->state == cs_spawned)
 		{
-			SV_ExecuteUserCommand (PF_VarString(prinst, 1, pr_globals), true);
+			SV_ExecuteUserCommand (PF_VarString(prinst, MAX_TIME_PERIODS, pr_globals), true);
 		}
 		else
 			Con_Printf("PF_clientcommand: client is not active\n");
@@ -8175,13 +8175,13 @@ static void QCBUILTIN PF_h2setclass (pubprogfuncs_t *prinst, struct globalvars_s
 	e = G_EDICT(prinst, OFS_PARM0);
 	NewClass = G_FLOAT(OFS_PARM1);
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 	{
 		Con_Printf ("tried to change class of a non-client\n");
 		return;
 	}
 
-	client = &svs.clients[entnum-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 
 	e->xv->playerclass = NewClass;
 	client->playerclass = NewClass;
@@ -9803,7 +9803,7 @@ int PF_ForceInfoKey_Internal(unsigned int entnum, const char *key, const char *v
 {
 	const char *oldval;
 	size_t oldsize;
-	if (entnum == 0)
+	if (entnum < MAX_TIME_PERIODS)
 	{	//serverinfo
 		oldval = InfoBuf_BlobForKey(&svs.info, key, &oldsize, NULL);
 		if (oldsize == valsize && !memcmp(oldval, value, valsize))
@@ -9813,42 +9813,42 @@ int PF_ForceInfoKey_Internal(unsigned int entnum, const char *key, const char *v
 	}
 	else if (entnum <= sv.allocated_client_slots)
 	{	//woo. we found a client.
-		if (svs.clients[entnum-1].state == cs_free)
+		if (svs.clients[entnum-MAX_TIME_PERIODS-1].state == cs_free)
 		{
 			Con_DPrintf("PF_ForceInfoKey: inactive client\n");
 			return 0;
 		}
-		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-1].userinfo, key, &oldsize, NULL);
+		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key, &oldsize, NULL);
 		if (oldsize == valsize && !memcmp(oldval, value, valsize))
 			return 1;	//unchanged
 
-		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-1].userinfo, key, value, valsize))
+		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key, value, valsize))
 		{
-			SV_ExtractFromUserinfo (&svs.clients[entnum-1], false);
+			SV_ExtractFromUserinfo (&svs.clients[entnum-MAX_TIME_PERIODS-1], false);
 
-			value = InfoBuf_ValueForKey(&svs.clients[entnum-1].userinfo, key);
+			value = InfoBuf_ValueForKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key);
 
 			if (!strcmp(key, "*spectator"))
 			{
 				int ns = !!atoi(value);
 
-				if (svs.clients[entnum-1].spawned && svs.clients[entnum-1].state == cs_spawned)
+				if (svs.clients[entnum-MAX_TIME_PERIODS-1].spawned && svs.clients[entnum-MAX_TIME_PERIODS-1].state == cs_spawned)
 				{
-					if (svs.clients[entnum-1].spectator)
+					if (svs.clients[entnum-MAX_TIME_PERIODS-1].spectator)
 						sv.spawned_observer_slots--;
 					else
 						sv.spawned_client_slots--;
-					svs.clients[entnum-1].spectator = ns;
+					svs.clients[entnum-MAX_TIME_PERIODS-1].spectator = ns;
 					if (ns)
 						sv.spawned_observer_slots++;
 					else
 						sv.spawned_client_slots++;
 				}
 				else
-					svs.clients[entnum-1].spectator = ns;
+					svs.clients[entnum-MAX_TIME_PERIODS-1].spectator = ns;
 			}
 
-			SV_BroadcastUserinfoChange(&svs.clients[entnum-1], SV_UserInfoIsBasic(key), key, value);
+			SV_BroadcastUserinfoChange(&svs.clients[entnum-MAX_TIME_PERIODS-1], SV_UserInfoIsBasic(key), key, value);
 		}
 
 		return 1;
@@ -9924,7 +9924,7 @@ static void QCBUILTIN PF_setcolors (pubprogfuncs_t *prinst, struct globalvars_s 
 		return;
 	}
 
-	client = &svs.clients[entnum-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
 	client->edict->v->team = (i & 15) + 1;
 
 	Q_snprintfz(number, sizeof(number), "%i", i>>4);
@@ -9978,7 +9978,7 @@ static void QCBUILTIN PF_ShowPic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==6)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM5)-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM5)-MAX_TIME_PERIODS-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_ShowPic: not a client");
 
@@ -9997,7 +9997,7 @@ static void QCBUILTIN PF_ShowPic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 6;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM5) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+			G_INT(OFS_PARM5) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
 			PF_ShowPic(prinst, pr_globals);
 		}
 	}
@@ -10011,7 +10011,7 @@ static void QCBUILTIN PF_HidePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==2)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM1)-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM1)-MAX_TIME_PERIODS-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_HidePic: not a client");
 
@@ -10026,7 +10026,7 @@ static void QCBUILTIN PF_HidePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 2;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM1) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+			G_INT(OFS_PARM1) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
 			PF_HidePic(prinst, pr_globals);
 		}
 	}
@@ -10046,7 +10046,7 @@ static void QCBUILTIN PF_MovePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==5)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM4)-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM4)-MAX_TIME_PERIODS-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_MovePic: not a client");
 
@@ -10064,7 +10064,7 @@ static void QCBUILTIN PF_MovePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 5;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM4) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+			G_INT(OFS_PARM4) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
 			PF_MovePic(prinst, pr_globals);
 		}
 	}
@@ -10079,7 +10079,7 @@ static void QCBUILTIN PF_ChangePic(pubprogfuncs_t *prinst, struct globalvars_s *
 
 	if (prinst->callargc==3)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM2)-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM2)-MAX_TIME_PERIODS-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_ChangePic: not a client");
 
@@ -10095,7 +10095,7 @@ static void QCBUILTIN PF_ChangePic(pubprogfuncs_t *prinst, struct globalvars_s *
 		prinst->callargc = 3;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM2) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+			G_INT(OFS_PARM2) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
 			PF_ChangePic(prinst, pr_globals);
 		}
 	}
@@ -10182,8 +10182,8 @@ static void QCBUILTIN PF_runclientphys(pubprogfuncs_t *prinst, struct globalvars
 
 	VALGRIND_MAKE_MEM_UNDEFINED(&pmove, sizeof(pmove));
 
-	if (ent->entnum >= 1 && ent->entnum <= sv.allocated_client_slots)
-		client = &svs.clients[ent->entnum-1];
+	if (ent->entnum > TIME_PERIOD_FUTURE && ent->entnum <= sv.allocated_client_slots)
+		client = &svs.clients[ent->entnum-MAX_TIME_PERIODS];
 	else
 		client = NULL;
 	pmove.pm_type = SV_PMTypeForClient(client, ent);
@@ -10239,7 +10239,7 @@ static void QCBUILTIN PF_runclientphys(pubprogfuncs_t *prinst, struct globalvars
 	pmove.world = &sv.world;
 	pmove.skipent = -1;
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel;
+	pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
 
 	pmove.onladder = false;
 	pmove.onground = ((int)ent->v->flags & FL_ONGROUND) != 0;
@@ -10569,7 +10569,7 @@ static void QCBUILTIN PF_matchclient(pubprogfuncs_t *prinst, struct globalvars_s
 		if (!cl)
 			G_INT(OFS_RETURN) = 0;
 		else
-			G_INT(OFS_RETURN) = (cl - svs.clients) + 1;
+			G_INT(OFS_RETURN) = (cl - svs.clients) + MAX_TIME_PERIODS - 1;
 
 		if ((cl = SV_GetClientForString(name, &clnum)))
 			G_INT(OFS_RETURN) = 0;	//prevent multiple matches.
@@ -10580,7 +10580,7 @@ static void QCBUILTIN PF_matchclient(pubprogfuncs_t *prinst, struct globalvars_s
 	{
 		if (!matchnum)
 		{	//this is the one that matches
-			G_INT(OFS_RETURN) = (cl - svs.clients) + 1;
+			G_INT(OFS_RETURN) = (cl - svs.clients) + MAX_TIME_PERIODS - 1;
 			return;
 		}
 		matchnum--;
@@ -10622,7 +10622,7 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 			{
 				model_t *mod = sv.models[idx];
 				if (!mod && doload)
-					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname));
+					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname[sv_current_time_period]));
 				if (!mod)
 					G_FLOAT(OFS_RETURN) = RESSTATE_NOTLOADED;
 				else
@@ -10752,7 +10752,7 @@ static void QCBUILTIN PF_localsound_qex(pubprogfuncs_t *prinst, struct globalvar
 	edict_t *ent = G_EDICT(prinst, OFS_PARM0);
 	const char *sample = PR_GetStringOfs(prinst, OFS_PARM1);
 	int entnum = NUM_FOR_EDICT(prinst, ent);
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
 		PR_RunWarning(sv.world.progs, "tried to localsound to a non-client\n");
 		return;
@@ -10770,9 +10770,9 @@ static void QCBUILTIN PF_CheckPlayerEXFlags_qex(pubprogfuncs_t *prinst, struct g
 	int entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	unsigned int flags = 0;
 
-	if (entnum >= 1 && entnum <= sv.allocated_client_slots)
+	if (entnum > TIME_PERIOD_FUTURE && entnum <= sv.allocated_client_slots)
 	{
-		client_t *pl = &svs.clients[entnum-1];
+		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS];
 		int ival;
 		char *value = InfoBuf_ValueForKey (&pl->userinfo, "w_switch");
 		if (!*value)
@@ -10811,8 +10811,8 @@ static void QCBUILTIN PF_centerprint_qex(pubprogfuncs_t *prinst, struct globalva
 	for (args = 0; args+1 < prinst->callargc; args++)
 		arg[args] = PR_GetStringOfs(prinst, OFS_PARM1+args*(OFS_PARM1-OFS_PARM0));
 
-	if (entnum >= 1 && entnum <= sv.allocated_client_slots)
-		lang = svs.clients[entnum-1].language;
+	if (entnum > TIME_PERIOD_FUTURE && entnum <= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+		lang = svs.clients[entnum-MAX_TIME_PERIODS].language;
 	TL_Reformat(lang, s, sizeof(s), args, arg);
 
 	PF_centerprint_Internal(entnum, false, s);
@@ -10846,7 +10846,7 @@ static void QCBUILTIN PF_sprint_qex(pubprogfuncs_t *prinst, struct globalvars_s 
 			arg[args] = PR_GetStringOfs(prinst, OFS_PARM2+args*(OFS_PARM1-OFS_PARM0));
 	}
 
-	if (entnum < 1 || entnum > sv.allocated_client_slots)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return;

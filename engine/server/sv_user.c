@@ -487,7 +487,7 @@ void SV_New_f (void)
 		ClientReliableWrite_String (host_client, sv.demfullmapname);
 	else
 #endif
-		ClientReliableWrite_String (host_client, sv.mapname);
+		ClientReliableWrite_String (host_client, svs.name);
 
 	//
 	// game server
@@ -753,7 +753,7 @@ void SVNQ_New_f (void)
 			gamedir = "";
 #endif
 	}
-	COM_FileBase(sv.modelname, mapname, sizeof(mapname));
+	COM_FileBase(sv.modelname[sv_current_time_period], mapname, sizeof(mapname));
 
 	
 	if (op != host_client->protocol)
@@ -844,7 +844,7 @@ void SVNQ_New_f (void)
 	else
 		MSG_WriteByte (&host_client->netchan.message, GAME_COOP);
 
-	MSG_WriteString (&host_client->netchan.message, sv.mapname);
+	MSG_WriteString (&host_client->netchan.message, svs.name);
 
 
 	if (host_client->fteprotocolextensions2)
@@ -913,7 +913,7 @@ void SVNQ_New_f (void)
 
 // set view
 	MSG_WriteByte (&host_client->netchan.message, svc_setview);
-	MSG_WriteEntity (&host_client->netchan.message, (host_client - svs.clients)+1);//NUM_FOR_EDICT(svprogfuncs, host_client->edict));
+	MSG_WriteEntity (&host_client->netchan.message, (host_client - svs.clients)+MAX_TIME_PERIODS);//NUM_FOR_EDICT(svprogfuncs, host_client->edict));
 
 	if (!(host_client->fteprotocolextensions2 & PEXT2_PREDINFO))
 	{	//old clients can't cope with reliables until they finish loading the models specified above.
@@ -942,8 +942,8 @@ void SVNQ_New_f (void)
 
 static const char *SVQ2_GetQ2EXConfigString(int i)
 {	//remap from vanilla to q2e
-	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel)
-		return va("%i", sv.world.worldmodel->checksum2);
+	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel[sv_current_time_period])
+		return va("%i", sv.world.worldmodel[sv_current_time_period]->checksum2);
 #define REMAPR(n,l) 		if (i >= Q2EXCS_##n && i < Q2EXCS_##n+Q2MAX_##l) return sv.strings.configstring[i-Q2EXCS_##n+Q2CS_##n]; else
 #define REMAPS(n)			if (i == Q2EXCS_##n) return sv.strings.configstring[i-Q2EXCS_##n+Q2CS_##n]; else
 #define Q2MAX_STATUSBAR 1//(Q2EXCS_AIRACCEL-Q2EXCS_STATUSBAR)
@@ -1130,7 +1130,7 @@ void SVQ2_BaseLines_f (void)
 
 void SVQ2_NextServer_f (void)
 {
-	if (!*sv.modelname && atoi(Cmd_Argv(1)) == svs.spawncount)
+	if (!*sv.modelname[sv_current_time_period] && atoi(Cmd_Argv(1)) == svs.spawncount)
 	{
 		cvar_t *nsv = Cvar_FindVar("nextserver");
 		if (!nsv || !*nsv->string)
@@ -2010,8 +2010,8 @@ void SVQW_PreSpawn_f (void)
 
 //		Con_DPrintf("Client check = %d\n", check);
 
-		if (sv_mapcheck.value && check != sv.world.worldmodel->checksum &&
-			COM_RemapMapChecksum(sv.world.worldmodel, check) != COM_RemapMapChecksum(sv.world.worldmodel, LittleLong(sv.world.worldmodel->checksum2)))
+		if (sv_mapcheck.value && check != sv.world.worldmodel[sv_current_time_period]->checksum &&
+			COM_RemapMapChecksum(sv.world.worldmodel[sv_current_time_period], check) != COM_RemapMapChecksum(sv.world.worldmodel[sv_current_time_period], LittleLong(sv.world.worldmodel[sv_current_time_period]->checksum2)))
 #ifdef SERVER_DEMO_PLAYBACK
 		if (!sv.demofile || (sv.demofile && !sv.democausesreconnect))	//demo playing causes no check. If it's the return level, check anyway to avoid that loophole.
 #endif
@@ -2019,10 +2019,10 @@ void SVQW_PreSpawn_f (void)
 			char *msg;
 			SV_ClientTPrintf (host_client, PRINT_HIGH,
 				"Map model file does not match (%s), %#X != %#X/%#X.\nYou may need a new version of the map, or the proper install files.\n",
-				sv.modelname, check, sv.world.worldmodel->checksum, sv.world.worldmodel->checksum2);
+				sv.modelname[sv_current_time_period], check, sv.world.worldmodel[sv_current_time_period]->checksum, sv.world.worldmodel[sv_current_time_period]->checksum2);
 
 
-			msg = va("\n//kickfile \"%s\"\n", sv.modelname);
+			msg = va("\n//kickfile \"%s\"\n", sv.modelname[sv_current_time_period]);
 			ClientReliableWrite_Begin (host_client, svc_stufftext, 3+strlen(msg));
 			ClientReliableWrite_String (host_client, msg);
 			SV_DropClient (host_client);
@@ -2458,12 +2458,12 @@ void SV_Begin_Core(client_t *split)
 							split->edict->v->maxs[1] = 16;
 							split->edict->v->maxs[2] = 32;
 							split->edict->v->view_ofs[2] = DEFAULT_VIEWHEIGHT;
-							if (sv.world.worldmodel->fromgame == fg_quake3)
+							if (sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake3)
 								split->edict->v->view_ofs[2] = 26;	//q3 defaults to slightly higher view heights (though same player size as quake).
-							if (sv.world.worldmodel->hulls[1].clip_maxs[2]-sv.world.worldmodel->hulls[1].clip_mins[2]>0)
+							if (sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_maxs[2]-sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_mins[2]>0)
 							{
-								VectorCopy(sv.world.worldmodel->hulls[1].clip_mins, split->edict->v->mins);
-								VectorCopy(sv.world.worldmodel->hulls[1].clip_maxs, split->edict->v->maxs);
+								VectorCopy(sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_mins, split->edict->v->mins);
+								VectorCopy(sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_maxs, split->edict->v->maxs);
 							}
 							split->edict->v->movetype = MOVETYPE_NOCLIP;
 						}
@@ -4742,14 +4742,14 @@ void SV_PTrack_f (void)
 	{
 		// turn off tracking
 		host_client->spec_track = 0;
-		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
 		tent = EDICT_NUM_PB(svprogfuncs, 0);
 		ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 		if (ISNQCLIENT(host_client))
 		{
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
 		}
 		return;
 	}
@@ -4763,7 +4763,7 @@ void SV_PTrack_f (void)
 	}
 #endif
 
-	if (!SV_CanTrack(host_client, i+1))
+	if (!SV_CanTrack(host_client, i+MAX_TIME_PERIODS))
 	{
 		if (i < 0 || i >= sv.allocated_client_slots)
 			SV_ClientTPrintf (host_client, PRINT_HIGH, "invalid player to track\n");
@@ -4774,27 +4774,27 @@ void SV_PTrack_f (void)
 		else
 			SV_ClientTPrintf (host_client, PRINT_HIGH, "invalid player to track\n");
 		host_client->spec_track = 0;
-		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
 		tent = EDICT_NUM_PB(svprogfuncs, 0);
 		ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 		if (ISNQCLIENT(host_client))
 		{
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
 		}
 		return;
 	}
-	host_client->spec_track = i + 1; // now tracking
+	host_client->spec_track = i + MAX_TIME_PERIODS; // now tracking
 
-	ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
+	ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
 	tent = EDICT_NUM_PB(svprogfuncs, i + 1);
 	ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 	if (ISNQCLIENT(host_client))
 	{
 		ClientReliableWrite_Begin(host_client, svc_setview, 4);
-		ClientReliableWrite_Entity(host_client, i + 1);
+		ClientReliableWrite_Entity(host_client, i + MAX_TIME_PERIODS);
 	}
 }
 
@@ -5553,6 +5553,16 @@ void Cmd_SetPos_f(void)
 	}
 }
 
+void Cmd_ChangeTimePeriod_f(void)
+{
+	int arg;
+	const char* pszArg = Cmd_Argv(1);
+
+	arg = atoi(pszArg);
+
+	cl_current_time_period = (timeperiod_t)arg;
+}
+
 void SV_SetUpClientEdict (client_t *cl, edict_t *ent)
 {
 #ifdef VM_Q1
@@ -5761,7 +5771,7 @@ void Cmd_Join_f (void)
 	if (ISNQCLIENT(host_client))
 	{	//make sure the nq client is viewing from its own player entity again
 		ClientReliableWrite_Begin(host_client, svc_setview, 4);
-		ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+		ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
 	}
 
 	for (; host_client; host_client = host_client->controlled)
@@ -6532,6 +6542,7 @@ void SV_Pext_f(void)
 
 void SV_UserMVDList_f (void);
 void SV_UserMVDInfo_f (void);
+void SV_ChangeTimePeriod_f();
 typedef struct
 {
 	char	*name;
@@ -6613,6 +6624,7 @@ ucmd_t ucmds[] =
 	{"fly",			Cmd_Fly_f},
 	{"notarget",	Cmd_Notarget_f},
 	{"setpos",		Cmd_SetPos_f},
+	{"changetimeperiod", SV_ChangeTimePeriod_f},
 #if defined(_DEBUG) && defined(SUBSERVERS)
 	{"ssvtransfer", Cmd_SSV_Transfer_f},//transfer the player to a different map/server
 	{"ssvsay",		Cmd_SSV_AllSay_f},	//says realm-wide
@@ -6681,6 +6693,7 @@ ucmd_t nqucmds[] =
 	{"fly",			Cmd_Fly_f},
 	{"noclip",		Cmd_Noclip_f},
 	{"setpos",		Cmd_SetPos_f},
+
 
 	{"say",			SV_Say_f},
 	{"say_team",	SV_Say_Team_f},
@@ -7524,7 +7537,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 		pmove.jump_msec = 0;
 		pmove.waterjumptime = 0;
 		pmove.numphysent = 1;
-		pmove.physents[0].model = sv.world.worldmodel;
+		pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
 		pmove.cmd = *ucmd;
 		pmove.hullnum = SV_HullNumForPlayer(0, player_mins, player_maxs);
 		pmove.capsule = (sv_player->xv->geomtype == GEOMTYPE_CAPSULE);
@@ -7581,7 +7594,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 	if (progstype == PROG_H2)
 	{
 		//fixme: should probably support rtlights, but this is a server, so urgh.
-		if (sv.world.worldmodel && sv.world.worldmodel->funcs.LightPointValues)
+		if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->funcs.LightPointValues)
 		{
 			vec3_t diffuse, ambient, dir;
 			float lev = 0;
@@ -7592,7 +7605,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 			if (!r_shadow_realtime_world.ival || r_shadow_realtime_world_lightmaps.value)
 #endif
 			{
-				sv.world.worldmodel->funcs.LightPointValues(sv.world.worldmodel, sv_player->v->origin, ambient, diffuse, dir);
+				sv.world.worldmodel[sv_current_time_period]->funcs.LightPointValues(sv.world.worldmodel[sv_current_time_period], sv_player->v->origin, ambient, diffuse, dir);
 				lev += (VectorLength(ambient) + VectorLength(diffuse)/2.0)/256;
 			}
 			sv_player->xv->light_level = lev * 255;
@@ -7762,7 +7775,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 	else
 		pmove.waterjumptime = sv_player->v->teleport_time;
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel;
+	pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
 	pmove.cmd = *ucmd;
 	pmove.skipent = -1;
 	pmove.capsule = (sv_player->xv->geomtype == GEOMTYPE_CAPSULE);
@@ -8291,7 +8304,7 @@ static double SVFTE_ExecuteClientMove(client_t *controller, unsigned int moveseq
 		split->lossage = loss;
 
 		//all sorts of reasons why we might not want to do physics here and now.
-		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel || sv.world.worldmodel->loadstate != MLS_LOADED);
+		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel[sv_current_time_period] || sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED);
 
 		ran = false;
 		oldcmd = nullcmd;
@@ -8599,7 +8612,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 				}
 				else
 #endif
-					if (!sv.paused && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED)
+					if (!sv.paused && sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->loadstate == MLS_LOADED)
 				{
 					if (sv_nqplayerphysics.ival || split->state < cs_spawned)
 					{
@@ -9206,7 +9219,7 @@ void SVNQ_ReadClientMove (qboolean forceangle16, qboolean quakeex)
 				host_client->spec_track = 0;
 				host_client->edict->v->goalentity = EDICT_TO_PROG(svprogfuncs, EDICT_NUM_PB(svprogfuncs, 0));
 				ClientReliableWrite_Begin(host_client, svc_setview, 4);
-				ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+				ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
 			}
 			else	//otherwise track the next person, if we can
 				tracknext = true;
@@ -9236,10 +9249,10 @@ void SVNQ_ReadClientMove (qboolean forceangle16, qboolean quakeex)
 			host_client->spec_track = i;
 			host_client->edict->v->goalentity = EDICT_TO_PROG(svprogfuncs, EDICT_NUM_PB(svprogfuncs, i));
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + 1));
+			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + MAX_TIME_PERIODS));
 
 			if (i)
-				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-1].name);
+				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-MAX_TIME_PERIODS-1].name);
 		}
 	}
 

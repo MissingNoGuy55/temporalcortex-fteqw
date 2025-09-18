@@ -355,7 +355,7 @@ void R_Clutter_Emit(struct batch_s **batches);
 void R_Clutter_Purge(void);
 
 //r_surf.c
-void Surf_NewMap (struct model_s *worldmodel);
+void Surf_NewMap (struct model_s *worldmodel, int num);
 void Surf_PreNewMap(void);
 void Surf_SetupFrame(void);	//determine pvs+viewcontents
 void Surf_DrawWorld(void);
@@ -574,7 +574,7 @@ void	*Mod_Extradata (struct model_s *mod);	// handles caching
 void	Mod_TouchModel (const char *name);
 void Mod_RebuildLightmaps (void);
 
-void Mod_NowLoadExternal(struct model_s *loadmodel);
+void Mod_NowLoadExternal(struct model_s *loadmodel, int num);
 void GLR_LoadSkys (void);
 void R_BloomRegister(void);
 

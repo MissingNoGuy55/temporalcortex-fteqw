@@ -965,7 +965,7 @@ typedef struct
 	char		*windowtitle;	// fully overrides the window caption.
 
 // refresh related state
-	struct model_s	*worldmodel;	// cl_entitites[0].model
+	struct model_s	*worldmodel[MAX_TIME_PERIODS];	// cl_entitites[0].model
 	int			num_entities;	// stored bottom up in cl_entities array
 	int			num_statics;	// stored top down in cl_entitiers
 
@@ -1663,6 +1663,7 @@ void	Validation_Auto_Response(int playernum, char *s);
 extern	qboolean f_modified_particles;
 extern	qboolean care_f_modified;
 
+extern timeperiod_t cl_current_time_period;
 
 //random files (fixme: clean up)
 

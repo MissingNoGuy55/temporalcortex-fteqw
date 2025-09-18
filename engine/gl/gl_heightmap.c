@@ -1901,9 +1901,9 @@ qboolean Terrain_LocateSection(const char *name, flocation_t *loc)
 	if (Q_strncasecmp(name, "maps/", 5))
 		return false;
 
-	if (!sv.world.worldmodel)
+	if (!sv.world.worldmodel[sv_current_time_period])
 		return false;
-	hm = sv.world.worldmodel->terrain;
+	hm = sv.world.worldmodel[sv_current_time_period]->terrain;
 	if (!Terr_IsSectionFName(hm, name, &x, &y))
 		return false;
 
@@ -3032,7 +3032,7 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 	if (hm->relight)
 		ted_dorelight(m, hm);
 
-	if (e->model == cl.worldmodel && hm->skyshader)
+	if (e->model == cl.worldmodel[cl_current_time_period] && hm->skyshader)
 	{
 		b = BE_GetTempBatch();
 		if (b)
@@ -3103,7 +3103,7 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 	tdibctx.vx = (r_refdef.vieworg[0] + CHUNKBIAS*hm->sectionsize) / hm->sectionsize;
 	tdibctx.vy = (r_refdef.vieworg[1] + CHUNKBIAS*hm->sectionsize) / hm->sectionsize;
 	tdibctx.wmodel = e->model;
-	tdibctx.pvs = (e->model == cl.worldmodel)?r_refdef.scenevis:NULL;
+	tdibctx.pvs = (e->model == cl.worldmodel[cl_current_time_period])?r_refdef.scenevis:NULL;
 validatelinks(&hm->recycle);
 	Terr_DrawInBounds(&tdibctx, bounds[0], bounds[2], bounds[1]-bounds[0], bounds[3]-bounds[2]);
 
@@ -7973,7 +7973,7 @@ void Mod_Terrain_Save_f(void)
 		mod = Mod_FindName(va("maps/%s", mapname));
 #ifdef HAVE_CLIENT
 	else if (cls.state)
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 #endif
 	else
 		mod = NULL;
@@ -8828,7 +8828,7 @@ static void Mod_Terrain_Import_f(void)
 	if (*mapname)
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -8872,7 +8872,7 @@ static void Mod_Terrain_Export_f(void)
 	if (*Cmd_Argv(1))
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -9095,7 +9095,7 @@ void Mod_Terrain_Convert_f(void)
 	if (Cmd_Argc() >= 2)
 		mod = Mod_FindName(va("maps/%s.hmp", Cmd_Argv(1)));
 	else if (cls.state)
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 	else
 		mod = NULL;
 	if (!mod || mod->type == mod_dummy)
@@ -9163,7 +9163,7 @@ void Mod_Terrain_Reload_f(void)
 		mod = Mod_FindName(va("maps/%s.hmp", Cmd_Argv(1)));
 #ifdef HAVE_CLIENT
 	else if (cls.state)
-		mod = cl.worldmodel;
+		mod = cl.worldmodel[cl_current_time_period];
 #endif
 	else
 		mod = NULL;

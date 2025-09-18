@@ -89,9 +89,9 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 				mask = NULL;
 			else
 			{
-				cluster = sv.world.worldmodel->funcs.LeafnumForPoint(sv.world.worldmodel, origin);
+				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_time_period], origin);
 				if (cluster >= 0)
-					mask = sv.phs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
+					mask = sv.phs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
 				else
 					mask = NULL;
 			}
@@ -100,9 +100,9 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 		case MULTICAST_PVS_R:
 			reliable = true;	// intentional fallthrough
 		case MULTICAST_PVS:
-			cluster = sv.world.worldmodel->funcs.LeafnumForPoint(sv.world.worldmodel, origin);
+			cluster = sv.world.worldmodel[sv_current_time_period]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_time_period], origin);
 			if (cluster >= 0)
-				mask = sv.pvs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
+				mask = sv.pvs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
 			else
 				mask = NULL;
 			break;
@@ -133,7 +133,7 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 
 			if (mask)
 			{
-				cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, client->edict->v->origin);
+				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], client->edict->v->origin);
 				if (cluster >= 0 && !(mask[leafnum>>3] & (1<<(leafnum&7)) ) )
 				{
 					continue;
@@ -804,7 +804,7 @@ void NPP_NQFlush(void)
 		{
 			cldest->viewent = *(unsigned short*)&buffer[1];
 //			bufferlen = 0;
-			if (cldest->viewent == (cldest - svs.clients)+1)
+			if (cldest->viewent == (cldest - svs.clients)+MAX_TIME_PERIODS)
 				cldest->viewent = 0;	//self is the same as none
 		}
 //		bufferlen = 0;
@@ -1681,8 +1681,8 @@ void NPP_NQWriteEntity(int dest, int data)	//replacement write func (nq to qw)
 	NPP_NQCheckDest(dest);
 
 	if (majortype == svc_temp_entity && data > 0 && data <= sv.allocated_client_slots)
-		if (svs.clients[data-1].viewent)
-			data = svs.clients[data-1].viewent;
+		if (svs.clients[data-MAX_TIME_PERIODS-1].viewent)
+			data = svs.clients[data-MAX_TIME_PERIODS-1].viewent;
 
 #ifdef NQPROT
 	if (dest == MSG_ONE)

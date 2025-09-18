@@ -740,8 +740,9 @@ void SV_Map_f (void)
 	qboolean waschangelevel	= false;
 	qboolean mapeditor		= false;
 	qboolean forceCheats = false;
-	int i;
+	int i, t;
 	char *startspot;
+	char* suffix;
 	const char *cmd = Cmd_Argv(0);
 
 #ifndef SERVERONLY
@@ -845,14 +846,29 @@ void SV_Map_f (void)
 		;//restart current - deprecated.
 	else
 	{
-		snprintf (expanded, sizeof(expanded), "maps/%s.bsp", level); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
-		if (!COM_FCheckExists (level) && !COM_FCheckExists (expanded))
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
-			nextserver = strchr(level, '+');
-			if (nextserver)
+			switch( t )
 			{
-				*nextserver = '\0';
-				nextserver++;
+				case 0:
+					suffix = "_present";
+					break;
+				case 1:
+					suffix = "_past";
+					break;
+				case 2:
+					suffix = "_future";
+					break;
+			}
+			snprintf (expanded, sizeof(expanded), "maps/%s%s.bsp", level, suffix); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
+			if (!COM_FCheckExists (level) && !COM_FCheckExists (expanded))
+			{
+				nextserver = strchr(level, '+');
+				if (nextserver)
+				{
+					*nextserver = '\0';
+					nextserver++;
+				}
 			}
 		}
 	}
@@ -951,65 +967,80 @@ void SV_Map_f (void)
 	else
 #endif
 	{
-		char *exts[] = {"%s", "maps/%s", "maps/%s.bsp", "maps/%s.bsp.gz", "maps/%s.bsp.xz", "maps/%s.d3dbsp", "maps/%s.cm", "maps/%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
+		char *exts[] = {"%s%s", "maps/%s%s", "maps/%s%s.bsp", "maps/%s%s.bsp.gz", "maps/%s%s.bsp.xz", "maps/%s%s.d3dbsp", "maps/%s%s.cm", "maps/%s%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
 		int i, j;
 
-		for (i = 0; exts[i]; i++)
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
-			snprintf (expanded, sizeof(expanded), exts[i], level);
-			if (COM_FCheckExists (expanded))
-				break;
-		}
-		if (!exts[i])
-		{	//try again.
-			char *mod = strchr(level, '#');
-			if (mod)
+			switch( t )
 			{
-				*mod = 0;
-				for (i = 0; exts[i]; i++)
-				{
-					snprintf (expanded, sizeof(expanded), exts[i], level);
-					if (COM_FCheckExists (expanded))
-						break;
-				}
-				*mod = '#';
+				case 0:
+					suffix = "_present";
+					break;
+				case 1:
+					suffix = "_past";
+					break;
+				case 2:
+					suffix = "_future";
+					break;
 			}
-		}
-		if (!exts[i])
-		{
 			for (i = 0; exts[i]; i++)
 			{
-				//doesn't exist, so try lowercase. Q3 does this. really our fs_cache stuff should be handling this, but its possible its disabled.
-				for (j = 0; j < sizeof(level) && level[j]; j++)
-				{
-					if (level[j] >= 'A' && level[j] <= 'Z')
-						level[j] = level[j] - 'A' + 'a';
-				}
-				snprintf (expanded, sizeof(expanded), exts[i], level);
+				snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
 				if (COM_FCheckExists (expanded))
 					break;
 			}
 			if (!exts[i])
+			{	//try again.
+				char *mod = strchr(level, '#');
+				if (mod)
+				{
+					*mod = 0;
+					for (i = 0; exts[i]; i++)
+					{
+						snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
+						if (COM_FCheckExists (expanded))
+							break;
+					}
+					*mod = '#';
+				}
+			}
+			if (!exts[i])
 			{
+				for (i = 0; exts[i]; i++)
+				{
+					//doesn't exist, so try lowercase. Q3 does this. really our fs_cache stuff should be handling this, but its possible its disabled.
+					for (j = 0; j < sizeof(level) && level[j]; j++)
+					{
+						if (level[j] >= 'A' && level[j] <= 'Z')
+							level[j] = level[j] - 'A' + 'a';
+					}
+					snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
+					if (COM_FCheckExists (expanded))
+						break;
+				}
+				if (!exts[i])
+				{
 #ifdef HAVE_CLIENT
-				SCR_SetLoadingStage(LS_NONE);
+					SCR_SetLoadingStage(LS_NONE);
 #endif
 #ifdef WEBCLIENT
-				if (*cl_download_mapsrc.string &&
-						!strcmp(cmd, "map") && !startspot &&
-						Cmd_ExecLevel==RESTRICT_LOCAL && !strchr(level, '.'))
-				{
-					if (SV_Map_DownloadPrompt(level))
-						return;
-				}
+					if (*cl_download_mapsrc.string &&
+							!strcmp(cmd, "map") && !startspot &&
+							Cmd_ExecLevel==RESTRICT_LOCAL && !strchr(level, '.'))
+					{
+						if (SV_Map_DownloadPrompt(level))
+							return;
+					}
 #endif
 
-				// FTE is still a Quake engine so report BSP missing
-				Con_TPrintf ("Can't find %s\n", COM_QuotedString(va("maps/%s.bsp", level), expanded, sizeof(expanded), false));
+					// FTE is still a Quake engine so report BSP missing
+					Con_TPrintf ("Can't find %s\n", COM_QuotedString(va("maps/%s%s.bsp", level, suffix), expanded, sizeof(expanded), false));
 
-				if (SSV_IsSubServer() && !sv.state)	//subservers don't leave defunct servers with no maps lying around.
-					Cbuf_AddText("\nquit\n", RESTRICT_LOCAL);
-				return;
+					if (SSV_IsSubServer() && !sv.state)	//subservers don't leave defunct servers with no maps lying around.
+						Cbuf_AddText("\nquit\n", RESTRICT_LOCAL);
+					return;
+				}
 			}
 		}
 	}
@@ -2409,8 +2440,8 @@ static void SV_Status_f (void)
 #endif
 	Con_TPrintf("map uptime       : %s\n", ShowTime(sv.world.physicstime));
 	//show the current map+name (but hide name if its too long or would be ugly)
-	if (columns >= 80 && *sv.mapname && strlen(sv.mapname) < 45 && !strchr(sv.mapname, '\n'))
-		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname);
+	if (columns >= 80 && *sv.mapname[sv_current_time_period] && strlen(sv.mapname[sv_current_time_period]) < 45 && !strchr(sv.mapname[sv_current_time_period], '\n'))
+		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname[sv_current_time_period]);
 	else
 		Con_TPrintf ("current map      : %s\n", svs.name);
 
@@ -3513,6 +3544,32 @@ void SV_Download_f (void)
 	Con_Printf("scheme not supported\n");
 }
 
+void SV_ChangeTimePeriod_f()
+{
+	int args;
+	const char* pszArg = Cmd_Argv(1);
+	sizebuf_t buf;
+	char bufmem[1024];
+
+	if ( !pszArg )
+	{
+		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
+		return;
+	}
+
+	sv_current_time_period = (timeperiod_t)atoi(pszArg);
+
+	memset( &bufmem, 0, sizeof( bufmem ) );
+
+	SZ_Clear (&buf);
+	buf.data = bufmem;
+	buf.maxsize = sizeof(bufmem);
+	buf.cursize = 5;
+	buf.packing = SZ_RAWBYTES;
+	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+	MSG_WriteLong (&sv.reliable_datagram, sv_current_time_period);
+}
+
 /*
 ==================
 SV_InitOperatorCommands
@@ -3551,6 +3608,8 @@ void SV_InitOperatorCommands (void)
 	}
 
 	Cmd_AddCommand ("fraglogfile", SV_Fraglogfile_f);
+
+	Cmd_AddCommandD ("changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
 
 	//ask clients to take a remote screenshot
 	Cmd_AddCommand ("snap", SV_Snap_f);

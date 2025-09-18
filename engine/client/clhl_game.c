@@ -930,9 +930,9 @@ char *QDECL CLGHL_lookupbinding(char *command)
 char *QDECL CLGHL_getlevelname(void)
 {
 	bi_trace();
-	if (!cl.worldmodel)
+	if (!cl.worldmodel[cl_current_time_period])
 		return "";
-	return cl.worldmodel->name;
+	return cl.worldmodel[cl_current_time_period]->name;
 }
 void QDECL CLGHL_getscreenfade(struct hlsfade_s *fade){notimpf(__func__);}
 void QDECL CLGHL_setscreenfade(struct hlsfade_s *fade){notimpf(__func__);}

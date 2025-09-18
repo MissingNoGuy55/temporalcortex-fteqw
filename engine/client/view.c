@@ -1747,9 +1747,9 @@ void V_CalcRefdef (playerview_t *pv)
 			VectorMA(camdir, -chase_up.value, pv->gravitydir, camdir);
 		len = VectorLength(camdir);
 		VectorMA(r_refdef.vieworg, (len+128)/len, camdir, camorg);	//push it 128qu further
-		if (cl.worldmodel && cl.worldmodel->funcs.NativeTrace)
+		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.NativeTrace)
 		{
-			cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
+			cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
 			if (!tr.startsolid)
 			{
 				if (tr.fraction < 1)
@@ -2080,7 +2080,7 @@ void R_DrawNameTags(void)
 		return;
 
 #if defined(CSQC_DAT) || !defined(CLIENTONLY)
-	if (r_showshaders.ival && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+	if (r_showshaders.ival && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
 	{
 #ifdef CSQC_DAT
 		extern world_t csqc_world;
@@ -2105,7 +2105,7 @@ void R_DrawNameTags(void)
 		}
 		else
 #endif
-			cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
+			cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
 
 		if (trace.fraction >= 1)
 			str = "hit nothing";
@@ -2113,11 +2113,11 @@ void R_DrawNameTags(void)
 		{
 			shader = NULL;
 #ifdef TERRAIN
-			if (cl.worldmodel->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel, &trace)))
+			if (cl.worldmodel[cl_current_time_period]->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel[cl_current_time_period], &trace)))
 				shadername = shader->name;
 			else
 #endif
-				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel, trace.endpos)))
+				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel[cl_current_time_period], trace.endpos)))
 			{
 				shadername = surf->texinfo->texture->name;
 				shader = surf->texinfo->texture->shader;
@@ -2282,7 +2282,7 @@ void R_DrawNameTags(void)
 		{
 			int best = 0;
 			float bestscore = 0, score = 0;
-			for (i = 1; i < w->num_edicts; i++)
+			for (i = MAX_TIME_PERIODS; i < w->num_edicts; i++)
 			{
 				e = WEDICT_NUM_PB(w->progs, i);
 				if (ED_ISFREE(e))

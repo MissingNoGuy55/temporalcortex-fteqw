@@ -100,6 +100,8 @@ cvar_t	allow_download_other		= CVARD("allow_download_other", "0", "0 blocks down
 
 extern cvar_t sv_allow_splitscreen;
 
+timeperiod_t sv_current_time_period;
+
 #if defined(SUPPORT_ICE) || defined(FTE_TARGET_WEB)
 static void QDECL SV_Public_Callback(struct cvar_s *var, char *oldvalue)
 {
@@ -569,7 +571,7 @@ void SV_DropClient (client_t *drop)
 	SV_WipeChat(drop);
 #endif
 
-	if (sv.world.worldmodel->loadstate != MLS_LOADED)
+	if (sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
 		Con_Printf(CON_WARNING "Warning: not notifying gamecode about client disconnection due to invalid worldmodel\n");
 	else
 	switch(svs.gametype)
@@ -2585,7 +2587,7 @@ client_t *SV_AddSplit(client_t *controller, char *info, int id)
 	{
 #ifdef Q2SERVER
 	case GT_QUAKE2:
-		cl->q2edict = Q2EDICT_NUM(i+1);
+		cl->q2edict = Q2EDICT_NUM(i+MAX_TIME_PERIODS);
 
 		if (!ge->ClientConnect(cl->q2edict, info))
 		{
@@ -2602,7 +2604,7 @@ client_t *SV_AddSplit(client_t *controller, char *info, int id)
 		break;
 #endif
 	default:
-		cl->edict = EDICT_NUM_PB(svprogfuncs, i+1);
+		cl->edict = EDICT_NUM_PB(svprogfuncs, i+MAX_TIME_PERIODS);
 		break;
 	}
 
@@ -3018,7 +3020,7 @@ void SV_DoDirectConnect(svconnectinfo_t *fte_restrict info)
 	}
 
 	//set up the gamecode for this player, optionally drop them here
-	edictnum = (newcl-svs.clients)+1;
+	edictnum = (newcl-svs.clients)+MAX_TIME_PERIODS;
 	switch (svs.gametype)
 	{
 #ifdef HLSERVER
@@ -5633,7 +5635,7 @@ float SV_Frame (void)
 	SQL_ServerCycle();
 #endif
 
-	if (sv.state < ss_active || !sv.world.worldmodel)
+	if (sv.state < ss_active || !sv.world.worldmodel[sv_current_time_period])
 	{
 #ifdef SUBSERVERS
 		if (sv.state == ss_clustermode)
@@ -5759,8 +5761,8 @@ float SV_Frame (void)
 			return delay;
 
 		//make sure the worldmodel is actually valid...
-		if (sv.world.worldmodel && sv.world.worldmodel->loadstate != MLS_LOADED)
-			Mod_LoadModel(sv.world.worldmodel, MLV_ERROR);
+		if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
+			Mod_LoadModel(sv.world.worldmodel[sv_current_time_period], MLV_ERROR);
 
 		SV_CheckVars ();
 
@@ -6729,4 +6731,3 @@ void SV_Init (quakeparms_t *parms)
 }
 
 #endif
-

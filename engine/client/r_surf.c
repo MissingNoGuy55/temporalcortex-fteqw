@@ -213,7 +213,7 @@ void Surf_AddStain(vec3_t org, float red, float green, float blue, float radius)
 	int i;
 
 	float parms[7];
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || r_stains.value <= 0)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED || r_stains.value <= 0)
 		return;
 	parms[0] = radius;
 	parms[1] = org[0];
@@ -224,14 +224,14 @@ void Surf_AddStain(vec3_t org, float red, float green, float blue, float radius)
 	parms[6] = blue;
 
 
-	cl.worldmodel->funcs.StainNode(cl.worldmodel, parms);
+	cl.worldmodel[cl_current_time_period]->funcs.StainNode(cl.worldmodel[cl_current_time_period], parms);
 
 	//now stain inline bsp models other than world.
 
-	for (i=1 ; i< pmove.numphysent ; i++)	//0 is world...
+	for (i=MAX_TIME_PERIODS ; i< pmove.numphysent ; i++)	//0 is world...
 	{
 		pe = &pmove.physents[i];
-		if (pe->model && pe->model->surfaces == cl.worldmodel->surfaces && pe->model->loadstate == MLS_LOADED)
+		if (pe->model && pe->model->surfaces == cl.worldmodel[cl_current_time_period]->surfaces && pe->model->loadstate == MLS_LOADED)
 		{
 			parms[1] = org[0] - pe->origin[0];
 			parms[2] = org[1] - pe->origin[1];
@@ -291,8 +291,8 @@ void Surf_LessenStains(void)
 	ammount = r_stainfadeammount.value;
 	limit = 255 - ammount;
 
-	surf = cl.worldmodel->surfaces;
-	for (i=0 ; i<cl.worldmodel->numsurfaces ; i++, surf++)
+	surf = cl.worldmodel[cl_current_time_period]->surfaces;
+	for (i=0 ; i<cl.worldmodel[cl_current_time_period]->numsurfaces ; i++, surf++)
 	{
 		if (surf->stained)
 		{
@@ -2181,7 +2181,7 @@ void Surf_SetupFrame(void)
 	vec3_t	pvsorg;
 	int viewcontents;
 
-	if (!cl.worldmodel || cl.worldmodel->loadstate!=MLS_LOADED)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate!=MLS_LOADED)
 		r_refdef.flags |= RDF_NOWORLDMODEL;
 
 	R_AnimateLight();
@@ -2201,18 +2201,18 @@ void Surf_SetupFrame(void)
 	if (r_refdef.flags & RDF_NOWORLDMODEL)
 	{
 	}
-	else if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED && cl.worldmodel->funcs.InfoForPoint)
+	else if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint)
 	{
 		vec3_t	temp;
 		unsigned int cont2;
 		int area2;
-		cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, pvsorg, &r_viewarea, &r_viewcluster, &viewcontents);
+		cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint (cl.worldmodel[cl_current_time_period], pvsorg, &r_viewarea, &r_viewcluster, &viewcontents);
 		// check above and below so crossing solid water doesn't draw wrong
 		if (!viewcontents)
 		{	// look down a bit
 			VectorCopy (pvsorg, temp);
 			temp[2] -= 16;
-			cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, temp, &area2, &r_viewcluster2, &cont2);
+			cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint (cl.worldmodel[cl_current_time_period], temp, &area2, &r_viewcluster2, &cont2);
 			if (cont2 & FTECONTENTS_SOLID)
 				r_viewcluster2 = r_viewcluster;
 		}
@@ -2220,7 +2220,7 @@ void Surf_SetupFrame(void)
 		{	// look up a bit
 			VectorCopy (pvsorg, temp);
 			temp[2] += 16;
-			cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, temp, &area2, &r_viewcluster2, &cont2);
+			cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint (cl.worldmodel[cl_current_time_period], temp, &area2, &r_viewcluster2, &cont2);
 			if (cont2 & FTECONTENTS_SOLID)
 				r_viewcluster2 = r_viewcluster;
 		}
@@ -2232,9 +2232,9 @@ void Surf_SetupFrame(void)
 	}
 
 #ifdef TERRAIN
-	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel && cl.worldmodel->terrain)
+	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->terrain)
 	{
-		viewcontents |= Heightmap_PointContents(cl.worldmodel, NULL, pvsorg);
+		viewcontents |= Heightmap_PointContents(cl.worldmodel[cl_current_time_period], NULL, pvsorg);
 	}
 #endif
 
@@ -2985,19 +2985,19 @@ void Surf_DrawWorld (void)
 		BE_DrawWorld(NULL);
 		return;
 	}
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
 	{
 		/*Don't act as a wallhack*/
 		return;
 	}
 
-	if (!r_refdef.areabitsknown && cl.worldmodel->funcs.WriteAreaBits)
+	if (!r_refdef.areabitsknown && cl.worldmodel[cl_current_time_period]->funcs.WriteAreaBits)
 	{	//generate the info each frame, as the gamecode didn't tell us what to use.
-		cl.worldmodel->funcs.WriteAreaBits(cl.worldmodel, r_refdef.areabits, sizeof(r_refdef.areabits), r_viewarea, false);
+		cl.worldmodel[cl_current_time_period]->funcs.WriteAreaBits(cl.worldmodel[cl_current_time_period], r_refdef.areabits, sizeof(r_refdef.areabits), r_viewarea, false);
 		r_refdef.areabitsknown = true;
 	}
 
-	currentmodel = cl.worldmodel;
+	currentmodel = cl.worldmodel[cl_current_time_period];
 	currententity = &r_worldentity;
 
 	r_dlightlightmaps = !!r_dynamic.ival;
@@ -3011,11 +3011,11 @@ void Surf_DrawWorld (void)
 		Surf_LightmapShift(currentmodel);
 
 #ifdef THREADEDWORLD
-		if (!*r_temporalscenecache.string && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED && (cl.worldmodel->fromgame == fg_quake || cl.worldmodel->fromgame == fg_halflife))
+		if (!*r_temporalscenecache.string && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake || cl.worldmodel[cl_current_time_period]->fromgame == fg_halflife))
 		{	//when empty, pick a suitable default.
 			//at what point is it a win? should we consider batch counts? probability of offscreen-only surfaces?
-			if (cl.worldmodel->fromgame == fg_quake || cl.worldmodel->fromgame == fg_halflife)
-				sc = ((r_novis.ival==1)||(cl.worldmodel->numleafs > 6000)) && r_waterstyle.ival<=1 && r_telestyle.ival<=1 && r_slimestyle.ival<=1 && r_lavastyle.ival<=1 && Media_Capturing()<2;
+			if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake || cl.worldmodel[cl_current_time_period]->fromgame == fg_halflife)
+				sc = ((r_novis.ival==1)||(cl.worldmodel[cl_current_time_period]->numleafs > 6000)) && r_waterstyle.ival<=1 && r_telestyle.ival<=1 && r_slimestyle.ival<=1 && r_lavastyle.ival<=1 && Media_Capturing()<2;
 		}
 		if (sc != r_temporalscenecache.ival)
 		{
@@ -3282,12 +3282,12 @@ void Surf_DrawWorld (void)
 
 		TRACE(("dbg: calling BE_DrawWorld\n"));
 		r_refdef.scenevis = surfvis;
-		BE_DrawWorld(cl.worldmodel->batches);
+		BE_DrawWorld(cl.worldmodel[cl_current_time_period]->batches);
 
-		Surf_PopChains(cl.worldmodel->batches);
+		Surf_PopChains(cl.worldmodel[cl_current_time_period]->batches);
 
 		/*FIXME: move this away*/
-		if (cl.worldmodel->fromgame == fg_quake || cl.worldmodel->fromgame == fg_halflife)
+		if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake || cl.worldmodel[cl_current_time_period]->fromgame == fg_halflife)
 			Surf_LessenStains();
 
 		r_refdef.sceneareas = NULL;
@@ -4032,7 +4032,7 @@ void Surf_BuildLightmaps (void)
 Surf_NewMap
 ===============
 */
-void Surf_NewMap (model_t *worldmodel)
+void Surf_NewMap (model_t *worldmodel, int num)
 {
 	char namebuf[MAX_QPATH];
 	extern cvar_t host_mapname;
@@ -4042,23 +4042,23 @@ void Surf_NewMap (model_t *worldmodel)
 #endif
 	int		i;
 
-	cl.worldmodel = worldmodel;
+	cl.worldmodel[num] = worldmodel;
 
 	//evil haxx
 	r_dynamic.ival = r_dynamic.value;
-	if (r_dynamic.ival > 0 && (!cl.worldmodel || cl.worldmodel->lightmaps.prebaked)) //quake3 has no lightmaps, disable r_dynamic
+	if (r_dynamic.ival > 0 && (!cl.worldmodel[num] || cl.worldmodel[num]->lightmaps.prebaked)) //quake3 has no lightmaps, disable r_dynamic
 		r_dynamic.ival = 0;
 
 	memset (&r_worldentity, 0, sizeof(r_worldentity));
 	AngleVectors(r_worldentity.angles, r_worldentity.axis[0], r_worldentity.axis[1], r_worldentity.axis[2]);
 	VectorInverse(r_worldentity.axis[1]);
-	r_worldentity.model = cl.worldmodel;
+	r_worldentity.model = cl.worldmodel[num];
 	Vector4Set(r_worldentity.shaderRGBAf, 1, 1, 1, 1);
 	VectorSet(r_worldentity.light_avg, 1, 1, 1);
 
 
-	if (cl.worldmodel)
-		COM_FileBase(cl.worldmodel->name, namebuf, sizeof(namebuf));
+	if (cl.worldmodel[num])
+		COM_FileBase(cl.worldmodel[num]->name, namebuf, sizeof(namebuf));
 	else
 		*namebuf = '\0';
 	Cvar_Set(&host_mapname, namebuf);
@@ -4086,11 +4086,11 @@ void Surf_NewMap (model_t *worldmodel)
 	CL_RegisterParticles();
 
 	Shader_DoReload();
-	if (cl.worldmodel)
+	if (cl.worldmodel[num])
 	{
-		if (cl.worldmodel->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
-		Mod_ParseInfoFromEntityLump(cl.worldmodel);
+		if (cl.worldmodel[num]->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(cl.worldmodel[num], &cl.worldmodel[num]->loadstate, MLS_LOADING);
+		Mod_ParseInfoFromEntityLump(cl.worldmodel[num]);
 	}
 	Shader_DoReload();
 
@@ -4138,8 +4138,8 @@ TRACE(("dbg: Surf_NewMap: tp\n"));
 			VectorCopy(mins, cl_static_entities[i].ent.origin);
 			VectorCopy(maxs, cl_static_entities[i].ent.origin);
 		}
-		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
-			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &cl_static_entities[i].ent.pvscache, mins, maxs);
+		if (cl.worldmodel[num] && cl.worldmodel[num]->loadstate == MLS_LOADED)
+			cl.worldmodel[num]->funcs.FindTouchedLeafs(cl.worldmodel[num], &cl_static_entities[i].ent.pvscache, mins, maxs);
 		cl_static_entities[i].emit = trailkey_null;
 	}
 

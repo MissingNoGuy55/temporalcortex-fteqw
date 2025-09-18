@@ -1770,7 +1770,7 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 	MSG_WriteFloat (&buf, sv.time);
 
 	// send full levelname
-	MSG_WriteString (&buf, sv.mapname);
+	MSG_WriteString (&buf, svs.name);	// Missi: Stripped level name (2025.9.14)
 
 	// send the movevars
 	MSG_WriteFloat(&buf, movevars.gravity);

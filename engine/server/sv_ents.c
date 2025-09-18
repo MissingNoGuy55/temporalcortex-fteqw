@@ -994,7 +994,7 @@ static unsigned int SVFTE_DeltaCalcBits(entity_state_t *from, qbyte *frombonedat
 			/*if we've got player movement then write the origin anyway*/
 			bits |= UF_ORIGINXY | UF_ORIGINZ;
 			/*and force angles too, if its not us*/
-			if (host_client != svs.clients + to->number-1)
+			if (host_client != svs.clients + to->number-MAX_TIME_PERIODS-1)
 				bits |= UF_ANGLESXZ | UF_ANGLESY;
 		}
 	}
@@ -1688,7 +1688,7 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 
 			client->pendingdeltabits[0] &= ~UF_SV_REMOVE;
 		}
-		for(j = 1; j < client->sentents.num_entities; j++)
+		for(j = MAX_TIME_PERIODS; j < client->sentents.num_entities; j++)
 		{
 			bits = client->pendingdeltabits[j];
 			if (!(bits & ~UF_SV_RESET2))	//skip while there's nothing to send (skip reset2 if there's no other changes, its only to reduce chances of the client getting 'new' entities containing just an origin)*/
@@ -1762,8 +1762,8 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 	for (i = 0; i < to->num_entities; i++)
 	{
 		n = &to->entities[i];
-		j = n->number-1;
-		if (j >= sv.allocated_client_slots)
+		j = n->number-MAX_TIME_PERIODS-1;
+		if (j >= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 			break;	//don't track non-player slots.
 
 		cl = &svs.clients[j];
@@ -2233,7 +2233,7 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	int best;
 	int hullnum, i;
 
-	if (sv.world.worldmodel->fromgame != fg_quake)
+	if (sv.world.worldmodel[sv_current_time_period]->fromgame != fg_quake)
 	{
 		return -mins[2] + 32;	//clients are expected to decide themselves.
 	}
@@ -2249,10 +2249,10 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	for (i = 0; i < MAX_MAP_HULLSM; i++)
 	{
 #define sq(x) ((x)*(x))
-		diff = sq(sv.world.worldmodel->hulls[i].clip_maxs[2] - maxs[2]) +
-			sq(sv.world.worldmodel->hulls[i].clip_mins[2] - mins[2]) +
-			sq(sv.world.worldmodel->hulls[i].clip_maxs[0] - maxs[0]) +
-			sq(sv.world.worldmodel->hulls[i].clip_mins[0] - mins[0]);
+		diff = sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[2] - maxs[2]) +
+			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[2] - mins[2]) +
+			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[0] - maxs[0]) +
+			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[0] - mins[0]);
 		if (diff < best)
 		{
 			best = diff;
@@ -2578,7 +2578,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 				end[1] = amin[1] + frandom()*size[1];
 				end[2] = amin[2] + frandom()*size[2];
 
-				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+				if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 				{
 					*timestamp = sv.time + delay;
 					return false;	//this trace went through, so don't cull
@@ -2596,7 +2596,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 		for (c = 0; c < cameras->numents; c++)
 		{
 			tr.fraction = 1;
-			if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+			if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 				return false;	//wasn't blocked
 		}
 
@@ -2610,7 +2610,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 				end[2] = seen->v->origin[2] + ((i&4)?seen->v->mins[2]+0.1:seen->v->maxs[2]);
 
 				tr.fraction = 1;
-				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+				if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 					return false;	//this trace went through, so don't cull
 			}
 		}
@@ -2926,7 +2926,7 @@ void SV_WritePlayersToClient (client_t *client, client_frame_t *frame, edict_t *
 				continue;
 
 			// ignore if not touching a PV leaf
-			if (cameras && !sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
+			if (cameras && !sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
 				continue;
 
 			if (!((int)clent->xv->dimension_see & ((int)ent->xv->dimension_seen | (int)ent->xv->dimension_ghost)))
@@ -2989,7 +2989,7 @@ void SV_WritePlayersToClient (client_t *client, client_frame_t *frame, edict_t *
 			clst.zext = client->zquake_extensions;
 			clst.cl = cl;
 
-			if (ent != vent || host_client->viewent == j+1)
+			if (ent != vent || host_client->viewent == j+MAX_TIME_PERIODS)
 				clst.modelindex = 0;
 
 #ifdef SERVER_DEMO_PLAYBACK
@@ -3471,12 +3471,12 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	VectorCopy (ent->v->angles, state->angles);
 
 	state->u.q1.weaponframe = 0;
-	if ((state->number-1) < (unsigned int)sv.allocated_client_slots && (client == &svs.clients[state->number-1] || client == svs.clients[state->number-1].controller || (client && (!client->edict || client->spec_track == state->number))))
+	if ((state->number-MAX_TIME_PERIODS) < (unsigned int)sv.allocated_client_slots && (client == &svs.clients[state->number-MAX_TIME_PERIODS] || client == svs.clients[state->number-MAX_TIME_PERIODS].controller || (client && (!client->edict || client->spec_track == state->number))))
 		if (!client || !(client->fteprotocolextensions2 & PEXT2_PREDINFO))
 			state->u.q1.weaponframe = ent->v->weaponframe;
-	if ((state->number-1) < (unsigned int)sv.allocated_client_slots && ent->v->movetype && client)
+	if ((state->number-MAX_TIME_PERIODS) < (unsigned int)sv.allocated_client_slots && ent->v->movetype && client)
 	{
-		client_t *cl = &svs.clients[state->number-1];
+		client_t *cl = &svs.clients[state->number-MAX_TIME_PERIODS];
 		extern cvar_t sv_nqplayerphysics;
 		if (cl->isindependant || sv_nqplayerphysics.ival==2)
 		{
@@ -3863,7 +3863,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 
 			SV_Snapshot_BuildStateQ1(state, clent, seat, pack);
 
-			state->number = seat - svs.clients + 1;
+			state->number = seat - svs.clients + MAX_TIME_PERIODS;
 
 			//yeah, I doubt anyone will need this
 			if (progstype == PROG_QW)
@@ -3895,14 +3895,14 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 
 	/*legacy qw clients get their players separately*/
 	if (ISQWCLIENT(client) && !(client->fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
-		e = min(sv.allocated_client_slots+1, client->max_net_clients);
+		e = min(sv.allocated_client_slots+MAX_TIME_PERIODS, client->max_net_clients);
 	else
-		e = 1;
+		e = MAX_TIME_PERIODS;
 
 	if (client->penalties & BAN_BLIND)
 	{
 		e = client->edict->entnum;
-		limit = e+1;
+		limit = e+MAX_TIME_PERIODS;
 	}
 
 	if (sv_cullentities_trace.ival && client->lastseen_count < limit)
@@ -3986,34 +3986,34 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 						}
 						else
 						{
-							if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+							if (!sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 								continue;
 						}
 					}
 					else
 					{
-						if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+						if (!sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 							continue;
 						tracecullent = ent;
 					}
 				}
-				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel->fromgame == fg_quake)
+				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake)
 				{
 					int cluster;
 					unsigned char *mask;
-					qbyte *phs = sv.world.worldmodel->phs;
+					qbyte *phs = sv.world.worldmodel[sv_current_time_period]->phs;
 					if (phs)
 					{
 						//FIXME: this lookup should be cachable or something.
 						if (client->edict)
-							cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, client->edict->v->origin, NULL);	//ignore areas, can hear through doors.
+							cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], client->edict->v->origin, NULL);	//ignore areas, can hear through doors.
 						else
 							cluster = -1;	//mvd
 						if (cluster >= 0)
 						{
-							mask = phs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
+							mask = phs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
 
-							cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, ent->v->origin, NULL);
+							cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], ent->v->origin, NULL);
 							if (cluster >= 0 && !(mask[cluster>>3] & (1<<(cluster&7)) ) )
 							{
 								continue;
@@ -4175,7 +4175,7 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 	else
 		VectorCopy (viewofs, org);
 
-	sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, org, &area);
+	sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], org, &area);
 	for (i = 1; ; i++)
 	{
 		if (i > cameras->area[0])
@@ -4186,7 +4186,7 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 		if (cameras->area[i] == area)
 			break;	//already have a camera in this area, don't make stuff slow with dupes.
 	}
-	sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &cameras->pvs, cameras->numents!=0);
+	sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org, &cameras->pvs, cameras->numents!=0);
 	if (cameras->numents < SV_PVS_CAMERAS)
 	{
 		cameras->ent[cameras->numents] = ent;
@@ -4263,7 +4263,7 @@ void SV_WriteEntitiesToClient (client_t *client, sizebuf_t *msg, qboolean ignore
 	client_frame_t	*frame;
 	pvscamera_t camerasbuf;
 	pvscamera_t *cameras = &camerasbuf;
-	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel->pvsbytes);
+	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel[sv_current_time_period]->pvsbytes);
 
 	// this is the frame we are creating
 	frame = &client->frameunion.frames[client->netchan.incoming_sequence & UPDATE_MASK];
@@ -4436,7 +4436,7 @@ void SV_ProcessSendFlags(client_t *c)
 	unsigned int e, h = 0;
 	if (!c->csqcactive || !c->pendingcsqcbits)
 		return;
-	for (e=1 ; e<sv.world.num_edicts && e < c->max_net_ents; e++)
+	for (e=MAX_TIME_PERIODS ; e<sv.world.num_edicts && e < c->max_net_ents; e++)
 	{
 		ent = EDICT_NUM_PB(svprogfuncs, e);
 		if (ED_ISFREE(ent))
@@ -4462,7 +4462,7 @@ void SV_CleanupEnts(void)
 		return;
 	}
 
-	for (e=1 ; e<=needcleanup ; e++)
+	for (e=MAX_TIME_PERIODS ; e<=needcleanup ; e++)
 	{
 		ent = EDICT_NUM_PB(svprogfuncs, e);
 		ent->xv->SendFlags = 0;

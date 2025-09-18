@@ -66,7 +66,7 @@ void R_UpdateLightStyle(unsigned int style, const char *stylestring, float r, fl
 void Sh_CalcPointLight(vec3_t point, vec3_t light);
 void R_UpdateHDR(vec3_t org)
 {
-	if (r_hdr_irisadaptation.ival && cl.worldmodel && !(r_refdef.flags & RDF_NOWORLDMODEL))
+	if (r_hdr_irisadaptation.ival && cl.worldmodel[cl_current_time_period] && !(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
 		//fake and lame, but whatever.
 		vec3_t ambient, diffuse, dir;
@@ -80,7 +80,7 @@ void R_UpdateHDR(vec3_t org)
 		if (!r_shadow_realtime_world.ival || r_shadow_realtime_world_lightmaps.value)
 #endif
 		{
-			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, org, ambient, diffuse, dir);
+			cl.worldmodel[cl_current_time_period]->funcs.LightPointValues(cl.worldmodel[cl_current_time_period], org, ambient, diffuse, dir);
 			lev += (VectorLength(ambient) + VectorLength(diffuse))/256;
 		}
 
@@ -1200,7 +1200,7 @@ qboolean R_ImportRTLights(const char *entlump, int importmode)
 			pflags |= PFLAGS_NOSHADOW;
 
 		VectorAdd(origin, originhack, origin);
-		if (radius >= 1 && !(cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, origin) & FTECONTENTS_SOLID))
+		if (radius >= 1 && !(cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, origin) & FTECONTENTS_SOLID))
 		{
 			dlight_t *dl = CL_AllocSlight();
 			if (!dl)
@@ -1292,7 +1292,7 @@ qboolean R_LoadRTLights(void)
 	rtlights_first = RTL_FIRST;
 	rtlights_max = RTL_FIRST;
 
-	COM_StripExtension(cl.worldmodel->name, fname, sizeof(fname));
+	COM_StripExtension(cl.worldmodel[cl_current_time_period]->name, fname, sizeof(fname));
 	strncat(fname, ".rtlights", MAX_QPATH-1);
 
 	file = COM_LoadTempFile(fname, 0, NULL);
@@ -1464,7 +1464,7 @@ static void R_SaveRTLights_f(void)
 	char displayname[MAX_OSPATH];
 	vec3_t ang;
 	int ver = 0;
-	COM_StripExtension(cl.worldmodel->name, fname, sizeof(fname));
+	COM_StripExtension(cl.worldmodel[cl_current_time_period]->name, fname, sizeof(fname));
 	strncat(fname, ".rtlights", MAX_QPATH-1);
 
 	FS_CreatePath(fname, FS_GAMEONLY);
@@ -1579,7 +1579,7 @@ static void R_ReloadRTLights_f(void)
 {
 	int i;
 
-	if (!cl.worldmodel)
+	if (!cl.worldmodel[cl_current_time_period])
 	{
 		Con_Printf("Cannot reload lights at this time\n");
 		return;
@@ -1588,7 +1588,7 @@ static void R_ReloadRTLights_f(void)
 	rtlights_max = RTL_FIRST;
 	r_shadow_realtime_world_lightmaps_force = -1;
 	if (!strcmp(Cmd_Argv(1), "bsp"))
-		R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), 1);
+		R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_time_period]), 1);
 	else if (!strcmp(Cmd_Argv(1), "rtlights"))
 		R_LoadRTLights();
 	else if (!strcmp(Cmd_Argv(1), "statics"))
@@ -1609,7 +1609,7 @@ static void R_ReloadRTLights_f(void)
 				R_StaticEntityToRTLight(i);
 		//otherwise try to import.
 		if (rtlights_first == rtlights_max)
-			R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+			R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_time_period]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
 	}
 
 	if (r_shadow_realtime_world_lightmaps_force >= 0)
@@ -2549,7 +2549,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 	unsigned	scale;
 	int			maps;
 
-	if (cl.worldmodel->fromgame == fg_quake2)
+	if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake2)
 	{
 		if (node->contents != -1)
 			return -1;		// solid
@@ -2585,7 +2585,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 	VectorCopy (mid, lightspot);
 	lightplane = plane;
 
-	surf = cl.worldmodel->surfaces + node->firstsurface;
+	surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 	for (i=0 ; i<node->numsurfaces ; i++, surf++)
 	{
 		if (surf->flags & SURF_DRAWTILED)
@@ -2615,7 +2615,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 		r = 0;
 		if (lightmap)
 		{
-			switch(cl.worldmodel->lightmaps.fmt)
+			switch(cl.worldmodel[cl_current_time_period]->lightmaps.fmt)
 			{
 			case LM_E5BGR9:
 				lightmap += (dt * ((surf->extents[0]>>surf->lmshift)+1) + ds)<<2;
@@ -2670,12 +2670,12 @@ int R_LightPoint (vec3_t p)
 	if (r_refdef.flags & 1)
 		return 255;
 
-	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || !cl.worldmodel->lightdata)
+	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_time_period]->lightdata)
 		return 255;
 
-	if (cl.worldmodel->fromgame == fg_quake3)
+	if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake3)
 	{
-		GLQ3_LightGrid(cl.worldmodel, p, NULL, end, NULL);
+		GLQ3_LightGrid(cl.worldmodel[cl_current_time_period], p, NULL, end, NULL);
 		return (end[0] + end[1] + end[2])/3;
 	}
 
@@ -2683,7 +2683,7 @@ int R_LightPoint (vec3_t p)
 	end[1] = p[1];
 	end[2] = p[2] - mod_lightpoint_distance.value;
 
-	r = GLRecursiveLightPoint (cl.worldmodel->rootnode, p, end);
+	r = GLRecursiveLightPoint (cl.worldmodel[cl_current_time_period]->rootnode, p, end);
 	
 	if (r == -1)
 		r = 0;

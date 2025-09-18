@@ -537,7 +537,7 @@ void PRAddressableFlush(progfuncs_t *progfuncs, size_t totalammount)
 int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
-	edictrun_t *e;
+	edictrun_t *e, *e1, *e2;
 	prinst.maxedicts = max_ents;
 
 	sv_num_edicts = 0;
@@ -554,20 +554,43 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 
 	prinst.max_fields_size = prinst.fields_size;
 
-	prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = PRHunkAlloc(progfuncs, prinst.maxedicts*sizeof(struct edicts_s *), "edicttable"));
+	prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = PRHunkAlloc(progfuncs, prinst.maxedicts * sizeof(struct edicts_s *) * 3, "edicttable"));
 	progfuncs->funcs.edicttable_length = prinst.maxedicts;
-	e = PRHunkAlloc(progfuncs, externs->edictsize, "edict0");
+	e = PRHunkAlloc(progfuncs, externs->edictsize * 3, "edict0");
 	e->fieldsize = prinst.fields_size;
 	e->entnum = 0;
 	e->ereftype = ER_ENTITY;
+	e1 = PRHunkAlloc(progfuncs, externs->edictsize, "edict1");
+	e1->fieldsize = prinst.fields_size;
+	e1->entnum = 1;
+	e1->ereftype = ER_ENTITY;
+	e2 = PRHunkAlloc(progfuncs, externs->edictsize, "edict2");
+	e2->fieldsize = prinst.fields_size;
+	e2->entnum = 2;
+	e2->ereftype = ER_ENTITY;
+
 	sv_edicts = (struct edict_s *)e;
-	sv_num_edicts = 1;
+	sv_num_edicts = 3;
 	progfuncs->funcs.edicttable[0] = sv_edicts;
+	progfuncs->funcs.edicttable[1] = (struct edict_s *)e1;
+	progfuncs->funcs.edicttable[2] = (struct edict_s *)e2;
 	e->fields = PRAddressableExtend(progfuncs, NULL, e->fieldsize, prinst.max_fields_size-e->fieldsize);
-	QC_ClearEdict(&progfuncs->funcs, sv_edicts);
+	e1->fields = PRAddressableExtend(progfuncs, NULL, e1->fieldsize, prinst.max_fields_size-e1->fieldsize);
+	e2->fields = PRAddressableExtend(progfuncs, NULL, e2->fieldsize, prinst.max_fields_size-e2->fieldsize);
+
+	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e);
+	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e1);
+	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e2);
 
 	if (externs->entspawn)
-		externs->entspawn(sv_edicts, false);
+	{
+		externs->entspawn((struct edict_s *)e, false);
+		externs->entspawn((struct edict_s *)e1, false);
+		externs->entspawn((struct edict_s *)e2, false);
+	}
+
+	memcpy( e+externs->edictsize, e1, sizeof( *e1 ) );
+	memcpy( e+externs->edictsize*2, e2, sizeof( *e2 ) );
 
 	return prinst.max_fields_size;
 }
@@ -586,7 +609,7 @@ static void PDECL PR_Configure (pubprogfuncs_t *ppf, size_t addressable_size, in
 	QC_StartShares(progfuncs);
 	QC_InitShares(progfuncs);
 
-	for ( i=1 ; i<prinst.maxedicts; i++)
+	for ( i=3 ; i<prinst.maxedicts; i++)
 	{
 		e = (edictrun_t *)(prinst.edicttable[i]);
 		prinst.edicttable[i] = NULL;
@@ -1803,13 +1826,13 @@ static void PDECL PR_Shutdown(pubprogfuncs_t *ppf)
 
 	f = inst->funcs.parms->memfree;
 
-	for ( i=1 ; i<inst->inst.maxedicts; i++)
+	for ( i=3 ; i<inst->inst.maxedicts; i++)
 	{
 		e = (edictrun_t *)(inst->funcs.edicttable[i]);
 		inst->funcs.edicttable[i] = NULL;
 		if (e)
 		{
-//			e->entnum = i;
+//			e-> entnum = i;
 			f(e);
 		}
 	}

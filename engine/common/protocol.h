@@ -368,6 +368,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define svcfte_setanglebase			93	//updates the base angle (and optionally locks the view, otherwise nudging it without race conditions.)
 #define svcfte_spawnstaticsound2	94	//*sigh*
 
+#define svctc_timeperiod			95
+
 //fitz svcs
 #define svcfitz_skybox				37
 #define svcfitz_bf					40

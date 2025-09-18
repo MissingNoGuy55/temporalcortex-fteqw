@@ -253,7 +253,7 @@ void SVQ1_CreateBaseline (void)
 			continue;
 		// create baselines for all player slots,
 		// and any other edict that has a visible model
-		if (entnum > sv.allocated_client_slots && !svent->v->modelindex)
+		if (entnum > sv.allocated_client_slots+MAX_TIME_PERIODS && !svent->v->modelindex)
 			continue;
 
 	//
@@ -261,9 +261,9 @@ void SVQ1_CreateBaseline (void)
 	//
 		SV_Snapshot_BuildStateQ1(&svent->baseline, svent, NULL, NULL);
 
-		if (entnum > 0 && entnum <= sv.allocated_client_slots)
+		if (entnum > TIME_PERIOD_FUTURE && entnum <= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 		{
-			if (entnum > 0 && entnum <= 16)
+			if (entnum > TIME_PERIOD_FUTURE && entnum <= 16 + MAX_TIME_PERIODS)
 				svent->baseline.colormap = entnum;
 			else
 				svent->baseline.colormap = 0;	//this would crash NQ.
@@ -463,7 +463,7 @@ void SV_CalcPHS (void)
 	unsigned	*dest, *src;
 	qbyte	*scan, *pvs;
 	int		count, vcount;
-	model_t *model = sv.world.worldmodel;
+	model_t *model = sv.world.worldmodel[sv_current_time_period];
 	pvsbuffer_t buf;
 
 	if (model->pvs || model->fromgame == fg_quake2 || model->fromgame == fg_quake3)
@@ -643,7 +643,8 @@ void SV_UnspawnServer (void)	//terminate the running server.
 #ifdef VM_Q1
 		Q1QVM_Shutdown(true);
 #endif
-		sv.world.worldmodel = NULL;
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+			sv.world.worldmodel[i] = NULL;
 		sv.state = ss_dead;
 		if (sv.csqcentversion)
 		{
@@ -848,7 +849,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef Q2SERVER
 	q2edict_t		*q2ent;
 #endif
-	int			i, j;
+	int			i, j, t;
 	extern int sv_allow_cheats;
 	size_t fsz;
 
@@ -924,7 +925,8 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 	VoteFlushAll();
 #ifndef SERVERONLY
-	cl.worldmodel = NULL;
+	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		cl.worldmodel[i] = NULL;
 	r_worldentity.model = NULL;
 //	if (0)
 //	cls.state = ca_connected;
@@ -1000,109 +1002,136 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		qboolean QDECL Mod_LoadQ2BrushModel (model_t *mod, void *buffer, size_t fsize);
 
 		Q_strncpyz (svs.name, server, sizeof(svs.name));
-		Q_strncpyz (sv.modelname, "", sizeof(sv.modelname));
 
-		sv.world.worldmodel = Mod_FindName (sv.modelname);
-		if (Mod_LoadQ2BrushModel (sv.world.worldmodel, NULL, 0))
-			sv.world.worldmodel->loadstate = MLS_LOADED;
-		else
-			sv.world.worldmodel->loadstate = MLS_FAILED;
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			Q_strncpyz (sv.modelname[i], "", sizeof(sv.modelname[i]));
+
+			sv.world.worldmodel[i] = Mod_FindName (sv.modelname[i]);
+			if (Mod_LoadQ2BrushModel (sv.world.worldmodel[i], NULL, 0))
+				sv.world.worldmodel[i]->loadstate = MLS_LOADED;
+			else
+				sv.world.worldmodel[i]->loadstate = MLS_FAILED;
+		}
 	}
 	else
 #endif
 	{
 		//.map is commented out because quite frankly, they're a bit annoying when the engine loads the gpled start.map when really you wanted to just play the damn game intead of take it apart.
 		//if you want to load a .map, just use 'map foo.map' instead.
-		char *exts[] = {"%s", "maps/%s", "maps/%s.bsp", "maps/%s.d3dbsp", "maps/%s.cm", "maps/%s.hmp", "maps/%s.bsp.gz", "maps/%s.bsp.xz", /*"maps/%s.map",*/ NULL}, *e;
+		char *exts[] = {"%s%s", "maps/%s%s", "maps/%s%s.bsp", "maps/%s%s.d3dbsp", "maps/%s%s.cm", "maps/%s%s.hmp", "maps/%s%s.bsp.gz", "maps/%s%s.bsp.xz", /*"maps/%s.map",*/ NULL}, *e, *suffix;
 		int depth, bestdepth = FDEPTH_MISSING;
 		flocation_t loc;
 		time_t filetime;
 		char *mod = NULL;
-		Q_snprintfz (sv.modelname, sizeof(sv.modelname), exts[1], server);	// `map foo.map` can bypass earlier checks, so don't get too screwed up by that.
-		if (bestdepth == FDEPTH_MISSING)
-		{	//not an exact name, scan the maps subdir.
-			for (i = 0; exts[i]; i++)
-			{
-				depth = COM_FDepthFile(va(exts[i], server), false);
-				if (depth < bestdepth)
-				{
-					bestdepth = depth;
-					Q_snprintfz (sv.modelname, sizeof(sv.modelname), exts[i], server);
-				}
-			}
-		}
-		if (bestdepth == FDEPTH_MISSING)
+
+		for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 		{
-			mod = strchr(server, '#');
-			if (mod)
+			bestdepth = FDEPTH_MISSING;
+
+			switch( j )
 			{
-				*mod = 0;
-				bestdepth = COM_FDepthFile(server, false);
-				if (bestdepth != FDEPTH_MISSING)
-					Q_snprintfz (sv.modelname, sizeof(sv.modelname), "%s", server);
-				else
-				{	//not an exact name, scan the maps subdir.
-					for (i = 0; exts[i]; i++)
+				case 0:
+					suffix = "_present";
+					break;
+				case 1:
+					suffix = "_past";
+					break;
+				case 2:
+					suffix = "_future";
+					break;
+			}
+
+			Q_snprintfz (sv.modelname[j], sizeof(sv.modelname[j]), exts[1], server, suffix);	// `map foo.map` can bypass earlier checks, so don't get too screwed up by that.
+			if (bestdepth == FDEPTH_MISSING)
+			{	//not an exact name, scan the maps subdir.
+				for (i = 0; exts[i]; i++)
+				{
+					depth = COM_FDepthFile(va(exts[i], server, suffix), false);
+					if (depth < bestdepth)
 					{
-						depth = COM_FDepthFile(va(exts[i], server), false);
-						if (depth < bestdepth)
-						{
-							bestdepth = depth;
-							Q_snprintfz (sv.modelname, sizeof(sv.modelname), exts[i], server);
-						}
+						bestdepth = depth;
+						Q_snprintfz (sv.modelname[j], sizeof(sv.modelname[j]), exts[i], server, suffix);
 					}
 				}
-				*mod = '#';
-				if (bestdepth == FDEPTH_MISSING)
-					mod = NULL;
 			}
-		}
-		if (!strncmp(sv.modelname, "maps/", 5))
-			Q_strncpyz (svs.name, sv.modelname+5, sizeof(svs.name));
-		else
-			Q_strncpyz (svs.name, sv.modelname, sizeof(svs.name));
-		e = (char*)COM_GetFileExtension(svs.name, NULL);
-		if (!strcmp(e, ".gz") || !strcmp(e, ".xz"))
-		{
-			*e = 0;
-			e = (char*)COM_GetFileExtension(svs.name, NULL);
-		}
-		if (!strcmp(e, ".bsp"))
-			*e = 0;
-
-		Mod_SetModifier(mod);
-
-		sv.world.worldmodel = Mod_ForName (sv.modelname, MLV_ERROR);
-
-		if (FS_FLocateFile(sv.modelname,FSLF_IFFOUND, &loc) && FS_GetLocMTime(&loc, &filetime))
-		{
-			if (filetime > sv.world.worldmodel->mtime && sv.world.worldmodel->mtime)
+			if (bestdepth == FDEPTH_MISSING)
 			{
-				COM_WorkerFullSync();	//sync all the workers, just in case.
-				Mod_PurgeModel(sv.world.worldmodel, MP_RESET);	//nuke it now
-				sv.world.worldmodel = Mod_ForName (sv.modelname, MLV_ERROR);	//and we can reload it now
+				mod = strchr(server, '#');
+				if (mod)
+				{
+					*mod = 0;
+					bestdepth = COM_FDepthFile(server, false);
+					if (bestdepth != FDEPTH_MISSING)
+						Q_snprintfz (sv.modelname[j], sizeof(sv.modelname[j]), "%s%s", server, suffix);
+					else
+					{	//not an exact name, scan the maps subdir.
+						for (i = 0; exts[i]; i++)
+						{
+							depth = COM_FDepthFile(va(exts[i], server, suffix), false);
+							if (depth < bestdepth)
+							{
+								bestdepth = depth;
+								Q_snprintfz (sv.modelname[j], sizeof(sv.modelname[j]), exts[i], server, suffix);
+							}
+						}
+					}
+					*mod = '#';
+					if (bestdepth == FDEPTH_MISSING)
+						mod = NULL;
+				}
 			}
-			sv.world.worldmodel->mtime = filetime;
-		}
 
-		if (!sv.world.worldmodel || sv.world.worldmodel->loadstate != MLS_LOADED)
-			Sys_Error("\"%s\" is missing or corrupt\n", sv.modelname);
-//	if (sv.world.worldmodel->type != mod_brush && sv.world.worldmodel->type != mod_heightmap)
-		if (!sv.world.worldmodel->funcs.NativeTrace && !sv.world.worldmodel->funcs.PointContents)
-			Sys_Error("\"%s\" is not a bsp model\n", sv.modelname);
-		else if (!Mod_GetEntitiesString(sv.world.worldmodel))
-			Sys_Error("\"%s\" has no entity data\n", sv.modelname);
+			if (!strncmp(sv.modelname[j], "maps/", 5))
+				Q_strncpyz (svs.name, sv.modelname[j]+5, sizeof(svs.name));
+			else
+				Q_strncpyz (svs.name, sv.modelname[j], sizeof(svs.name));
+			e = (char*)COM_GetFileExtension(svs.name, NULL);
+			if (!strcmp(e, ".gz") || !strcmp(e, ".xz"))
+			{
+				*e = 0;
+				e = (char*)COM_GetFileExtension(svs.name, NULL);
+			}
+			if (!strcmp(e, ".bsp"))
+				*e = 0;
+
+			Mod_SetModifier(mod);
+
+			sv.world.worldmodel[j] = Mod_ForName (sv.modelname[j], MLV_ERROR);
+
+			if (FS_FLocateFile(sv.modelname[j],FSLF_IFFOUND, &loc) && FS_GetLocMTime(&loc, &filetime))
+			{
+				if (filetime > sv.world.worldmodel[j]->mtime && sv.world.worldmodel[j]->mtime)
+				{
+					COM_WorkerFullSync();	//sync all the workers, just in case.
+					Mod_PurgeModel(sv.world.worldmodel[j], MP_RESET);	//nuke it now
+					sv.world.worldmodel[j] = Mod_ForName (sv.modelname[j], MLV_ERROR);	//and we can reload it now
+				}
+				sv.world.worldmodel[j]->mtime = filetime;
+			}
+
+			if (!sv.world.worldmodel[j] || sv.world.worldmodel[j]->loadstate != MLS_LOADED)
+				Sys_Error("\"%s\" is missing or corrupt\n", sv.modelname[j]);
+	//	if (sv.world.worldmodel[j]->type != mod_brush && sv.world.worldmodel[j]->type != mod_heightmap)
+			if (!sv.world.worldmodel[j]->funcs.NativeTrace && !sv.world.worldmodel[j]->funcs.PointContents)
+				Sys_Error("\"%s\" is not a bsp model\n", sv.modelname[j]);
+			else if (!Mod_GetEntitiesString(sv.world.worldmodel[j]))
+				Sys_Error("\"%s\" has no entity data\n", sv.modelname[j]);
+		}
 	}
 
 	sv.state = ss_dead;
 
-	//make sure our map's package is loaded.
-	if (sv.world.worldmodel)
-		FS_LoadMapPackFile(sv.world.worldmodel->name, sv.world.worldmodel->archive);
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
+	{
+		//make sure our map's package is loaded.
+		if (sv.world.worldmodel[j])
+			FS_LoadMapPackFile(sv.world.worldmodel[j]->name, sv.world.worldmodel[j]->archive);
 
-	//reset the map's areaportal state... it might be dirty from a restart or so.
-	if (sv.world.worldmodel->funcs.LoadAreaPortalBlob)
-		sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, NULL, 0);
+		//reset the map's areaportal state... it might be dirty from a restart or so.
+		if (sv.world.worldmodel[j]->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel[j]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[j], NULL, 0);
+	}
 
 #ifndef SERVERONLY
 	current_loading_size+=10;
@@ -1118,20 +1147,22 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	SCR_SetLoadingFile("gamecode");
 #endif
 
-	if (sv.world.worldmodel->type != mod_brush)
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
-	else if (sv.world.worldmodel->fromgame == fg_doom)
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "1");
-	else if (sv.world.worldmodel->fromgame == fg_halflife)
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "30");
-	else if (sv.world.worldmodel->fromgame == fg_quake2)
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "38");
-	else if (sv.world.worldmodel->fromgame == fg_quake3)
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "46");
-	else
-		InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
-	InfoBuf_SetStarKey(&svs.info, "*startspot", (startspot?startspot:""));
-
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
+	{
+		if (sv.world.worldmodel[j]->type != mod_brush)
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
+		else if (sv.world.worldmodel[j]->fromgame == fg_doom)
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "1");
+		else if (sv.world.worldmodel[j]->fromgame == fg_halflife)
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "30");
+		else if (sv.world.worldmodel[j]->fromgame == fg_quake2)
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "38");
+		else if (sv.world.worldmodel[j]->fromgame == fg_quake3)
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "46");
+		else
+			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
+		InfoBuf_SetStarKey(&svs.info, "*startspot", (startspot?startspot:""));
+	}
 	//
 	// init physics interaction links
 	//
@@ -1207,7 +1238,7 @@ MSV_OpenUserDatabase();
 		newgametype = GT_QUAKE3;
 #endif
 #ifdef Q2SERVER
-	else if ((sv.world.worldmodel->fromgame == fg_quake2 || sv.world.worldmodel->fromgame == fg_quake3) && sv.world.worldmodel->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
+	else if ((sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake2 || sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake3) && sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
 		newgametype = GT_QUAKE2;	//we loaded the dll
 #endif
 #ifdef VM_LUA
@@ -1250,101 +1281,103 @@ MSV_OpenUserDatabase();
 	svs.gametype = newgametype;
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
-	sv.models[1] = sv.world.worldmodel;
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
+	{
+		sv.models[1+j] = sv.world.worldmodel[j];
 #ifdef VM_Q1
-	if (svs.gametype == GT_Q1QVM)
-	{
-		int subs;
-		sv.strings.sound_precache[0] = "";
-		sv.strings.model_precache[0] = "";
-
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-2)
+		if (svs.gametype == GT_Q1QVM)
 		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-2;
+			int subs;
+			sv.strings.sound_precache[0] = "";
+			sv.strings.model_precache[0] = "";
+
+			subs = sv.world.worldmodel[j]->numsubmodels;
+			if (subs > MAX_PRECACHE_MODELS-2)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-2;
+			}
+
+			sv.strings.model_precache[1+j] = sv.modelname[j];	//the qvm doesn't have access to this array
+			for (i=1 ; i<subs ; i++)
+			{
+				char *z, *s = va("*%u", i);
+				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
+				strcpy(z, s);
+				sv.strings.model_precache[1+i+j] = z;
+				sv.models[i+j+1] = Mod_ForName (Mod_FixName(z, sv.modelname[j]), MLV_WARN);
+			}
+
+			//check player/eyes models for hacks
+			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
+			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
 		}
-
-		sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
-		for (i=1 ; i<subs ; i++)
-		{
-			char *z, *s = va("*%u", i);
-			z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
-			strcpy(z, s);
-			sv.strings.model_precache[1+i] = z;
-			sv.models[i+1] = Mod_ForName (Mod_FixName(z, sv.modelname), MLV_WARN);
-		}
-
-		//check player/eyes models for hacks
-		sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
-		sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
-	}
-	else
-#endif
-	if (svs.gametype == GT_PROGS
-#ifdef VM_LUA
-		|| svs.gametype == GT_LUA
-#endif
-		)
-	{
-		int subs;
-		sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
-		sv.strings.model_precache[1] = PR_AddString(svprogfuncs, sv.modelname, 0, false);
-
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-2)
-		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-2;
-		}
-		for (i=1 ; i<subs ; i++)
-		{
-			sv.strings.model_precache[1+i] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[1+i], sv.modelname), MLV_WARN);
-		}
-
-		//check player/eyes models for hacks
-		sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
-		sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
-	}
-#ifdef Q2SERVER
-	else if (svs.gametype == GT_QUAKE2)
-	{
-		int subs;
-		extern cvar_t sv_airaccelerate;
-
-		sv.stringsalloced = true;
-		memset(&sv.strings, 0, sizeof(sv.strings));
-
-		if (deathmatch.value)
-			sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDupf("%g", sv_airaccelerate.value);
 		else
-			sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
-
-		// init map checksum config string but only for Q2/Q3 maps
-		sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel->checksum, sv.world.worldmodel->checksum2);
-
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-1)
-		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-1;
-		}
-
-		sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname);
-		for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
-		{
-			sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname), MLV_WARN);
-		}
-		for ( ; i<subs; i++)
-		{
-			sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname), MLV_WARN);
-		}
-	}
 #endif
+		if (svs.gametype == GT_PROGS
+#ifdef VM_LUA
+			|| svs.gametype == GT_LUA
+#endif
+			)
+		{
+			int subs;
+			sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
+			sv.strings.model_precache[1+j] = PR_AddString(svprogfuncs, sv.modelname[j], 0, false);
 
+			subs = sv.world.worldmodel[j]->numsubmodels;
+			if (subs > MAX_PRECACHE_MODELS-2)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-2;
+			}
+			for (i=1 ; i<subs ; i++)
+			{
+				sv.strings.model_precache[1+i+j] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+				sv.models[i+j+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[1+i+j], sv.modelname[j]), MLV_WARN);
+			}
+
+			//check player/eyes models for hacks
+			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
+			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
+		}
+#ifdef Q2SERVER
+		else if (svs.gametype == GT_QUAKE2)
+		{
+			int subs;
+			extern cvar_t sv_airaccelerate;
+
+			sv.stringsalloced = true;
+			memset(&sv.strings, 0, sizeof(sv.strings));
+
+			if (deathmatch.value)
+				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDupf("%g", sv_airaccelerate.value);
+			else
+				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
+
+			// init map checksum config string but only for Q2/Q3 maps
+			sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel[j]->checksum, sv.world.worldmodel[j]->checksum2);
+
+			subs = sv.world.worldmodel[j]->numsubmodels;
+			if (subs > MAX_PRECACHE_MODELS-1)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-1;
+			}
+
+			sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname[j]);
+			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
+			{
+				sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname[j]), MLV_WARN);
+			}
+			for ( ; i<subs; i++)
+			{
+				sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname[j]), MLV_WARN);
+			}
+		}
+#endif
+	}
 
 
 #ifndef SERVERONLY
@@ -1373,8 +1406,11 @@ MSV_OpenUserDatabase();
 #endif
 	case GT_Q1QVM:
 	case GT_PROGS:
-		ent = EDICT_NUM_PB(svprogfuncs, 0);
-		ent->ereftype = ER_ENTITY;
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		{
+			ent = EDICT_NUM_PB(svprogfuncs, t);
+			ent->ereftype = ER_ENTITY;
+		}
 
 #ifndef SERVERONLY
 		/*force coop 1 if splitscreen and not deathmatch*/
@@ -1436,8 +1472,8 @@ MSV_OpenUserDatabase();
 		SV_UpdateMaxPlayers(svq2_maxclients);
 		for (i=0 ; i<sv.allocated_client_slots ; i++)
 		{
-			q2ent = Q2EDICT_NUM(i+1);
-			q2ent->s.number = i+1;
+			q2ent = Q2EDICT_NUM(i+MAX_TIME_PERIODS);
+			q2ent->s.number = i+MAX_TIME_PERIODS;
 			svs.clients[i].q2edict = q2ent;
 		}
 		break;
@@ -1479,93 +1515,96 @@ MSV_OpenUserDatabase();
 	// map initialization
 	sv.state = ss_loading;
 
-	if (svprogfuncs)
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
-		//world entity is hackily spawned
-		extern cvar_t coop, pr_imitatemvdsv;
-		ent = EDICT_NUM_PB(svprogfuncs, 0);
-		ent->ereftype = ER_ENTITY;
-#ifdef VM_Q1
-		if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
-#endif
-			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[1], true);
-		ent->v->modelindex = 1;		// world model
-		ent->v->solid = SOLID_BSP;
-		ent->v->movetype = MOVETYPE_PUSH;
-		VectorCopy(sv.world.worldmodel->mins, ent->v->mins);
-		VectorCopy(sv.world.worldmodel->maxs, ent->v->maxs);
-		VectorCopy(sv.world.worldmodel->mins, ent->v->absmin);
-		VectorCopy(sv.world.worldmodel->maxs, ent->v->absmax);
-
-		if (progstype == PROG_QW && pr_imitatemvdsv.value>0)
+		if (svprogfuncs)
 		{
-#ifdef VM_Q1
+			//world entity is hackily spawned
+			extern cvar_t coop, pr_imitatemvdsv;
+			ent = EDICT_NUM_PB(svprogfuncs, j);
+			ent->ereftype = ER_ENTITY;
+	#ifdef VM_Q1
 			if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
-#endif
+	#endif
+			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[1+j], true);
+			ent->v->modelindex = 1+j;		// world model
+			ent->v->solid = SOLID_BSP;
+			ent->v->movetype = MOVETYPE_PUSH;
+			VectorCopy(sv.world.worldmodel[j]->mins, ent->v->mins);
+			VectorCopy(sv.world.worldmodel[j]->maxs, ent->v->maxs);
+			VectorCopy(sv.world.worldmodel[j]->mins, ent->v->absmin);
+			VectorCopy(sv.world.worldmodel[j]->maxs, ent->v->absmax);
+
+			if (progstype == PROG_QW && pr_imitatemvdsv.value>0)
 			{
-				svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->targetname, "mvdsv", true);
-				svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->netname, version_string(), false);
+	#ifdef VM_Q1
+				if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
+	#endif
+				{
+					svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->targetname, "mvdsv", true);
+					svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->netname, version_string(), false);
+				}
+				ent->v->impulse = 0;//QWE_VERNUM;
+				ent->v->items = 103;
 			}
-			ent->v->impulse = 0;//QWE_VERNUM;
-			ent->v->items = 103;
-		}
 
 
-#ifdef VM_Q1
-		if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
-#endif
-			svprogfuncs->SetStringField(svprogfuncs, NULL, &pr_global_struct->mapname, svs.name, true);
+	#ifdef VM_Q1
+			if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
+	#endif
+				svprogfuncs->SetStringField(svprogfuncs, NULL, &pr_global_struct->mapname, svs.name, true);
 
-		// serverflags are for cross level information (sigils)
-		pr_global_struct->serverflags = svs.serverflags;
-		pr_global_struct->time = 1.0;	//match nq behaviour
+			// serverflags are for cross level information (sigils)
+			pr_global_struct->serverflags = svs.serverflags;
+			pr_global_struct->time = 1.0;	//match nq behaviour
 
-#ifdef HEXEN2
-		if (progstype == PROG_H2)
-		{
-			eval_t *eval;
-			cvar_t *cv;
-			if (coop.value)
+	#ifdef HEXEN2
+			if (progstype == PROG_H2)
 			{
-				eval = PR_FindGlobal(svprogfuncs, "coop", 0, NULL);
-				if (eval) eval->_float = coop.value;
+				eval_t *eval;
+				cvar_t *cv;
+				if (coop.value)
+				{
+					eval = PR_FindGlobal(svprogfuncs, "coop", 0, NULL);
+					if (eval) eval->_float = coop.value;
+				}
+				else
+				{
+					eval = PR_FindGlobal(svprogfuncs, "deathmatch", 0, NULL);
+					if (eval) eval->_float = deathmatch.value;
+				}
+				cv = Cvar_Get("randomclass", "0", CVAR_MAPLATCH, "Hexen2");
+				eval = PR_FindGlobal(svprogfuncs, "randomclass", 0, NULL);
+				if (eval && cv) eval->_float = cv->value;
+
+				cv = Cvar_Get("cl_playerclass", "1", CVAR_USERINFO|CVAR_ARCHIVE, "Hexen2");
+				eval = PR_FindGlobal(svprogfuncs, "cl_playerclass", 0, NULL);
+				if (eval && cv) eval->_float = cv->value;
 			}
 			else
+	#endif
 			{
-				eval = PR_FindGlobal(svprogfuncs, "deathmatch", 0, NULL);
-				if (eval) eval->_float = deathmatch.value;
+				if (pr_global_ptrs->coop && coop.value)
+					pr_global_struct->coop = coop.value;
+				else if (pr_global_ptrs->deathmatch)
+					pr_global_struct->deathmatch = deathmatch.value;
 			}
-			cv = Cvar_Get("randomclass", "0", CVAR_MAPLATCH, "Hexen2");
-			eval = PR_FindGlobal(svprogfuncs, "randomclass", 0, NULL);
-			if (eval && cv) eval->_float = cv->value;
 
-			cv = Cvar_Get("cl_playerclass", "1", CVAR_USERINFO|CVAR_ARCHIVE, "Hexen2");
-			eval = PR_FindGlobal(svprogfuncs, "cl_playerclass", 0, NULL);
-			if (eval && cv) eval->_float = cv->value;
-		}
-		else
-#endif
-		{
-			if (pr_global_ptrs->coop && coop.value)
-				pr_global_struct->coop = coop.value;
-			else if (pr_global_ptrs->deathmatch)
-				pr_global_struct->deathmatch = deathmatch.value;
-		}
-
-		if (svs.gametype != GT_Q1QVM) //we cannot do this with qvm
-		{
-			for (i = 0; i < svs.numprogs; i++)	//do this AFTER precaches have been played with...
+			if (svs.gametype != GT_Q1QVM) //we cannot do this with qvm
 			{
-				f = PR_FindFunction (svprogfuncs, "initents", svs.progsnum[i]);
-				if (f)
+				for (i = 0; i < svs.numprogs; i++)	//do this AFTER precaches have been played with...
 				{
-					PR_ExecuteProgram(svprogfuncs, f);
+					f = PR_FindFunction (svprogfuncs, "initents", svs.progsnum[i]);
+					if (f)
+					{
+						PR_ExecuteProgram(svprogfuncs, f);
+					}
 				}
 			}
+			if (progstype == PROG_QW)
+				// run the frame start qc function to let progs check cvars
+				SV_ProgStartFrame ();	//prydon gate seems to fail because of this allowance
 		}
-		if (progstype == PROG_QW)
-			// run the frame start qc function to let progs check cvars
-			SV_ProgStartFrame ();	//prydon gate seems to fail because of this allowance
 	}
 
 	// load and spawn all other entities
@@ -1573,39 +1612,42 @@ MSV_OpenUserDatabase();
 	if (!deathmatch.value && !*skill.string)	//skill was left blank so it doesn't polute serverinfo on deathmatch servers. in single player, we ensure that it gets a proper value.
 		Cvar_Set(&skill, "1");
 //do this and get the precaches/start up the game
-	if (sv.world.worldmodel->entitiescrc)
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
-		char crc[12];
-		sprintf(crc, "%i", sv.world.worldmodel->entitiescrc);
-		InfoBuf_SetValueForStarKey(&svs.info, "*entfile", crc);
-	}
-	else
-		InfoBuf_SetValueForStarKey(&svs.info, "*entfile", "");
+		if (sv.world.worldmodel[j]->entitiescrc)
+		{
+			char crc[12];
+			sprintf(crc, "%i", sv.world.worldmodel[j]->entitiescrc);
+			InfoBuf_SetValueForStarKey(&svs.info, "*entfile", crc);
+		}
+		else
+			InfoBuf_SetValueForStarKey(&svs.info, "*entfile", "");
 
-	if (usecinematic)
-		file = NULL;
-	else
-		file = Mod_GetEntitiesString(sv.world.worldmodel);
-	if (!file)
-		file = "";
+		if (usecinematic)
+			file = NULL;
+		else
+			file = Mod_GetEntitiesString(sv.world.worldmodel[j]);
+		if (!file)
+			file = "";
 
-	switch(svs.gametype)
-	{
-	default:
-		PR_SpawnInitialEntities(file);
-		break;
+		switch(svs.gametype)
+		{
+		default:
+			PR_SpawnInitialEntities(file);
+			break;
 #ifdef Q2SERVER
-	case GT_QUAKE2:
-		ge->SpawnEntities(svs.name, file, startspot?startspot:"");
-		break;
+		case GT_QUAKE2:
+			ge->SpawnEntities(svs.name, file, startspot?startspot:"");
+			break;
 #endif
-	case GT_QUAKE3:
-		break;
+		case GT_QUAKE3:
+			break;
 #ifdef HLSERVER
-	case GT_HALFLIFE:
-		SVHL_SpawnEntities(file);
-		break;
+		case GT_HALFLIFE:
+			SVHL_SpawnEntities(file);
+			break;
 #endif
+		}
 	}
 
 #ifndef SERVERONLY
@@ -1614,38 +1656,42 @@ MSV_OpenUserDatabase();
 	SCR_ImageName(server);
 #endif
 
-	Q_strncpyz(sv.mapname, svs.name, sizeof(sv.mapname));
-	if (svprogfuncs)
+
+	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
-		eval_t *val;
-		ent = EDICT_NUM_PB(svprogfuncs, 0);
-		ent->v->angles[0] = ent->v->angles[1] = ent->v->angles[2] = 0;
-		if ((val = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "message", ev_string, NULL)))
-			snprintf(sv.mapname, sizeof(sv.mapname), "%s", PR_GetString(svprogfuncs, val->string));
-#ifdef HEXEN2
-		else if (progstype == PROG_H2 && (val = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "message", ev_float, NULL)))
-		{	//hexen2 uses a float string index for message.
-			//if its 0 or negative, fall back on netname instead (for custom maps).
-			if (val->_float <= 0)
-				snprintf(sv.mapname, sizeof(sv.mapname), "%s", PR_GetString(svprogfuncs, ent->v->netname));
-			else
-				snprintf(sv.mapname, sizeof(sv.mapname), "%s", T_GetString(val->_float-1));
-		}
-#endif
-		else
-			snprintf(sv.mapname, sizeof(sv.mapname), "%s", svs.name);
-		if (Cvar_Get("sv_readonlyworld", "1", 0, "DP compatability")->value)
+		Q_strncpyz(sv.mapname[j], svs.name, sizeof(sv.mapname[j]));
+		if (svprogfuncs)
 		{
-			ent->readonly = true;	//lock it down!
+			eval_t *val;
+			ent = EDICT_NUM_PB(svprogfuncs, j);
+			ent->v->angles[0] = ent->v->angles[1] = ent->v->angles[2] = 0;
+			if ((val = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "message", ev_string, NULL)))
+				snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", PR_GetString(svprogfuncs, val->string));
+#ifdef HEXEN2
+			else if (progstype == PROG_H2 && (val = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "message", ev_float, NULL)))
+			{	//hexen2 uses a float string index for message.
+				//if its 0 or negative, fall back on netname instead (for custom maps).
+				if (val->_float <= 0)
+					snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", PR_GetString(svprogfuncs, ent->v->netname));
+				else
+					snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", T_GetString(val->_float-1));
+			}
+#endif
+			else
+				snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", svs.name);
+			if (Cvar_Get("sv_readonlyworld", "1", 0, "DP compatability")->value)
+			{
+				ent->readonly = true;	//lock it down!
 
-			if (ent->v->origin[0] != 0 || ent->v->origin[1] != 0 || ent->v->origin[2] != 0 || ent->v->angles[0] != 0 || ent->v->angles[1] != 0 || ent->v->angles[2] != 0)
-				Con_Printf("Warning: The world has moved. Alert your nearest reputable news agency.\n");
+				if (ent->v->origin[0] != 0 || ent->v->origin[1] != 0 || ent->v->origin[2] != 0 || ent->v->angles[0] != 0 || ent->v->angles[1] != 0 || ent->v->angles[2] != 0)
+					Con_Printf("Warning: The world has moved. Alert your nearest reputable news agency.\n");
 
+			}
 		}
-
-		// look up some model indexes for specialized message compression
-		SV_FindModelNumbers ();
 	}
+
+	// look up some model indexes for specialized message compression
+	SV_FindModelNumbers ();
 
 #ifndef SERVERONLY
 	current_loading_size+=10;
@@ -1739,7 +1785,7 @@ MSV_OpenUserDatabase();
 	{
 		float extent = 0, ne;
 		//fixme: go off bsp extents instead?
-		for(i = 1; i < sv.world.num_edicts; i++)
+		for(i = MAX_TIME_PERIODS; i < sv.world.num_edicts; i++)
 		{
 			ent = EDICT_NUM_PB(svprogfuncs, i);
 			for (j = 0; j < 3; j++)
@@ -1749,18 +1795,21 @@ MSV_OpenUserDatabase();
 					extent = ne;
 			}
 		}
-		if (extent > (1u<<15)/8 
+		for ( j = 0; j < MAX_TIME_PERIODS; j++ )
+		{
+			if (extent > (1u<<15)/8
 #ifdef TERRAIN
-			|| sv.world.worldmodel->terrain
+			|| sv.world.worldmodel[j]->terrain
 #endif
 			)
-		{
-			if (sv.used_signon_space || sv.signon.cursize)
-				Con_Printf("Cannot auto-enable extended coords as the init buffer was used\n");
-			else
 			{
-				Con_Printf("Switching to extended coord sizes\n");
-				SV_SetupNetworkBuffers(true);
+				if (sv.used_signon_space || sv.signon.cursize)
+					Con_Printf("Cannot auto-enable extended coords as the init buffer was used\n");
+				else
+				{
+					Con_Printf("Switching to extended coord sizes\n");
+					SV_SetupNetworkBuffers(true);
+				}
 			}
 		}
 	}

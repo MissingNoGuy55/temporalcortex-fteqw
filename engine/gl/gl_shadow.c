@@ -380,7 +380,7 @@ static void SHM_Shadow_Cache_Leaf(mleaf_t *leaf)
 {
 	int i;
 
-	i = (leaf - cl.worldmodel->leafs)-1;
+	i = (leaf - cl.worldmodel[cl_current_time_period]->leafs)-1;
 	sh_shmesh->litleaves[i>>3] |= 1<<(i&7);
 }
 
@@ -498,7 +498,7 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 	unsigned int lb;
 	sh_vertnum = 0;
 
-	lb = (cl.worldmodel->numclusters+7)/8;
+	lb = (cl.worldmodel[cl_current_time_period]->numclusters+7)/8;
 	if (!dl->die || !dl->key || (dl->flags&LFLAG_FORCECACHE))
 	{
 		sh_shmesh = dl->worldshadowmesh;
@@ -542,12 +542,12 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 	VectorCopy(dl->origin, sh_shmesh->origin);
 	sh_shmesh->radius = dl->radius;
 
-	if (!cl.worldmodel->numshadowbatches)
+	if (!cl.worldmodel[cl_current_time_period]->numshadowbatches)
 	{
-		SH_CalcShadowBatches(cl.worldmodel);
+		SH_CalcShadowBatches(cl.worldmodel[cl_current_time_period]);
 	}
 
-	if (sh_shmesh->numbatches != cl.worldmodel->numshadowbatches)
+	if (sh_shmesh->numbatches != cl.worldmodel[cl_current_time_period]->numshadowbatches)
 	{
 		if (sh_shmesh->batches)
 		{
@@ -555,8 +555,8 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 				Z_Free(sh_shmesh->batches[i].s);
 			Z_Free(sh_shmesh->batches);
 		}
-		sh_shmesh->batches = Z_Malloc(sizeof(shadowmeshbatch_t)*cl.worldmodel->numshadowbatches);
-		sh_shmesh->numbatches=cl.worldmodel->numshadowbatches;
+		sh_shmesh->batches = Z_Malloc(sizeof(shadowmeshbatch_t)*cl.worldmodel[cl_current_time_period]->numshadowbatches);
+		sh_shmesh->numbatches=cl.worldmodel[cl_current_time_period]->numshadowbatches;
 	}
 
 	for (i = 0; i < sh_shmesh->numbatches; i++)
@@ -780,7 +780,7 @@ static void SHM_RecursiveWorldNodeQ1_r (dlight_t *dl, mnode_t *node)
 
 	if (c)
 	{
-		surf = cl.worldmodel->surfaces + node->firstsurface;
+		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 
 		{
 
@@ -861,7 +861,7 @@ static void SHM_OrthoWorldLeafsQ1 (dlight_t *dl)
 		CategorizePlane(&orthoplanes[i]);
 	}
 
-	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->submodels[0].visleafs; pleaf <= plastleaf; pleaf++)
+	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->submodels[0].visleafs; pleaf <= plastleaf; pleaf++)
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -909,11 +909,11 @@ static void SHM_MarkLeavesQ1(dlight_t *dl, const qbyte *lvis)
 		return;
 
 	//variation on mark leaves
-	for (i=0 ; i<cl.worldmodel->numclusters ; i++)
+	for (i=0 ; i<cl.worldmodel[cl_current_time_period]->numclusters ; i++)
 	{
 		if (lvis[i>>3] & (1<<(i&7)))
 		{
-			node = (mnode_t *)&cl.worldmodel->leafs[i+1];
+			node = (mnode_t *)&cl.worldmodel[cl_current_time_period]->leafs[i+1];
 			do
 			{
 				if (node->shadowframe == sh_shadowframe)
@@ -933,7 +933,7 @@ void Q1BSP_GenerateShadowMesh(model_t *model, dlight_t *dl, const qbyte *lightvi
 	else
 	{
 		SHM_MarkLeavesQ1(dl, lightvis);
-		SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel->nodes);
+		SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_time_period]->nodes);
 	}
 }
 #endif
@@ -961,7 +961,7 @@ static void SHM_OrthoWorldLeafsQ3 (dlight_t *dl)
 		CategorizePlane(&orthoplanes[i]);
 	}
 
-	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->numleafs; pleaf <= plastleaf; pleaf++)
+	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->numleafs; pleaf <= plastleaf; pleaf++)
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -1022,7 +1022,7 @@ static void SHM_OrthoWorldLeafsQ2 (dlight_t *dl)
 		CategorizePlane(&orthoplanes[i]);
 	}
 
-	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->numleafs; pleaf <= plastleaf; pleaf++)
+	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->numleafs; pleaf <= plastleaf; pleaf++)
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -1144,7 +1144,7 @@ static void SHM_RecursiveWorldNodeQ2_r (dlight_t *dl, mnode_t *node)
 
 	if (c)
 	{
-		surf = cl.worldmodel->surfaces + node->firstsurface;
+		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
 
 		{
 
@@ -1209,7 +1209,7 @@ static void SHM_RecursiveWorldNodeQ2_r (dlight_t *dl, mnode_t *node)
 					for (v = 0; v < surf->numedges; v++)
 					{
 						int e, delta;
-						e = cl.worldmodel->surfedges[surf->firstedge+v];
+						e = cl.worldmodel[cl_current_time_period]->surfedges[surf->firstedge+v];
 						//negative edge means backwards edge.
 						if (e < 0)
 						{
@@ -1270,7 +1270,7 @@ static void SHM_MarkLeavesQ2(dlight_t *dl, const unsigned char *lvis)
 	{
 		//static
 		//variation on mark leaves
-		for (i=0,leaf=cl.worldmodel->leafs ; i<cl.worldmodel->numleafs ; i++, leaf++)
+		for (i=0,leaf=cl.worldmodel[cl_current_time_period]->leafs ; i<cl.worldmodel[cl_current_time_period]->numleafs ; i++, leaf++)
 		{
 			cluster = leaf->cluster;
 			if (cluster == -1)
@@ -1292,7 +1292,7 @@ static void SHM_MarkLeavesQ2(dlight_t *dl, const unsigned char *lvis)
 	{
 		//dynamic lights will be discarded after this frame anyway, so only include leafs that are visible
 		//variation on mark leaves
-		for (i=0,leaf=cl.worldmodel->leafs ; i<cl.worldmodel->numleafs ; i++, leaf++)
+		for (i=0,leaf=cl.worldmodel[cl_current_time_period]->leafs ; i<cl.worldmodel[cl_current_time_period]->numleafs ; i++, leaf++)
 		{
 			cluster = leaf->cluster;
 			if (cluster == -1)
@@ -1558,7 +1558,7 @@ static void SHM_ComposeVolume_BruteForce(dlight_t *dl)
 		sms = &sh_shmesh->batches[tno];
 		if (!sms->count)
 			continue;
-		if ((cl.worldmodel->shadowbatches[tno].tex->shader->flags & (SHADER_BLEND|SHADER_NODRAW|SHADER_NOSHADOWS)))
+		if ((cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex->shader->flags & (SHADER_BLEND|SHADER_NODRAW|SHADER_NOSHADOWS)))
 			continue;
 
 		for (sno = 0; sno < sms->count; sno++)
@@ -1702,7 +1702,7 @@ static void SHM_Shadow_Surface_StencilVolume (msurface_t *surf)
 	for (v = 0; v < surf->numedges; v++)
 	{
 		int e, delta;
-		e = cl.worldmodel->surfedges[surf->firstedge+v];
+		e = cl.worldmodel[cl_current_time_period]->surfedges[surf->firstedge+v];
 		//negative edge means backwards edge.
 		if (e < 0)
 		{
@@ -1757,46 +1757,46 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 		int clus;
 		if (type == SMT_ORTHO)
 			;
-		else if ((type == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel->funcs.ClustersInSphere)
+		else if ((type == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
 			//shadowless lights don't cast shadows, so they're seen through everything - their vis must reflect that.
-			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb, NULL);
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb, NULL);
 		else
 		{
-			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);	//FIXME: track the lights area
-			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);	//FIXME: track the lights area
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
 
-			if (cl.worldmodel->funcs.ClustersInSphere)
-				lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+			if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+				lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
 		}
 	}
 
 	firstedge=0;
-	if (maxedge < cl.worldmodel->numedges)
+	if (maxedge < cl.worldmodel[cl_current_time_period]->numedges)
 	{
-		maxedge = cl.worldmodel->numedges;
+		maxedge = cl.worldmodel[cl_current_time_period]->numedges;
 		Z_Free(edge);
 		edge = Z_Malloc(sizeof(*edge) * maxedge);
 	}
 
 	SHM_BeginShadowMesh(dl, type);
-	if (cl.worldmodel->funcs.GenerateShadowMesh)
+	if (cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh)
 	{
 		switch(type)
 		{
 		case SMT_SHADOWMAP:
-			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_Shadowmap);
+			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_Shadowmap);
 			break;
 		case SMT_STENCILVOLUME:
-			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_StencilVolume);
+			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_StencilVolume);
 			break;
 		default:
-			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Cache_Surface);
+			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Cache_Surface);
 			break;
 		}
 	}
-	else if (cl.worldmodel->type == mod_brush)
+	else if (cl.worldmodel[cl_current_time_period]->type == mod_brush)
 	{
-		switch(cl.worldmodel->fromgame)
+		switch(cl.worldmodel[cl_current_time_period]->fromgame)
 		{
 #ifdef Q1BSPS
 		case fg_quake:
@@ -1806,7 +1806,7 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 			else
 			{
 				SHM_MarkLeavesQ1(dl, lvis);
-				SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel->nodes);
+				SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_time_period]->nodes);
 			}
 			break;
 #endif
@@ -1814,7 +1814,7 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 			sh_shadowframe++;
 
 			{
-				int cluster = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
+				int cluster = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
 				if (cluster >= 0)
 					sh_shmesh->litleaves[cluster>>3] |= 1<<(cluster&7);
 			}
@@ -1835,8 +1835,8 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 		while(firstedge)
 		{
 			//border
-			v1 = cl.worldmodel->vertexes[cl.worldmodel->edges[firstedge].v[0]].position;
-			v2 = cl.worldmodel->vertexes[cl.worldmodel->edges[firstedge].v[1]].position;
+			v1 = cl.worldmodel[cl_current_time_period]->vertexes[cl.worldmodel[cl_current_time_period]->edges[firstedge].v[0]].position;
+			v2 = cl.worldmodel[cl_current_time_period]->vertexes[cl.worldmodel[cl_current_time_period]->edges[firstedge].v[1]].position;
 
 			//get positions of v3 and v4 based on the light position
 			v3[0] = v1[0] + ( v1[0]-dl->origin[0] )*PROJECTION_DISTANCE;
@@ -1889,7 +1889,7 @@ static qboolean Sh_VisOverlaps(qbyte *v1, qbyte *v2)
 	int i, m;
 	if (!v2 || !v1)
 		return true;
-	m = (cl.worldmodel->numclusters+7)>>3;
+	m = (cl.worldmodel[cl_current_time_period]->numclusters+7)>>3;
 
 	for (i=(m&~3) ; i<m ; i++)
 	{
@@ -2507,10 +2507,10 @@ static void Sh_GenShadowFace(dlight_t *l, vec3_t axis[3], int lighttype, shadowm
 		{
 			if (!smesh->batches[tno].count)
 				continue;
-			tex = cl.worldmodel->shadowbatches[tno].tex;
+			tex = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex;
 			if (tex->shader->flags & (SHADER_NOSHADOWS|SHADER_NODRAW))	//FIXME: shadows not lights
 				continue;
-			BE_DrawMesh_List(tex->shader, smesh->batches[tno].count, smesh->batches[tno].s, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
+			BE_DrawMesh_List(tex->shader, smesh->batches[tno].count, smesh->batches[tno].s, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
 		}
 		break;
 	}
@@ -2786,8 +2786,8 @@ qboolean Sh_GenerateShadowMap(dlight_t *l, int lighttype)
 		else
 		{
 			int clus;
-			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, l->origin, NULL);
-			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], l->origin, NULL);
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
 			//FIXME: surely we can use the phs for this?
 
 			if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
@@ -3005,11 +3005,11 @@ static void Sh_DrawShadowMapLight(dlight_t *l, vec3_t colour, vec3_t axis[3], qb
 		else
 		{
 			int clus;
-			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, l->origin, NULL);
-			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], l->origin, NULL);
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
 			//FIXME: surely we can use the phs for this?
-			if (cl.worldmodel->funcs.ClustersInSphere)
-				lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, l->origin, l->radius, &lvisb2, lvis);
+			if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+				lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], l->origin, l->radius, &lvisb2, lvis);
 			//FIXME: check areas
 			if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
 			{
@@ -3111,8 +3111,8 @@ static void Sh_DrawEntLighting(dlight_t *light, vec3_t colour, qbyte *pvs)
 		{
 			if (!sm->batches[tno].count)
 				continue;
-			tex = cl.worldmodel->shadowbatches[tno].tex;
-			if (cl.worldmodel->fromgame == fg_quake2)
+			tex = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex;
+			if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake2)
 				shader = R_TextureAnimation_Q2(tex)->shader;
 			else
 				shader = R_TextureAnimation(false, tex)->shader;
@@ -3124,19 +3124,19 @@ static void Sh_DrawEntLighting(dlight_t *light, vec3_t colour, qbyte *pvs)
 			{
 				mesh_t unimesh = {0};
 				mesh_t *unimeshptr = &unimesh;
-				vboarray_t oldidx = cl.worldmodel->shadowbatches[tno].vbo->indicies;
+				vboarray_t oldidx = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies;
 				unimesh.numindexes = sm->batches[tno].faceidxcount;
-				unimesh.numvertexes = cl.worldmodel->shadowbatches[tno].vbo->vertcount;
+				unimesh.numvertexes = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->vertcount;
 				unimesh.vbofirstelement = sm->batches[tno].faceidxfirst;
-				cl.worldmodel->shadowbatches[tno].vbo->indicies.gl.vbo = sm->vefbo[2];
-				cl.worldmodel->shadowbatches[tno].vbo->indicies.gl.addr = NULL;
+				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies.gl.vbo = sm->vefbo[2];
+				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies.gl.addr = NULL;
 
-				BE_DrawMesh_List(shader, 1, &unimeshptr, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
-				cl.worldmodel->shadowbatches[tno].vbo->indicies = oldidx;
+				BE_DrawMesh_List(shader, 1, &unimeshptr, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
+				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies = oldidx;
 			}
 			else
 #endif
-				BE_DrawMesh_List(shader, sm->batches[tno].count, sm->batches[tno].s, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
+				BE_DrawMesh_List(shader, sm->batches[tno].count, sm->batches[tno].s, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
 			RQuantAdd(RQUANT_LITFACES, sm->batches[tno].count);
 		}
 
@@ -3449,10 +3449,10 @@ static qboolean Sh_DrawStencilLight(dlight_t *dl, vec3_t colour, vec3_t axis[3],
 	}
 	else
 	{
-		clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);	//FIXME: check areas
-		lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
-//		if (cl.worldmodel->funcs.ClustersInSphere)
-//			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+		clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);	//FIXME: check areas
+		lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+//		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+//			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
 
 		if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
 		{
@@ -3678,10 +3678,10 @@ qboolean Sh_CullLight(dlight_t *dl, qbyte *vvis)
 		int clus;
 		qbyte *lvis;
 
-		clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
-		lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
-//		if (cl.worldmodel->funcs.ClustersInSphere)
-//			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+		clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
+		lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+//		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+//			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
 
 		SHM_BuildShadowMesh(dl, lvis, SMT_DEFERRED);
 
@@ -3719,12 +3719,12 @@ static void Sh_DrawShadowlessLight(dlight_t *dl, vec3_t colour, vec3_t axis[3], 
 		int clus;
 		qbyte *lvis;
 
-		if (cl.worldmodel->funcs.ClustersInSphere)
-			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, NULL);
+		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, NULL);
 		else
 		{
-			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
-			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
+			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
 		}
 
 		SHM_BuildShadowMesh(dl, lvis, SMT_SHADOWLESS);
@@ -3839,7 +3839,7 @@ void Sh_DrawCrepuscularLight(dlight_t *dl, float *colours)
 
 	BE_SelectMode(BEM_CREPUSCULAR);
 	BE_SelectDLight(dl, colours, dl->axis, LSHADER_STANDARD);
-	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_PORTAL, SHADER_SORT_BLEND);
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_PORTAL, SHADER_SORT_BLEND);
 
 	GLBE_FBO_Pop(oldfbo);
 
@@ -3892,7 +3892,7 @@ void Sh_PreGenerateLights(void)
 
 	r_shadow_realtime_world_importlightentitiesfrommap.modified = false;
 	r_shadow_realtime_world_lightmaps.value = atof(r_shadow_realtime_world_lightmaps.string);
-	if (!cl.worldmodel)
+	if (!cl.worldmodel[cl_current_time_period])
 		return;
 	if ((r_shadow_realtime_dlight.ival || r_shadow_realtime_world.ival) && rtlights_max == RTL_FIRST)
 	{
@@ -3907,7 +3907,7 @@ void Sh_PreGenerateLights(void)
 			okay |= rtlights_max != RTL_FIRST;
 		}
 		if (!okay)
-			okay |= R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+			okay |= R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_time_period]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
 		if (!okay && r_shadow_realtime_world.ival && r_shadow_realtime_world_lightmaps.value < 0.5)
 		{
 			r_shadow_realtime_world_lightmaps.value = 1;
@@ -3950,14 +3950,14 @@ void Sh_PreGenerateLights(void)
 					shadowtype = SMT_STENCILVOLUME;
 
 				//shadowless and lights with an ambient term pass through walls, so need to affect EVERY leaf withing the sphere.
-				if ((shadowtype == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel->funcs.ClustersInSphere)
-					lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, NULL);
+				if ((shadowtype == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+					lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, NULL);
 				else
 				{	//other lights only want to use the source leaf's pvs (clamped by the sphere)
-					leaf = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
-					lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, leaf, &lvisb, PVM_FAST);
-					if (cl.worldmodel->funcs.ClustersInSphere)
-						lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+					leaf = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
+					lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], leaf, &lvisb, PVM_FAST);
+					if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+						lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
 				}
 
 				SHM_BuildShadowMesh(dl, lvis, shadowtype);
@@ -4348,7 +4348,7 @@ void Sh_DrawLights(qbyte *vis)
 		{
 			//only do this if we can see some sky surfaces. pointless otherwise
 			batch_t *b;
-			for (b = cl.worldmodel->batches[SHADER_SORT_SKY]; b; b = b->next)
+			for (b = cl.worldmodel[cl_current_time_period]->batches[SHADER_SORT_SKY]; b; b = b->next)
 			{
 				if (b->meshes)
 					break;

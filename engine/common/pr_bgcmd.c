@@ -1406,7 +1406,7 @@ void QCBUILTIN PF_getsurfacepointattribute(pubprogfuncs_t *prinst, struct global
 void QCBUILTIN PF_checkpvs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	world_t *world = prinst->parms->user;
-	model_t *worldmodel = world->worldmodel;
+	model_t *worldmodel = world->worldmodel[sv_current_time_period];
 	VM_VECTORARG(viewpos, OFS_PARM0);
 	wedict_t *ent = G_WEDICT(prinst, OFS_PARM1);
 	int cluster;
@@ -1511,7 +1511,7 @@ void QCBUILTIN PF_findchainflags (pubprogfuncs_t *prinst, struct globalvars_s *p
 		return;
 	}
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1549,7 +1549,7 @@ void QCBUILTIN PF_findchainfloat (pubprogfuncs_t *prinst, struct globalvars_s *p
 		return;
 	}
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1588,7 +1588,7 @@ void QCBUILTIN PF_findchain (pubprogfuncs_t *prinst, struct globalvars_s *pr_glo
 		return;
 	}
 
-	for (i = 1; i < *prinst->parms->num_edicts; i++)
+	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1770,7 +1770,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 		string_t t;
 		if (!s)
 			s = ""; /* o.O */
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed) || ed->readonly)
@@ -1785,7 +1785,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_float)
 	{	//handling -0 properly requires care
 		pvec_t s = G_FLOAT(OFS_PARM1);
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1797,7 +1797,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_double)
 	{	//handling 64bit -0 properly requires care
 		double s = G_DOUBLE(OFS_PARM1);
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1809,7 +1809,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_int64 || type == ev_uint64)
 	{	//handling -0 properly requires care
 		pint64_t s = G_INT64(OFS_PARM1);
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1821,7 +1821,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_vector)
 	{	//big types...
 		pvec_t *s = G_VECTOR(OFS_PARM1);
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1835,7 +1835,7 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else
 	{	//generic references and other stuff that can just be treated as ints
 		pint_t s = G_INT(OFS_PARM1);
-		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -4062,7 +4062,7 @@ void QCBUILTIN PF_findradius (pubprogfuncs_t *prinst, struct globalvars_s *pr_gl
 	else
 	{
 		rad = rad*rad;
-		for (i=1 ; i<w->num_edicts ; i++)
+		for (i=MAX_TIME_PERIODS ; i<w->num_edicts ; i++)
 		{
 			ent = WEDICT_NUM_PB(prinst, i);
 			if (ED_ISFREE(ent))

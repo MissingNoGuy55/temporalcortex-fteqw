@@ -48,6 +48,7 @@ extern int	r_blockvidrestart;
 
 void Host_FinishLoading(void);
 
+timeperiod_t cl_current_time_period;
 
 cvar_t	cl_crypt_rcon = CVARFD("cl_crypt_rcon", "1", CVAR_ARCHIVE|CVAR_NOTFROMSERVER, "Controls whether to send a hash instead of sending your rcon password as plain-text. Set to 1 for security, or 0 for backwards compatibility.\nYour command and any responses will still be sent as plain text.\nInstead, it is recommended to use rcon ONLY via dtls/tls/wss connections.");	//CVAR_NOTFROMSERVER prevents evil servers from degrading it to send plain-text passwords.
 cvar_t	rcon_password = CVARF("rcon_password", "", CVAR_NOUNSAFEEXPAND);
@@ -2555,10 +2556,15 @@ void CL_Disconnect (const char *reason)
 	}
 	Cam_Reset();
 
-	if (cl.worldmodel)
-	{
+	if ( cl.worldmodel[0] )
 		Mod_ClearAll();
-		cl.worldmodel = NULL;
+
+	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+	{
+		if (cl.worldmodel[i])
+		{
+			cl.worldmodel[i] = NULL;
+		}
 	}
 
 	CL_Parse_Disconnected();
@@ -3130,7 +3136,7 @@ void CL_CheckServerInfo(void)
 	if (!*s)
 		s = InfoBuf_ValueForKey(&cl.serverinfo, "allow_skyboxes");
 	if (!*s)
-		cls.allow_unmaskedskyboxes = (cl.worldmodel && cl.worldmodel->fromgame != fg_quake);
+		cls.allow_unmaskedskyboxes = (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->fromgame != fg_quake);
 	else cls.allow_unmaskedskyboxes = !!atoi(s);
 
 	s = InfoBuf_ValueForKey(&cl.serverinfo, "fbskins");
@@ -5666,10 +5672,10 @@ void CL_Status_f(void)
 			Con_Printf("\tinfoblobs\n");
 	}
 
-	if (cl.worldmodel)
+	if (cl.worldmodel[cl_current_time_period])
 	{
 		Con_Printf("map uptime       : %s\n", ShowTime(cl.time));
-		COM_FileBase(cl.worldmodel->name, adr, sizeof(adr));
+		COM_FileBase(cl.worldmodel[cl_current_time_period]->name, adr, sizeof(adr));
 		Con_Printf ("current map      : %s (%s)\n", adr, cl.levelname);
 	}
 
@@ -5728,6 +5734,33 @@ static void CL_UserinfoChanged(void *ctx, const char *keyname)
 
 void CL_Skygroup_f(void);
 void WAD_ImageList_f(void);
+
+
+static void CL_ChangeTimePeriod_f()
+{
+	const char* pszArg = Cmd_Argv(1);
+
+	if ( svs.allocated_client_slots > 1 )
+		return;		// Missi: Don't get cheeky... (2025.9.17)
+
+	if ( !pszArg )
+	{
+		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
+		return;
+	}
+
+	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
+	//cl_current_time_period = (timeperiod_t)atoi(pszArg);
+
+	char cmd[64];
+	snprintf( cmd, sizeof(cmd), "%s %s", Cmd_Argv(0), Cmd_Argv(1) );
+
+	MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
+	MSG_WriteString( &cls.netchan.message, cmd );
+
+	//Cmd_ForwardToServer();
+}
+
 /*
 =================
 CL_Init
@@ -6087,6 +6120,7 @@ void CL_Init (void)
 	Cmd_AddCommand ("spiderpig", NULL);
 	Cmd_AddCommand ("fly", NULL);
 	Cmd_AddCommand ("setpos", NULL);
+	Cmd_AddCommand ("changetimeperiod", CL_ChangeTimePeriod_f);
 	Cmd_AddCommand ("notarget", NULL);
 
 	Cmd_AddCommand ("topten", NULL);
@@ -7330,7 +7364,7 @@ double Host_Frame (double time)
 			CL_CheckForResend ();
 		CL_SendCmd (cl.gamespeed?host_frametime/cl.gamespeed:host_frametime, true);
 
-		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel)
+		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel[cl_current_time_period])
 		{	// first update is the final signon stage
 			if (cls.protocol == CP_NETQUAKE)
 			{
@@ -7402,7 +7436,7 @@ double Host_Frame (double time)
 			VectorClear(cl.playerview[i].audio.velocity);
 		}
 		if (cls.state && r_worldentity.model && r_worldentity.model->loadstate == MLS_NOTLOADED)
-			Mod_LoadModel(cl.worldmodel, MLV_WARNSYNC);
+			Mod_LoadModel(cl.worldmodel[cl_current_time_period], MLV_WARNSYNC);
 
 		if (SCR_UpdateScreen && !vid.isminimized)
 		{

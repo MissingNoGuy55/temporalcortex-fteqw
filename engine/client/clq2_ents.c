@@ -1933,7 +1933,7 @@ void CLQ2_ParseFrame (int extrabits)
 	CLQ2_ParsePacketEntities (old, &cl.q2frame);
 
 	for (cmd = 0; cmd < MAX_SPLITS; cmd++)
-		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+1;
+		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+MAX_TIME_PERIODS;
 
 	// save the frame off in the backup array for later delta comparisons
 	cl.q2frames[cl.q2frame.serverframe & Q2UPDATE_MASK] = cl.q2frame;
@@ -2927,7 +2927,7 @@ void CLQ2_CalcViewValues (int seat)
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
-	if (cl.worldmodel && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
+	if (cl.worldmodel[cl_current_time_period] && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
 	{	// use predicted values
 		float	delta;
 
@@ -2953,7 +2953,7 @@ void CLQ2_CalcViewValues (int seat)
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
-	if (cl.worldmodel && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
+	if (cl.worldmodel[cl_current_time_period] && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
 	{	// use predicted values
 		for (i=0 ; i<3 ; i++)
 			pv->simangles[i] = pv->predicted_angles[i];
@@ -3023,7 +3023,7 @@ void CLQ2_AddEntities (void)
 		AngleVectors(r_refdef.viewangles, axis[0], axis[1], axis[2]);
 		VectorMA(r_refdef.vieworg, -chase_back.value, axis[0], camorg);
 		VectorMA(camorg, -chase_up.value, pv->gravitydir, camorg);
-//		if (cl.worldmodel && cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
+//		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
 		VectorCopy(camorg, r_refdef.vieworg);
 
 		V_EditExternalModels(0, NULL, 0);
