@@ -1082,10 +1082,13 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 				}
 			}
 
+			/*
 			if (!strncmp(sv.modelname[j], "maps/", 5))
 				Q_strncpyz (svs.name, sv.modelname[j]+5, sizeof(svs.name));
 			else
 				Q_strncpyz (svs.name, sv.modelname[j], sizeof(svs.name));
+			*/
+
 			e = (char*)COM_GetFileExtension(svs.name, NULL);
 			if (!strcmp(e, ".gz") || !strcmp(e, ".xz"))
 			{

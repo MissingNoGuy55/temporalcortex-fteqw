@@ -2010,8 +2010,8 @@ void SVQW_PreSpawn_f (void)
 
 //		Con_DPrintf("Client check = %d\n", check);
 
-		if (sv_mapcheck.value && check != sv.world.worldmodel[sv_current_time_period]->checksum &&
-			COM_RemapMapChecksum(sv.world.worldmodel[sv_current_time_period], check) != COM_RemapMapChecksum(sv.world.worldmodel[sv_current_time_period], LittleLong(sv.world.worldmodel[sv_current_time_period]->checksum2)))
+		if (sv_mapcheck.value && check != sv.world.worldmodel[0]->checksum &&
+			COM_RemapMapChecksum(sv.world.worldmodel[0], check) != COM_RemapMapChecksum(sv.world.worldmodel[0], LittleLong(sv.world.worldmodel[0]->checksum2)))
 #ifdef SERVER_DEMO_PLAYBACK
 		if (!sv.demofile || (sv.demofile && !sv.democausesreconnect))	//demo playing causes no check. If it's the return level, check anyway to avoid that loophole.
 #endif
@@ -2019,10 +2019,10 @@ void SVQW_PreSpawn_f (void)
 			char *msg;
 			SV_ClientTPrintf (host_client, PRINT_HIGH,
 				"Map model file does not match (%s), %#X != %#X/%#X.\nYou may need a new version of the map, or the proper install files.\n",
-				sv.modelname[sv_current_time_period], check, sv.world.worldmodel[sv_current_time_period]->checksum, sv.world.worldmodel[sv_current_time_period]->checksum2);
+				sv.modelname[0], check, sv.world.worldmodel[0]->checksum, sv.world.worldmodel[0]->checksum2);
 
 
-			msg = va("\n//kickfile \"%s\"\n", sv.modelname[sv_current_time_period]);
+			msg = va("\n//kickfile \"%s\"\n", sv.modelname[0]);
 			ClientReliableWrite_Begin (host_client, svc_stufftext, 3+strlen(msg));
 			ClientReliableWrite_String (host_client, msg);
 			SV_DropClient (host_client);

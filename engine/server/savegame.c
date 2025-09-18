@@ -39,66 +39,63 @@ struct loadinfo_s
 //Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current
 void SV_SavegameComment (char *text, size_t textsize)
 {
-	int		i, t;
+	int		i;
 	char	kills[20];
 	char	datetime[64];
 	time_t	timeval;
 
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	char *mapname = svs.name;
+
+	for (i=0 ; i<textsize-1 ; i++)
+		text[i] = ' ';
+	text[textsize-1] = '\0';
+	if (!mapname)
+		strcpy( text, "Unnamed_Level");
+	else
 	{
-		char *mapname = sv.mapname[t];
+		i = strlen(mapname);
+		if (i > 22)
+			i = 22;
+		memcpy (text, mapname, i);
+	}
 
-		for (i=0 ; i<textsize-1 ; i++)
-			text[i] = ' ';
-		text[textsize-1] = '\0';
-		if (!mapname)
-			strcpy( text, "Unnamed_Level");
-		else
-		{
-			i = strlen(mapname);
-			if (i > 22)
-				i = 22;
-			memcpy (text, mapname, i);
-		}
-
-		kills[0] = '\0';
+	kills[0] = '\0';
 #ifdef Q2SERVER
-		if (ge)	//q2
-		{
-			kills[0] = '\0';
-		}
-		else
+	if (ge)	//q2
+	{
+		kills[0] = '\0';
+	}
+	else
 #endif
 #ifdef HLSERVER
-		if (svs.gametype == GT_HALFLIFE)
-		{
-			sprintf (kills,"");
-		}
-		else
-#endif
-		{
-			if ((int)pr_global_struct->killed_monsters || (int)pr_global_struct->total_monsters)
-				sprintf (kills,"kills:%3i/%3i", (int)pr_global_struct->killed_monsters, (int)pr_global_struct->total_monsters);
-		}
-
-		time(&timeval);
-		strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime( &timeval ));
-
-		memcpy (text+22, kills, strlen(kills));
-		if (textsize > 39)
-		{
-			Q_strncpyz(text+39, datetime, textsize-39);
-		}
-// convert space to _ to make stdio happy
-		for (i=0 ; i<textsize-1 ; i++)
-		{
-			if (text[i] == ' ')
-				text[i] = '_';
-			else if (text[i] == '\n')
-				text[i] = '\0';
-		}
-		text[textsize-1] = '\0';
+	if (svs.gametype == GT_HALFLIFE)
+	{
+		sprintf (kills,"");
 	}
+	else
+#endif
+	{
+		if ((int)pr_global_struct->killed_monsters || (int)pr_global_struct->total_monsters)
+			sprintf (kills,"kills:%3i/%3i", (int)pr_global_struct->killed_monsters, (int)pr_global_struct->total_monsters);
+	}
+
+	time(&timeval);
+	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime( &timeval ));
+
+	memcpy (text+22, kills, strlen(kills));
+	if (textsize > 39)
+	{
+		Q_strncpyz(text+39, datetime, textsize-39);
+	}
+// convert space to _ to make stdio happy
+	for (i=0 ; i<textsize-1 ; i++)
+	{
+		if (text[i] == ' ')
+			text[i] = '_';
+		else if (text[i] == '\n')
+			text[i] = '\0';
+	}
+	text[textsize-1] = '\0';
 }
 
 pbool PDECL SV_ExtendedSaveData(pubprogfuncs_t *progfuncs, void *loadctx, const char **ptr)
@@ -214,6 +211,8 @@ pbool PDECL SV_ExtendedSaveData(pubprogfuncs_t *progfuncs, void *loadctx, const 
 	return true;
 }
 
+void SV_ChangeTimePeriod( timeperiod_t tTimePeriod );
+
 #ifndef QUAKETC
 static qboolean SV_LegacySavegame (const char *savename, qboolean verbose)
 {
@@ -315,6 +314,8 @@ static qboolean SV_LegacySavegame (const char *savename, qboolean verbose)
 		else
 			VFS_PRINTF(f,"m\n");
 	}
+
+	VFS_PRINTF(f, "current_time_period %i\n", sv_current_time_period);
 
 	if (!s)
 		s = PR_SaveEnts(svprogfuncs, NULL, &len, 0, 1);
@@ -611,6 +612,7 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 		Con_TPrintf ("Savegame is version %i, not %i\n", version, CACHEGAME_VERSION_DEFAULT);
 		return false;
 	}
+
 	VFS_GETS(f, str, sizeof(str));	//comment
 
 	SV_SendMessagesToAll();
@@ -2021,6 +2023,13 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 		}
 		soundnames[i] = Z_StrDup(sv.strings.sound_precache[i]);
 	}
+
+	VFS_GETS(f, str, sizeof(str));
+
+	if ( atoi( &str[20] ) >= MAX_TIME_PERIODS )
+		SV_ChangeTimePeriod( 0 );
+	else
+		SV_ChangeTimePeriod( atoi( &str[20] ) );
 
 // load the edicts out of the savegame file
 // the rest of the file is sent directly to the progs engine.

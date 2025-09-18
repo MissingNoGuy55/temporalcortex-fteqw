@@ -3544,20 +3544,12 @@ void SV_Download_f (void)
 	Con_Printf("scheme not supported\n");
 }
 
-void SV_ChangeTimePeriod_f()
+void SV_ChangeTimePeriod( timeperiod_t tTimePeriod )
 {
-	int args;
-	const char* pszArg = Cmd_Argv(1);
 	sizebuf_t buf;
 	char bufmem[1024];
 
-	if ( !pszArg )
-	{
-		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
-		return;
-	}
-
-	sv_current_time_period = (timeperiod_t)atoi(pszArg);
+	sv_current_time_period = tTimePeriod;
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
@@ -3568,6 +3560,19 @@ void SV_ChangeTimePeriod_f()
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
 	MSG_WriteLong (&sv.reliable_datagram, sv_current_time_period);
+}
+
+void SV_ChangeTimePeriod_f()
+{
+	const char* pszArg = Cmd_Argv(1);
+
+	if ( !pszArg )
+	{
+		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
+		return;
+	}
+
+	SV_ChangeTimePeriod( (timeperiod_t)atoi(pszArg) );
 }
 
 /*
