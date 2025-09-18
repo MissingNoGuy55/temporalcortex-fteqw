@@ -5454,7 +5454,7 @@ static void CLQ2_ParseStartSoundPacket(void)
 	{	//a 'sexed' sound
 		if (ent > 0 && ent <= MAX_CLIENTS)
 		{
-			char *model = InfoBuf_ValueForKey(&cl.players[ent-MAX_TIME_PERIODS-1].userinfo, "skin");
+			char *model = InfoBuf_ValueForKey(&cl.players[ent-MAX_TIME_PERIODS].userinfo, "skin");
 			char *skin;
 			skin = strchr(model, '/');
 			if (skin)

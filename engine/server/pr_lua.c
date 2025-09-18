@@ -1257,7 +1257,7 @@ static int bi_lua_sprint_nq(lua_State *L)
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
 	}
-	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIODS-1], level, "%s", str);
+	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIODS], level, "%s", str);
 	return 0;
 }
 

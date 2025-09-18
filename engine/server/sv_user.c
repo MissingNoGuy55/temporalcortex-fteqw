@@ -9252,7 +9252,7 @@ void SVNQ_ReadClientMove (qboolean forceangle16, qboolean quakeex)
 			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + MAX_TIME_PERIODS));
 
 			if (i)
-				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-MAX_TIME_PERIODS-1].name);
+				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-MAX_TIME_PERIODS].name);
 		}
 	}
 

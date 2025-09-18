@@ -737,7 +737,7 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 				{
 					if (oneclient != split)
 					{
-						if (andspecs && split->spectator && split->spec_track > 0 && oneclient == &svs.clients[split->spec_track - MAX_TIME_PERIODS-1])
+						if (andspecs && split->spectator && split->spec_track > 0 && oneclient == &svs.clients[split->spec_track - MAX_TIME_PERIODS])
 							;
 						else
 							continue;
@@ -2613,9 +2613,9 @@ qboolean SV_CanTrack(client_t *client, int entity)
 {
 	if (entity <= 0 || entity > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 		return false;
-	if (svs.clients[entity-MAX_TIME_PERIODS-1].spectator)
+	if (svs.clients[entity-MAX_TIME_PERIODS].spectator)
 		return false;
-	if (svs.clients[entity-MAX_TIME_PERIODS-1].state == cs_spawned || (svs.clients[entity-MAX_TIME_PERIODS-1].state == cs_free && svs.clients[entity-MAX_TIME_PERIODS-1].userinfo.numkeys))
+	if (svs.clients[entity-MAX_TIME_PERIODS].state == cs_spawned || (svs.clients[entity-MAX_TIME_PERIODS].state == cs_free && svs.clients[entity-MAX_TIME_PERIODS].userinfo.numkeys))
 		return true;
 	return false;
 }

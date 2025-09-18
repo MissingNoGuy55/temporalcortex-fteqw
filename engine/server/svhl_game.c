@@ -903,7 +903,7 @@ void QDECL GHL_MessageEnd(unk)
 		SZ_Write(&sv.datagram, sv.multicast.data, sv.multicast.cursize);
 		break;
 	case MSG_ONE:
-		cl = &svs.clients[svhl_messageent - SVHL_Edict - MAX_TIME_PERIODS-1];
+		cl = &svs.clients[svhl_messageent - SVHL_Edict - MAX_TIME_PERIODS];
 		if (cl->state >= cs_spawned)
 		{
 			ClientReliableCheckBlock(cl, sv.multicast.cursize);
@@ -1285,7 +1285,7 @@ char *QDECL GHL_GetInfoKeyBuffer(hledict_t *ed)
 	if (!ed)
 		return svs.info;
 
-	return svs.clients[ed - SVHL_Edict - MAX_TIME_PERIODS-1].userinfo;
+	return svs.clients[ed - SVHL_Edict - MAX_TIME_PERIODS].userinfo;
 }
 char *QDECL GHL_InfoKeyValue(char *infostr, char *key)
 {

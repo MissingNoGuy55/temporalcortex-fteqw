@@ -1827,7 +1827,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 	{
 		if (cl.worldmodel[t])
 		{
-			int wmidx = 0;
+			int wmidx = t;
 			model_t *oldwm = cl.worldmodel[t];
 			cl.worldmodel[t] = NULL;
 			CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid

@@ -3236,7 +3236,7 @@ static void QCBUILTIN PF_sprint (pubprogfuncs_t *prinst, struct globalvars_s *pr
 		return;
 	}
 
-	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS];
 
 	SV_ClientPrintf (client, level, "%s", s);
 
@@ -3274,7 +3274,7 @@ static void QCBUILTIN PF_isbackbuffered (pubprogfuncs_t *prinst, struct globalva
 		Con_Printf ("PF_isbackbuffered: Not a client\n");
 		return;
 	}
-	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS];
 
 	G_FLOAT(OFS_RETURN) = client->num_backbuf>0;
 }
@@ -3305,7 +3305,7 @@ void PF_centerprint_Internal (int entnum, qboolean plaque, const char *s)
 		return;
 	}
 
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
 	if (cl->centerprintstring)
 		Z_Free(cl->centerprintstring);
 	cl->centerprintstring = NULL;
@@ -4052,7 +4052,7 @@ void PF_stuffcmd_Internal(int entnum, const char *str, unsigned int flags)
 	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return;
 
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
 
 	if (strcmp(str, "disconnect\n") == 0)
 	{
@@ -4130,7 +4130,7 @@ static void QCBUILTIN PF_dropclient (pubprogfuncs_t *prinst, struct globalvars_s
 	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return;
 
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
 
 	// so long and thanks for all the fish
 	if (cl->netchan.remote_address.type == NA_LOOPBACK)
@@ -5090,7 +5090,7 @@ sizebuf_t *QWWriteDest (int		dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
 		}
 	case MSG_BROADCAST:
 		return &sv.datagram;
@@ -5105,7 +5105,7 @@ sizebuf_t *QWWriteDest (int		dest)
 			PR_BIError ("WriteDest: not a client");
 			return &sv.reliable_datagram;
 		}
-		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
 #endif
 
 	case MSG_ALL:
@@ -5138,7 +5138,7 @@ sizebuf_t *NQWriteDest (int dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
 		}
 
 	case MSG_BROADCAST:
@@ -5154,7 +5154,7 @@ sizebuf_t *NQWriteDest (int dest)
 			PR_BIError (prinst, "WriteDest: not a client");
 			return &sv.nqreliable_datagram;
 		}
-		return &svs.clients[entnum-MAX_TIME_PERIODS-1].netchan.message;
+		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
 #endif
 
 	case MSG_ALL:
@@ -5194,9 +5194,9 @@ client_t *Write_GetClient(void)
 	entnum = NUM_FOR_EDICT(svprogfuncs, ent);
 	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
 		return NULL;//PR_RunError ("WriteDest: not a client");
-	if (svs.clients[entnum-MAX_TIME_PERIODS-1].protocol == SCP_BAD)
+	if (svs.clients[entnum-MAX_TIME_PERIODS].protocol == SCP_BAD)
 		return NULL;	//don't try writing to bots... we don't want the overflows.
-	return &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	return &svs.clients[entnum-MAX_TIME_PERIODS];
 }
 
 static int PF_Write_BoundForNetwork(pubprogfuncs_t *prinst, int minv, int v, int maxv)
@@ -6234,7 +6234,7 @@ void QCBUILTIN PF_setspawnparms (pubprogfuncs_t *prinst, struct globalvars_s *pr
 	}
 
 	// copy spawn parms out of the client_t
-	client = svs.clients + (i-MAX_TIME_PERIODS-1);
+	client = svs.clients + (i-MAX_TIME_PERIODS);
 
 	SV_SpawnParmsToQC(client);
 }
@@ -6310,8 +6310,8 @@ void QCBUILTIN PF_logfrag (pubprogfuncs_t *prinst, struct globalvars_s *pr_globa
 	ent1 = G_EDICT(prinst, OFS_PARM0);
 	ent2 = G_EDICT(prinst, OFS_PARM1);
 
-	e1 = NUM_FOR_EDICT(prinst, ent1)-MAX_TIME_PERIODS-1;
-	e2 = NUM_FOR_EDICT(prinst, ent2)-MAX_TIME_PERIODS-1;
+	e1 = NUM_FOR_EDICT(prinst, ent1)-MAX_TIME_PERIODS;
+	e2 = NUM_FOR_EDICT(prinst, ent2)-MAX_TIME_PERIODS;
 
 	if (e1 < 0 || e1 >= sv.allocated_client_slots
 	|| e2 < 0 || e2 >= sv.allocated_client_slots)
@@ -6409,7 +6409,7 @@ char *PF_infokey_Internal (int entnum, const char *key)
 	}
 	else if (entnum <= sv.allocated_client_slots)
 	{
-		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS];
 		client_t *controller = pl->controller?pl->controller:pl;
 		value = ov;
 		if (!strcmp(key, "ip"))
@@ -6435,9 +6435,9 @@ char *PF_infokey_Internal (int entnum, const char *key)
 		else if (!strcmp(key, "csqcactive") || !strcmp(key, "*csqcactive"))
 			sprintf(ov, "%d", controller->csqcactive);
 		else if (!strcmp(key, "ping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS-1], false));
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS], false));
 		else if (!strcmp(key, "svping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS-1], true));
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS], true));
 		else if (!strcmp(key, "guid"))
 			sprintf(ov, "%s", pl->guid);
 		else if (!strcmp(key, "*cert_dn"))
@@ -6601,7 +6601,7 @@ static void QCBUILTIN PF_infokey_blob (pubprogfuncs_t *prinst, struct globalvars
 			value = InfoBuf_BlobForKey(&svs.localinfo, key, &blobsize, NULL);
 	}
 	else if (e1 <= (unsigned)sv.allocated_client_slots)
-		value = InfoBuf_BlobForKey (&svs.clients[e1-MAX_TIME_PERIODS-1].userinfo, key, &blobsize, NULL);
+		value = InfoBuf_BlobForKey (&svs.clients[e1-MAX_TIME_PERIODS].userinfo, key, &blobsize, NULL);
 	else
 		value = NULL;
 
@@ -7836,7 +7836,7 @@ static void QCBUILTIN PF_clientcommand (pubprogfuncs_t *prinst, struct globalvar
 		PR_BIError(prinst, "PF_clientcommand: entity is not a client");
 	else
 	{
-		host_client = &svs.clients[i-MAX_TIME_PERIODS-1];
+		host_client = &svs.clients[i-MAX_TIME_PERIODS];
 		sv_player = host_client->edict;
 		if (host_client->state == cs_connected || host_client->state == cs_spawned)
 		{
@@ -8181,7 +8181,7 @@ static void QCBUILTIN PF_h2setclass (pubprogfuncs_t *prinst, struct globalvars_s
 		return;
 	}
 
-	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS];
 
 	e->xv->playerclass = NewClass;
 	client->playerclass = NewClass;
@@ -9813,42 +9813,42 @@ int PF_ForceInfoKey_Internal(unsigned int entnum, const char *key, const char *v
 	}
 	else if (entnum <= sv.allocated_client_slots)
 	{	//woo. we found a client.
-		if (svs.clients[entnum-MAX_TIME_PERIODS-1].state == cs_free)
+		if (svs.clients[entnum-MAX_TIME_PERIODS].state == cs_free)
 		{
 			Con_DPrintf("PF_ForceInfoKey: inactive client\n");
 			return 0;
 		}
-		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key, &oldsize, NULL);
+		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key, &oldsize, NULL);
 		if (oldsize == valsize && !memcmp(oldval, value, valsize))
 			return 1;	//unchanged
 
-		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key, value, valsize))
+		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key, value, valsize))
 		{
-			SV_ExtractFromUserinfo (&svs.clients[entnum-MAX_TIME_PERIODS-1], false);
+			SV_ExtractFromUserinfo (&svs.clients[entnum-MAX_TIME_PERIODS], false);
 
-			value = InfoBuf_ValueForKey(&svs.clients[entnum-MAX_TIME_PERIODS-1].userinfo, key);
+			value = InfoBuf_ValueForKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key);
 
 			if (!strcmp(key, "*spectator"))
 			{
 				int ns = !!atoi(value);
 
-				if (svs.clients[entnum-MAX_TIME_PERIODS-1].spawned && svs.clients[entnum-MAX_TIME_PERIODS-1].state == cs_spawned)
+				if (svs.clients[entnum-MAX_TIME_PERIODS].spawned && svs.clients[entnum-MAX_TIME_PERIODS].state == cs_spawned)
 				{
-					if (svs.clients[entnum-MAX_TIME_PERIODS-1].spectator)
+					if (svs.clients[entnum-MAX_TIME_PERIODS].spectator)
 						sv.spawned_observer_slots--;
 					else
 						sv.spawned_client_slots--;
-					svs.clients[entnum-MAX_TIME_PERIODS-1].spectator = ns;
+					svs.clients[entnum-MAX_TIME_PERIODS].spectator = ns;
 					if (ns)
 						sv.spawned_observer_slots++;
 					else
 						sv.spawned_client_slots++;
 				}
 				else
-					svs.clients[entnum-MAX_TIME_PERIODS-1].spectator = ns;
+					svs.clients[entnum-MAX_TIME_PERIODS].spectator = ns;
 			}
 
-			SV_BroadcastUserinfoChange(&svs.clients[entnum-MAX_TIME_PERIODS-1], SV_UserInfoIsBasic(key), key, value);
+			SV_BroadcastUserinfoChange(&svs.clients[entnum-MAX_TIME_PERIODS], SV_UserInfoIsBasic(key), key, value);
 		}
 
 		return 1;
@@ -9924,7 +9924,7 @@ static void QCBUILTIN PF_setcolors (pubprogfuncs_t *prinst, struct globalvars_s 
 		return;
 	}
 
-	client = &svs.clients[entnum-MAX_TIME_PERIODS-1];
+	client = &svs.clients[entnum-MAX_TIME_PERIODS];
 	client->edict->v->team = (i & 15) + 1;
 
 	Q_snprintfz(number, sizeof(number), "%i", i>>4);
@@ -9978,7 +9978,7 @@ static void QCBUILTIN PF_ShowPic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==6)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM5)-MAX_TIME_PERIODS-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM5)-MAX_TIME_PERIODS;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_ShowPic: not a client");
 
@@ -10011,7 +10011,7 @@ static void QCBUILTIN PF_HidePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==2)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM1)-MAX_TIME_PERIODS-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM1)-MAX_TIME_PERIODS;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_HidePic: not a client");
 
@@ -10046,7 +10046,7 @@ static void QCBUILTIN PF_MovePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==5)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM4)-MAX_TIME_PERIODS-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM4)-MAX_TIME_PERIODS;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_MovePic: not a client");
 
@@ -10079,7 +10079,7 @@ static void QCBUILTIN PF_ChangePic(pubprogfuncs_t *prinst, struct globalvars_s *
 
 	if (prinst->callargc==3)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM2)-MAX_TIME_PERIODS-1;
+		entnum = G_EDICTNUM(prinst, OFS_PARM2)-MAX_TIME_PERIODS;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_ChangePic: not a client");
 

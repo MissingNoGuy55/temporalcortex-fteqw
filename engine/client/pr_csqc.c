@@ -5880,10 +5880,10 @@ static void QCBUILTIN PF_getentity(pubprogfuncs_t *prinst, struct globalvars_s *
 		return;
 	}
 
-	if (entnum > TIME_PERIOD_FUTURE && entnum <= cl.allocated_client_slots + TIME_PERIOD_FUTURE && cl.lerpplayers[entnum-MAX_TIME_PERIODS-1].sequence == cl.lerpentssequence)
+	if (entnum > TIME_PERIOD_FUTURE && entnum <= cl.allocated_client_slots + TIME_PERIOD_FUTURE && cl.lerpplayers[entnum-MAX_TIME_PERIODS].sequence == cl.lerpentssequence)
 	{
-		player_state_t *ps = &cl.inframes[cl.validsequence&UPDATE_MASK].playerstate[entnum-MAX_TIME_PERIODS-1];
-		le = &cl.lerpplayers[entnum-MAX_TIME_PERIODS-1];
+		player_state_t *ps = &cl.inframes[cl.validsequence&UPDATE_MASK].playerstate[entnum-MAX_TIME_PERIODS];
+		le = &cl.lerpplayers[entnum-MAX_TIME_PERIODS];
 
 		switch(fldnum)
 		{
@@ -5936,10 +5936,10 @@ static void QCBUILTIN PF_getentity(pubprogfuncs_t *prinst, struct globalvars_s *
 			AngleVectorsIndex(le->angles, ps->modelindex, NULL, NULL, G_VECTOR(OFS_RETURN));
 			break;
 		case GE_PANTSCOLOR:
-			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS-1].dbottomcolor;
+			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS].dbottomcolor;
 			break;
 		case GE_SHIRTCOLOR:
-			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS-1].dtopcolor;
+			G_FLOAT(OFS_RETURN) = cl.players[entnum-MAX_TIME_PERIODS].dtopcolor;
 			break;
 		case GE_LIGHT:
 			G_FLOAT(OFS_RETURN) = 0;

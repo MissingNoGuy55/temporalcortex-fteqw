@@ -1681,8 +1681,8 @@ void NPP_NQWriteEntity(int dest, int data)	//replacement write func (nq to qw)
 	NPP_NQCheckDest(dest);
 
 	if (majortype == svc_temp_entity && data > 0 && data <= sv.allocated_client_slots)
-		if (svs.clients[data-MAX_TIME_PERIODS-1].viewent)
-			data = svs.clients[data-MAX_TIME_PERIODS-1].viewent;
+		if (svs.clients[data-MAX_TIME_PERIODS].viewent)
+			data = svs.clients[data-MAX_TIME_PERIODS].viewent;
 
 #ifdef NQPROT
 	if (dest == MSG_ONE)

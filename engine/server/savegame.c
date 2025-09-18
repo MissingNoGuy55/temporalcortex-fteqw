@@ -1779,7 +1779,7 @@ static void SV_GameLoaded(loadplayer_t *lp, size_t slots, const char *savename)
 		{
 			cl->name = PR_AddString(svprogfuncs, cl->namebuf, sizeof(cl->namebuf), false);
 			cl->team = PR_AddString(svprogfuncs, cl->teambuf, sizeof(cl->teambuf), false);
-			cl->edict = EDICT_NUM_PB(svprogfuncs, clnum+MAX_TIME_PERIODS-1);
+			cl->edict = EDICT_NUM_PB(svprogfuncs, clnum+MAX_TIME_PERIODS);
 
 #ifdef HEXEN2
 			if (cl->edict)

@@ -2438,7 +2438,7 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	if ((clip.type & MOVE_LAGGED) && w == &sv.world && passedict->entnum && passedict->entnum <= sv.allocated_client_slots && sv_antilag.ival==3)
 	{
 		vec3_t nudge;
-		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-MAX_TIME_PERIODS-1]))
+		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-MAX_TIME_PERIODS]))
 		{
 			VectorSubtract(pmove.origin, passedict->v->origin, nudge);
 
@@ -2566,20 +2566,20 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 				if (passedict->entnum && passedict->entnum <= sv.allocated_client_slots)
 				{
 					clip.type |= MOVE_LAGGED;
-					w->lagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents;
-					w->maxlagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_count;
-					w->lagentsfrac = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_frac;
-					w->lagentstime = svs.clients[passedict->entnum-MAX_TIME_PERIODS-1].laggedents_time;
+					w->lagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents;
+					w->maxlagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_count;
+					w->lagentsfrac = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_frac;
+					w->lagentstime = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_time;
 				}
 				else if (passedict->v->owner)
 				{
 					if (passedict->v->owner && passedict->v->owner <= sv.allocated_client_slots)
 					{
 						clip.type |= MOVE_LAGGED;
-						w->lagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents;
-						w->maxlagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_count;
-						w->lagentsfrac = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_frac;
-						w->lagentstime = svs.clients[passedict->v->owner-MAX_TIME_PERIODS-1].laggedents_time;
+						w->lagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents;
+						w->maxlagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_count;
+						w->lagentsfrac = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_frac;
+						w->lagentstime = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_time;
 					}
 				}
 			}

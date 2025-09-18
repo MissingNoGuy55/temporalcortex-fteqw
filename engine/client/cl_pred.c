@@ -1064,7 +1064,7 @@ void CL_PredictMovePNum (int seat)
 	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+MAX_TIME_PERIODS)
 	{
 		if ((cl.inframes[cl.validsequence & UPDATE_MASK].playerstate[pv->cam_spec_track].messagenum == cl.validsequence) ||
-			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+MAX_TIME_PERIODS-1].sequence == cl.lerpentssequence) ||
+			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+MAX_TIME_PERIODS].sequence == cl.lerpentssequence) ||
 			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+MAX_TIME_PERIODS, NULL))
 		{
 			pv->cam_state = CAM_EYECAM;
@@ -1165,8 +1165,8 @@ void CL_PredictMovePNum (int seat)
 
 	if ((pv->cam_state == CAM_WALLCAM || pv->cam_state == CAM_EYECAM) && trackent && trackent <= cl.allocated_client_slots)
 	{
-		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS-1];
-		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS-1];
+		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS];
+		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS];
 	}
 	else
 	{

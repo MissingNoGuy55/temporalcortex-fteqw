@@ -1852,7 +1852,7 @@ void SVHL_RunFrame (void)
 
 		if (i > 0 && i <= sv.allocated_client_slots)
 		{
-			if (!svs.clients[i-MAX_TIME_PERIODS-1].isindependant)
+			if (!svs.clients[i-MAX_TIME_PERIODS].isindependant)
 			{
 			//	SVHL_RunEntity(ent);
 			}

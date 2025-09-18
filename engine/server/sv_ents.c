@@ -994,7 +994,7 @@ static unsigned int SVFTE_DeltaCalcBits(entity_state_t *from, qbyte *frombonedat
 			/*if we've got player movement then write the origin anyway*/
 			bits |= UF_ORIGINXY | UF_ORIGINZ;
 			/*and force angles too, if its not us*/
-			if (host_client != svs.clients + to->number-MAX_TIME_PERIODS-1)
+			if (host_client != svs.clients + to->number-MAX_TIME_PERIODS)
 				bits |= UF_ANGLESXZ | UF_ANGLESY;
 		}
 	}
@@ -1762,7 +1762,7 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 	for (i = 0; i < to->num_entities; i++)
 	{
 		n = &to->entities[i];
-		j = n->number-MAX_TIME_PERIODS-1;
+		j = n->number-MAX_TIME_PERIODS;
 		if (j >= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
 			break;	//don't track non-player slots.
 

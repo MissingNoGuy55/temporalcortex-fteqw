@@ -234,7 +234,7 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 			return;
 		}
 		
-		if (svs.clients[n-MAX_TIME_PERIODS-1].state < cs_connected)
+		if (svs.clients[n-MAX_TIME_PERIODS].state < cs_connected)
 		{
 			Sys_Error ("cprintf to a disconnected client");
 			return;
@@ -246,7 +246,7 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 	va_end (argptr);
 
 	if (ent)
-		SV_ClientPrintf (svs.clients+(n-MAX_TIME_PERIODS-1), level, "%s", msg);
+		SV_ClientPrintf (svs.clients+(n-MAX_TIME_PERIODS), level, "%s", msg);
 	else
 		Con_Printf ("%s", msg);
 }
@@ -269,7 +269,7 @@ static void VARGS PFQ2_centerprintf (q2edict_t *ent, const char *fmt, ...)
 	if (n < MAX_TIME_PERIODS || n > svs.allocated_client_slots)
 		return;	// Com_Error (ERR_DROP, "centerprintf to a non-client");
 
-	if (svs.clients[n-MAX_TIME_PERIODS-1].state < cs_connected)
+	if (svs.clients[n-MAX_TIME_PERIODS].state < cs_connected)
 		return;
 
 	va_start (argptr,fmt);
