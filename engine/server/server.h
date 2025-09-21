@@ -1683,6 +1683,8 @@ void SV_FlushLevelCache(void);
 extern cvar_t sv_autosave;
 extern cvar_t sv_savefmt;
 
+// Missi: Used for model precaching so the lists don't get out of sync between the server and client (2025.9.19)
+extern int tc_sv_loaded_bsps;
 
 int SV_RateForClient(client_t *cl);
 

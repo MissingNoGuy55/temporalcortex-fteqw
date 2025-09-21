@@ -1493,7 +1493,7 @@ qboolean R_ApplyRenderer (rendererstate_t *newr)
 }
 qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 {
-	int i, j;
+	int i, j, t;
 	double start = Sys_DoubleTime();
 
 	COM_WorkerFullSync();
@@ -1813,6 +1813,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #ifdef Q3SERVER
 	if (svs.gametype == GT_QUAKE3)
 	{
+		// Missi: Iterate through each time period (2025.9.20)
 		for (int t = 0; t < MAX_TIME_PERIODS; t++)
 			cl.worldmodel[t] = NULL;
 		if (q3)
@@ -1820,95 +1821,98 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 	}
 	else
 #endif
-	if (cl.worldmodel[0])
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
-		int wmidx = 0;
-		model_t *oldwm = cl.worldmodel[0];
-		cl.worldmodel[0] = NULL;
-		CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid
-
-		//FIXME: this code should not be here. call CL_LoadModels instead? that does csqc loading etc though. :s
-TRACE(("dbg: R_ApplyRenderer: reloading ALL models\n"));
-		for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
+		if (cl.worldmodel[t])
 		{
-			if (!cl.model_name[i])
-				break;
+			int wmidx = 0;
+			model_t *oldwm = cl.worldmodel[t];
+			cl.worldmodel[t] = NULL;
+			CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid
 
-			TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
+			//FIXME: this code should not be here. call CL_LoadModels instead? that does csqc loading etc though. :s
+	TRACE(("dbg: R_ApplyRenderer: reloading ALL models\n"));
+			for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
+			{
+				if (!cl.model_name[i])
+					break;
 
-			if (oldwm == cl.model_precache[i])
-				wmidx = i;
+				TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
+
+				if (oldwm == cl.model_precache[i])
+					wmidx = i;
 
 #ifdef Q2CLIENT	//skip vweps
-			if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
-				cl.model_precache[i] = NULL;
-			else
-#endif
-				if (i < MAX_TIME_PERIODS)
-					cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
+				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
+					cl.model_precache[i] = NULL;
 				else
-					cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
-		}
+#endif
+					if (i < MAX_TIME_PERIODS)
+						cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
+					else
+						cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
+			}
 
 #ifdef HAVE_LEGACY
-		for (i=0; i < MAX_VWEP_MODELS; i++)
-		{
-			if (cl.model_name_vwep[i])
-				cl.model_precache_vwep[i] = Mod_ForName (cl.model_name_vwep[i], MLV_SILENT);
-			else
-				cl.model_precache_vwep[i] = NULL;
-		}
+			for (i=0; i < MAX_VWEP_MODELS; i++)
+			{
+				if (cl.model_name_vwep[i])
+					cl.model_precache_vwep[i] = Mod_ForName (cl.model_name_vwep[i], MLV_SILENT);
+				else
+					cl.model_precache_vwep[i] = NULL;
+			}
 #endif
 
 #ifdef CSQC_DAT
-		for (i=1 ; i<MAX_CSMODELS ; i++)
-		{
-			if (!cl.model_csqcname[i][0])
-				break;
+			for (i=1 ; i<MAX_CSMODELS ; i++)
+			{
+				if (!cl.model_csqcname[i][0])
+					break;
 
-			if (oldwm == cl.model_csqcprecache[i])
-				wmidx = -i;
+				if (oldwm == cl.model_csqcprecache[i])
+					wmidx = -i;
 
-			cl.model_csqcprecache[i] = NULL;
-			TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
-			cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
-		}
+				cl.model_csqcprecache[i] = NULL;
+				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
+				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
+			}
 
-		if (wmidx < 0)
-			cl.worldmodel[cl_current_time_period] = cl.model_csqcprecache[-wmidx];
-		else
+			if (wmidx < 0)
+				cl.worldmodel[t] = cl.model_csqcprecache[-wmidx];
+			else
 #endif
-			cl.worldmodel[cl_current_time_period] = cl.model_precache[wmidx];
+				cl.worldmodel[t] = cl.model_precache[wmidx];
 
-		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(cl.worldmodel[cl_current_time_period], &cl.worldmodel[cl_current_time_period]->loadstate, MLS_LOADING);
+			if (cl.worldmodel[t] && cl.worldmodel[t]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[t], &cl.worldmodel[t]->loadstate, MLS_LOADING);
 
-TRACE(("dbg: R_ApplyRenderer: done the models\n"));
-		if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
-		{
-//			Con_Printf ("\nThe required model file '%s' could not be found.\n\n", cl.model_name[i]);
-//			Con_Printf ("You may need to download or purchase a client pack in order to play on this server.\n\n");
+	TRACE(("dbg: R_ApplyRenderer: done the models\n"));
+			if (!cl.worldmodel[t] || cl.worldmodel[t]->loadstate != MLS_LOADED)
+			{
+	//			Con_Printf ("\nThe required model file '%s' could not be found.\n\n", cl.model_name[i]);
+	//			Con_Printf ("You may need to download or purchase a client pack in order to play on this server.\n\n");
 
-			CL_Disconnect ("Worldmodel missing after video reload");
+				CL_Disconnect ("Worldmodel missing after video reload");
 
-			if (newr)
-				memcpy(&currentrendererstate, newr, sizeof(currentrendererstate));
-			return true;
+				if (newr)
+					memcpy(&currentrendererstate, newr, sizeof(currentrendererstate));
+				return true;
+			}
+
+	TRACE(("dbg: R_ApplyRenderer: checking any wad textures\n"));
+			Mod_NowLoadExternal(cl.worldmodel[t], t);
+
+			for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
+				cl_static_entities[i].ent.model = NULL;
+
+	TRACE(("dbg: R_ApplyRenderer: Surf_NewMap\n"));
+			Surf_NewMap(cl.worldmodel[t], t);
+	TRACE(("dbg: R_ApplyRenderer: efrags\n"));
+
+	//		Skin_FlushAll();
+			Skin_FlushPlayers();
+
 		}
-
-TRACE(("dbg: R_ApplyRenderer: checking any wad textures\n"));
-		Mod_NowLoadExternal(cl.worldmodel[cl_current_time_period], cl_current_time_period);
-
-		for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
-			cl_static_entities[i].ent.model = NULL;
-
-TRACE(("dbg: R_ApplyRenderer: Surf_NewMap\n"));
-		Surf_NewMap(cl.worldmodel[cl_current_time_period], cl_current_time_period);
-TRACE(("dbg: R_ApplyRenderer: efrags\n"));
-
-//		Skin_FlushAll();
-		Skin_FlushPlayers();
-
 	}
 
 #ifdef SKELETALOBJECTS

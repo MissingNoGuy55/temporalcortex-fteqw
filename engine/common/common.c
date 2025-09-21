@@ -40,7 +40,6 @@ fte_inlinebody conchar_t *Font_Decode(conchar_t *start, unsigned int *codeflags,
 fte_inlinebody float M_SRGBToLinear(float x, float mag);
 fte_inlinebody float M_LinearToSRGB(float x, float mag);
 
-
 // These 4 libraries required for the version command
 
 #ifdef AVAIL_ZLIB

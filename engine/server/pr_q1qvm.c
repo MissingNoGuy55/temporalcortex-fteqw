@@ -1727,7 +1727,7 @@ static qintptr_t QVM_Remove_Bot (void *offset, quintptr_t mask, const qintptr_t 
 {
 	//kicks NOW. which generally makes it unsafe for players (calling from StartFrame should be okay).
 	int entnum = VM_LONG(arg[0]);
-	if (entnum > TIME_PERIOD_FUTURE && entnum <= svs.allocated_client_slots)
+	if (entnum > FINAL_TIME_PERIOD && entnum <= svs.allocated_client_slots + MAX_TIME_PERIODS)
 	{
 		client_t *cl = &svs.clients[entnum-MAX_TIME_PERIODS];
 		SV_DropClient(cl);
@@ -1749,7 +1749,7 @@ static qintptr_t QVM_SetBotCMD (void *offset, quintptr_t mask, const qintptr_t *
 	int buttons = VM_LONG(arg[8]);
 	int impulse = VM_LONG(arg[9]);
 
-	if (edn > TIME_PERIOD_FUTURE && edn <= svs.allocated_client_slots + TIME_PERIOD_FUTURE)
+	if (edn > FINAL_TIME_PERIOD && edn <= svs.allocated_client_slots + MAX_TIME_PERIODS)
 	{
 		client_t *cl = &svs.clients[edn-MAX_TIME_PERIODS];
 		cl->lastcmd.msec = msec;
@@ -1895,7 +1895,7 @@ static qintptr_t QVM_VisibleTo (void *offset, quintptr_t mask, const qintptr_t *
 			ed = q1qvmprogfuncs.edicttable[e];
 			if (ED_ISFREE(ed))
 				continue;	//free ents can't be visible (should not be linked, but oh well)
-			if (e >= TIME_PERIOD_FUTURE && e <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && svs.clients[e - MAX_TIME_PERIODS].state != cs_spawned)
+			if (e >= FINAL_TIME_PERIOD && e <= sv.allocated_client_slots + FINAL_TIME_PERIOD && svs.clients[e - MAX_TIME_PERIODS].state != cs_spawned)
 				continue;	//player ents are weird, skip them for mods that do weird stuff.
 
 			if (sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &ed->pvsinfo, pvs.buffer, areas))

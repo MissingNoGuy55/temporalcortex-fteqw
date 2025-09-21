@@ -754,6 +754,7 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 //			svprogfuncs->EntFree (svprogfuncs, EDICT_NUM_PB(svprogfuncs, i), false);
 
 		//and now we can stomp on everything. yay.
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			sv.world.edicts[t].readonly = false;
@@ -1860,6 +1861,12 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 
 	int filelen, filepos;
 	char *file;
+
+	tc_sv_loaded_bsps = 0;	// Missi (2025.9.20)
+
+#ifndef SERVERONLY
+	tc_cl_loaded_bsps = 0;	// Missi (2025.9.20)
+#endif
 
 	char *modelnames[MAX_PRECACHE_MODELS];
 	char *soundnames[MAX_PRECACHE_SOUNDS];

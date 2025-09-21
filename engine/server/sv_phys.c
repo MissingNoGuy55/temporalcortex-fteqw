@@ -347,7 +347,7 @@ static void WPhys_PortalTransform(world_t *w, wedict_t *ent, wedict_t *portal, v
 	PR_ExecuteProgram (w->progs, portal->xv->camera_transform);
 	VectorAngles(w->g.v_forward, w->g.v_up, ent->v->angles, true);
 #ifndef CLIENTONLY
-	if (ent->entnum > TIME_PERIOD_FUTURE && ent->entnum <= svs.allocated_client_slots + TIME_PERIOD_FUTURE)
+	if (ent->entnum > FINAL_TIME_PERIOD && ent->entnum <= svs.allocated_client_slots + MAX_TIME_PERIODS)
 	{
 		client_t *cl = &svs.clients[ent->entnum-MAX_TIME_PERIODS];
 		ent->v->angles[0] *= r_meshpitch.value;
@@ -2185,7 +2185,7 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 
 #ifndef CLIENTONLY
 	edict_t *svent = (edict_t*)ent;
-	if (ent->entnum > TIME_PERIOD_FUTURE && ent->entnum <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && w == &sv.world)
+	if (ent->entnum > FINAL_TIME_PERIOD && ent->entnum <= sv.allocated_client_slots + FINAL_TIME_PERIOD && w == &sv.world)
 	{	//a client woo.
 		qboolean readyforjump = false;
 
@@ -2496,7 +2496,7 @@ void World_Physics_Frame(world_t *w)
 			World_LinkEdict (w, ent, true);	// force retouch even for stationary
 
 #ifdef HAVE_SERVER
-		if (i > TIME_PERIOD_FUTURE && i <= sv.allocated_client_slots + TIME_PERIOD_FUTURE && w == &sv.world)
+		if (i > FINAL_TIME_PERIOD && i <= sv.allocated_client_slots + FINAL_TIME_PERIOD && w == &sv.world)
 		{
 			if (!svs.clients[i-MAX_TIME_PERIODS].isindependant)
 			{

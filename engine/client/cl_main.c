@@ -2559,6 +2559,7 @@ void CL_Disconnect (const char *reason)
 	if ( cl.worldmodel[0] )
 		Mod_ClearAll();
 
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 	{
 		if (cl.worldmodel[i])
@@ -2618,6 +2619,8 @@ void CL_Disconnect (const char *reason)
 	FS_PureMode(NULL, 0, NULL, NULL, NULL, NULL, 0);
 
 	Alias_WipeStuffedAliases();
+
+	tc_cl_loaded_bsps = 0; // Missi (2025.9.19)
 
 	//now start up the csqc/menu module again.
 //	(void)CSQC_UnconnectedInit();
@@ -3844,6 +3847,8 @@ void CL_Reconnect_f (void)
 	}
 #endif
 	S_StopAllSounds (true);
+
+	tc_cl_loaded_bsps = 0;	// Missi (2025.9.19)
 
 	if (cls.state == ca_connected)
 	{
@@ -5739,6 +5744,7 @@ void WAD_ImageList_f(void);
 static void CL_ChangeTimePeriod_f()
 {
 	const char* pszArg = Cmd_Argv(1);
+	const char* pszTime = NULL;
 
 	if ( svs.allocated_client_slots > 1 )
 		return;		// Missi: Don't get cheeky... (2025.9.17)
@@ -5749,11 +5755,35 @@ static void CL_ChangeTimePeriod_f()
 		return;
 	}
 
+	if ( !cl.worldmodel[atoi(pszArg)] )
+	{
+		switch( cl_current_time_period )
+		{
+			case TIME_PERIOD_PRESENT:
+				pszTime = "present";
+				break;
+			case TIME_PERIOD_PAST:
+				pszTime = "past";
+				break;
+			case TIME_PERIOD_FUTURE:
+				pszTime = "future";
+				break;
+			default:
+				pszTime = "unknown";
+				break;
+		}
+
+		Con_Printf( "This map can only be played in the %s time period.\n", pszTime );
+		return;		// Missi: No worldmodel for this time period (2025.9.20)
+	}
+
 	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
 	//cl_current_time_period = (timeperiod_t)atoi(pszArg);
 
 	char cmd[64];
 	snprintf( cmd, sizeof(cmd), "%s %s", Cmd_Argv(0), Cmd_Argv(1) );
+
+	r_worldentity.model = cl.worldmodel[atoi(pszArg)];
 
 	MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
 	MSG_WriteString( &cls.netchan.message, cmd );

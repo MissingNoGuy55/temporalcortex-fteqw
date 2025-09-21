@@ -487,7 +487,7 @@ void SV_New_f (void)
 		ClientReliableWrite_String (host_client, sv.demfullmapname);
 	else
 #endif
-		ClientReliableWrite_String (host_client, svs.name);
+		ClientReliableWrite_String (host_client, sv.mapname[0]);
 
 	//
 	// game server
@@ -844,7 +844,7 @@ void SVNQ_New_f (void)
 	else
 		MSG_WriteByte (&host_client->netchan.message, GAME_COOP);
 
-	MSG_WriteString (&host_client->netchan.message, svs.name);
+	MSG_WriteString (&host_client->netchan.message, message);
 
 
 	if (host_client->fteprotocolextensions2)

@@ -5880,7 +5880,7 @@ static void QCBUILTIN PF_getentity(pubprogfuncs_t *prinst, struct globalvars_s *
 		return;
 	}
 
-	if (entnum > TIME_PERIOD_FUTURE && entnum <= cl.allocated_client_slots + TIME_PERIOD_FUTURE && cl.lerpplayers[entnum-MAX_TIME_PERIODS].sequence == cl.lerpentssequence)
+	if (entnum > FINAL_TIME_PERIOD && entnum <= cl.allocated_client_slots + FINAL_TIME_PERIOD && cl.lerpplayers[entnum-MAX_TIME_PERIODS].sequence == cl.lerpentssequence)
 	{
 		player_state_t *ps = &cl.inframes[cl.validsequence&UPDATE_MASK].playerstate[entnum-MAX_TIME_PERIODS];
 		le = &cl.lerpplayers[entnum-MAX_TIME_PERIODS];
@@ -8244,7 +8244,7 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 		if (csqcg.CSQC_GenerateMaterial)
 			Material_RegisterLoader(&csqc_world, &csqcmaterialloader);
-
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			//world edict becomes readonly
@@ -8387,7 +8387,7 @@ void CSQC_WorldLoaded(void)
 	csqc_world.worldmodel[2] = cl.worldmodel[2];
 
 	csqcmapentitydataloaded = true;
-	
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		csqcmapentitydata = Mod_GetEntitiesString(csqc_world.worldmodel[t]);

@@ -1847,3 +1847,6 @@ qboolean Media_RegisterDecoder(struct plugin_s *plug, media_decoder_funcs_t *fun
 qboolean Media_UnregisterDecoder(struct plugin_s *plug, media_decoder_funcs_t *funcs);
 qboolean Media_RegisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
 qboolean Media_UnregisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
+
+// Missi: Used for model precaching so the lists don't get out of sync between the server and client (2025.9.19)
+extern int tc_cl_loaded_bsps;

@@ -97,6 +97,8 @@ typedef struct edict_s
 	float muzzletime;	//nq clients need special handling to retain EF_MUZZLEFLASH while not breaking qw clients running nq mods.
 #endif
 	entity_state_t	baseline;
+
+	int				time_period;
 // other fields from progs come immediately after
 } edict_t;
 

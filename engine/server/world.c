@@ -275,6 +275,7 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 
 	int t;
 
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		int maxdepth;
@@ -292,11 +293,11 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 
 		World_InitBoxHull ();
 
-	#if !defined(USEAREAGRID)
+#if !defined(USEAREAGRID)
 		memset (&w->portallist, 0, sizeof(w->portallist));
 		ClearLink (&w->portallist.edicts);
 		w->portallist.axis = -1;
-	#endif
+#endif
 
 		maxdepth = 8;
 
@@ -337,6 +338,7 @@ static void World_ClearWorld_AreaGrid (world_t *w, qboolean relink)
 	int i, j, t;
 	wedict_t *ent;
 	vec3_t mins, maxs, size;
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		if (w->worldmodel[t])
@@ -2605,7 +2607,7 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 				if (clip.trace.allsolid)
 					break;
 
-				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+1);
+				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+MAX_TIME_PERIODS);
 				if (touch->v->solid == SOLID_NOT)
 					continue;
 				if (touch == clip.passedict)

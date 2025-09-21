@@ -531,7 +531,7 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 	Q_strncpyz(svs.name, landingmap, sizeof(svs.name));
 	if (!*svs.name)
 		Q_strncpyz(svs.name, "start", sizeof(svs.name));
-
+	// Missi: Attempt to find a BSP for each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		Q_strncpyz(sv.modelname[t], svs.name, sizeof(sv.modelname[t]));
 
@@ -587,6 +587,7 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 
 	//get on with it now...
 	if (singleplayer && !use_database)
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 			MSV_FindSubServerName(va(":%s", sv.modelname[t]));
 }
@@ -1797,6 +1798,7 @@ qboolean MSV_ClusterLoginReply(netadr_t *legacyclientredirect, unsigned int serv
 	if (!s)
 	{
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+			// Missi: Iterate through each time period (2025.9.20)
 			s = MSV_FindSubServerName(va(":%s", sv.modelname[t]));
 	}
 

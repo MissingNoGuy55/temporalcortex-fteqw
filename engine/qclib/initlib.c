@@ -554,17 +554,17 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 
 	prinst.max_fields_size = prinst.fields_size;
 
-	prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = PRHunkAlloc(progfuncs, prinst.maxedicts * sizeof(struct edicts_s *) * 3, "edicttable"));
+	prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = PRHunkAlloc(progfuncs, prinst.maxedicts * sizeof(struct edicts_s *), "edicttable"));
 	progfuncs->funcs.edicttable_length = prinst.maxedicts;
-	e = PRHunkAlloc(progfuncs, externs->edictsize * 3, "edict0");
+	e = PRHunkAlloc(progfuncs, externs->edictsize, "edict0");	// Missi: TIME_PERIOD_PRESENT (2025.9.19)
 	e->fieldsize = prinst.fields_size;
 	e->entnum = 0;
 	e->ereftype = ER_ENTITY;
-	e1 = PRHunkAlloc(progfuncs, externs->edictsize, "edict1");
+	e1 = PRHunkAlloc(progfuncs, externs->edictsize, "edict1");	// Missi: TIME_PERIOD_PAST (2025.9.19)
 	e1->fieldsize = prinst.fields_size;
 	e1->entnum = 1;
 	e1->ereftype = ER_ENTITY;
-	e2 = PRHunkAlloc(progfuncs, externs->edictsize, "edict2");
+	e2 = PRHunkAlloc(progfuncs, externs->edictsize, "edict2");	// Missi: TIME_PERIOD_FUTURE (2025.9.19)
 	e2->fieldsize = prinst.fields_size;
 	e2->entnum = 2;
 	e2->ereftype = ER_ENTITY;
@@ -588,9 +588,6 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 		externs->entspawn((struct edict_s *)e1, false);
 		externs->entspawn((struct edict_s *)e2, false);
 	}
-
-	memcpy( e+externs->edictsize, e1, sizeof( *e1 ) );
-	memcpy( e+externs->edictsize*2, e2, sizeof( *e2 ) );
 
 	return prinst.max_fields_size;
 }

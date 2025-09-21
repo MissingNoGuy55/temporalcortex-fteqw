@@ -237,7 +237,7 @@ static void BE_PrintDrawCall(const char *msg)
 		else
 			*modelname = 0;
 #ifdef HAVE_SERVER
-		if (num > TIME_PERIOD_FUTURE && num < sv.world.num_edicts)
+		if (num > FINAL_TIME_PERIOD && num < sv.world.num_edicts)
 			Con_Printf("%s shader %s ent %i%s - \"%s\"\n", msg, shadername, shaderstate.curbatch->ent->keynum, modelname, sv.world.progs->StringToNative(sv.world.progs, (WEDICT_NUM_PB(sv.world.progs, num))->v->classname));
 		else
 #endif

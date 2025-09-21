@@ -1235,7 +1235,7 @@ static int bi_lua_sprint_qw(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
@@ -1252,7 +1252,7 @@ static int bi_lua_sprint_nq(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;

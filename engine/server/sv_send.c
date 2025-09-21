@@ -2611,7 +2611,7 @@ void SV_UpdateClientStats (client_t *client, int pnum, sizebuf_t *msg, client_fr
 
 qboolean SV_CanTrack(client_t *client, int entity)
 {
-	if (entity <= 0 || entity > sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+	if (entity <= 0 || entity > sv.allocated_client_slots + FINAL_TIME_PERIOD)
 		return false;
 	if (svs.clients[entity-MAX_TIME_PERIODS].spectator)
 		return false;

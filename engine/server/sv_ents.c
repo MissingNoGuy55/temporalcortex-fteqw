@@ -1763,7 +1763,7 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 	{
 		n = &to->entities[i];
 		j = n->number-MAX_TIME_PERIODS;
-		if (j >= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+		if (j >= sv.allocated_client_slots + FINAL_TIME_PERIOD)
 			break;	//don't track non-player slots.
 
 		cl = &svs.clients[j];
@@ -3895,7 +3895,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 
 	/*legacy qw clients get their players separately*/
 	if (ISQWCLIENT(client) && !(client->fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
-		e = min(sv.allocated_client_slots+MAX_TIME_PERIODS, client->max_net_clients);
+		e = min(sv.allocated_client_slots+FINAL_TIME_PERIOD, client->max_net_clients);
 	else
 		e = MAX_TIME_PERIODS;
 

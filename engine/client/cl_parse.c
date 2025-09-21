@@ -55,13 +55,14 @@ static size_t packetusage_pending[256];
 static double packetusageflushtime;
 static const double packetusage_interval=10;
 
+int tc_cl_loaded_bsps;
+
 #ifdef AVAIL_ZLIB
 #ifndef ZEXPORT
 	#define ZEXPORT VARGS
 #endif
 #include <zlib.h>
 #endif
-
 
 static const char *svc_qwstrings[] =
 {
@@ -805,7 +806,7 @@ static void CL_SendDownloadStartRequest(downloadlist_t *pending)
 //Do any reloading for the file that just reloaded.
 void CL_DownloadFinished(qdownload_t *dl)
 {
-	int i, t;
+	int i;
 	char ext[8];
 
 	char filename[MAX_QPATH];
@@ -819,7 +820,6 @@ void CL_DownloadFinished(qdownload_t *dl)
 	FS_FlushFSHashWritten(filename);
 
 	COM_FileExtension(filename, ext, sizeof(ext));
-
 
 	//should probably ask the filesytem code if its a package format instead.
 	if (!strncmp(filename, "package/", 8) || !strncmp(ext, "pk4", 3) || !strncmp(ext, "pk3", 3) || !strncmp(ext, "pak", 3) || (dl->fsroot == FS_ROOT))
@@ -1368,6 +1368,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 	if (cl.playerview[0].playernum == -1)
 	{	//q2 cinematic - don't load the models.
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		{
 			cl.worldmodel[i] = cl.model_precache[i+1] = Mod_ForName ("", MLV_WARN);
@@ -1395,7 +1396,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 					cl.model_precache[i] = NULL;
 				else
 #endif
-				if (!cls.timedemo && i > TIME_PERIOD_FUTURE && mod_precache.ival > TIME_PERIOD_FUTURE)
+				if (!cls.timedemo && i > tc_cl_loaded_bsps && mod_precache.ival > tc_cl_loaded_bsps)
 					cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1+i]));
 				else
 					cl.model_precache[i] = Mod_ForName (Mod_FixName(cl.model_name[i], cl.model_name[1+i]), MLV_WARN);
@@ -1429,7 +1430,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 	if (atstage())
 	{
-		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		for ( i = 0; i < tc_cl_loaded_bsps; i++ )
 		{
 			cl.worldmodel[i] = cl.model_precache[i+1];
 			if (!cl.worldmodel[i] || cl.worldmodel[i]->type == mod_dummy)
@@ -1478,6 +1479,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 		SCR_SetLoadingFile("wads");
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		{
 			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
@@ -1495,7 +1497,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 		SCR_SetLoadingFile("external textures");
-
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		{
 			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
@@ -1519,12 +1521,13 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 		SCR_SetLoadingFile("newmap");
+		// Missi: Iterate through each time period (2025.9.20)
+		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			Surf_NewMap (cl.worldmodel[i], i);
+		}
 
-		//for ( i = 0; i < MAX_TIME_PERIODS; i++ )
-		//{
-			Surf_NewMap (cl.worldmodel[0], 0);
-		//}
-
+		r_worldentity.model = cl.worldmodel[0];
 		pmove.physents[0].model = cl.worldmodel[0];
 
 		endstage();
@@ -1792,7 +1795,7 @@ void CL_RequestNextDownload (void)
 			else
 				Con_TPrintf(CON_WARNING "Splitscreen requested but not available on this server.\n");
 		}
-
+		// Missi: Iterate through each time period (2025.9.20)
 		for( i = 0; i < MAX_TIME_PERIODS; i++)
 		{
 			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
@@ -4673,6 +4676,8 @@ static void CL_ParseModellist (qboolean lots)
 		Z_StrDupPtr(&cl.model_name[nummodels], str);
 		if (nummodels==1)
 			SCR_ImageName(cl.model_name[nummodels]);
+		if ( strstr( str, ".bsp" ) )
+			tc_cl_loaded_bsps++;
 
 		//qw has a special network protocol for spikes.
 		if (!strcmp(cl.model_name[nummodels],"progs/spike.mdl"))
@@ -4730,7 +4735,7 @@ static void CL_ParseModellist (qboolean lots)
 
 	SCR_SetLoadingFile("loading data");
 
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	for ( t = 0; t < tc_cl_loaded_bsps; t++ )
 	{
 		//we need to try to load it now if we can, so any embedded archive will be loaded *before* we start looking for other content...
 		cl.model_precache[1+t] = cl.model_name[1+t]?Mod_ForName (cl.model_name[1+t], MLV_SILENTSYNC):NULL;
@@ -5251,7 +5256,7 @@ static void CL_ParseStaticProt (int baselinetype)
 	else
 		AngleVectors(es.angles, ent->axis[0], ent->axis[1], ent->axis[2]);
 	VectorInverse(ent->axis[1]);
-
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		if (!cl.worldmodel[t] || cl.worldmodel[t]->loadstate != MLS_LOADED)
 			return;
@@ -5268,7 +5273,7 @@ static void CL_ParseStaticProt (int baselinetype)
 		VectorCopy(es.origin, mins);
 		VectorCopy(es.origin, maxs);
 	}
-
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		cl.worldmodel[t]->funcs.FindTouchedLeafs(cl.worldmodel[t], &cl_static_entities[i].ent.pvscache, mins, maxs);
 

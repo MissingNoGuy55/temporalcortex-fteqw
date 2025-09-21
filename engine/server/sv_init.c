@@ -51,7 +51,7 @@ extern cvar_t	sv_calcphs;
 extern cvar_t	sv_playerslots, maxclients, maxspectators;
 extern cvar_t	sv_nqplayerphysics; //auto setting needs updating on map changes
 
-int loaded_bsps = 0;
+int tc_sv_loaded_bsps;
 
 /*
 ================
@@ -255,7 +255,7 @@ void SVQ1_CreateBaseline (void)
 			continue;
 		// create baselines for all player slots,
 		// and any other edict that has a visible model
-		if (entnum > sv.allocated_client_slots+MAX_TIME_PERIODS && !svent->v->modelindex)
+		if (entnum > sv.allocated_client_slots+FINAL_TIME_PERIOD && !svent->v->modelindex)
 			continue;
 
 	//
@@ -263,9 +263,9 @@ void SVQ1_CreateBaseline (void)
 	//
 		SV_Snapshot_BuildStateQ1(&svent->baseline, svent, NULL, NULL);
 
-		if (entnum > TIME_PERIOD_FUTURE && entnum <= sv.allocated_client_slots + TIME_PERIOD_FUTURE)
+		if (entnum > FINAL_TIME_PERIOD && entnum <= sv.allocated_client_slots + FINAL_TIME_PERIOD)
 		{
-			if (entnum > TIME_PERIOD_FUTURE && entnum <= 16 + MAX_TIME_PERIODS)
+			if (entnum > FINAL_TIME_PERIOD && entnum <= 16 + MAX_TIME_PERIODS)
 				svent->baseline.colormap = entnum;
 			else
 				svent->baseline.colormap = 0;	//this would crash NQ.
@@ -645,6 +645,7 @@ void SV_UnspawnServer (void)	//terminate the running server.
 #ifdef VM_Q1
 		Q1QVM_Shutdown(true);
 #endif
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 			sv.world.worldmodel[i] = NULL;
 		sv.state = ss_dead;
@@ -674,6 +675,8 @@ void SV_UnspawnServer (void)	//terminate the running server.
 #endif
 	NET_CloseServer ();
 	SV_RunCmdCleanup();
+
+	tc_sv_loaded_bsps = 0;
 }
 
 void SV_UpdateMaxPlayers(int newmax)
@@ -855,6 +858,8 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	extern int sv_allow_cheats;
 	size_t fsz;
 
+	sv_current_time_period = TIME_PERIOD_PRESENT;
+
 #ifndef SERVERONLY
 	if (!isDedicated && qrenderer == QR_NONE)
 	{
@@ -866,9 +871,13 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 			return;
 		}
 	}
+
+	cl_current_time_period = TIME_PERIOD_PRESENT;
 #endif
 
 	Con_DPrintf ("SpawnServer: %s\n",server);
+
+	tc_sv_loaded_bsps = 0;
 
 #ifndef SERVERONLY
 	total_loading_size = 100;
@@ -927,6 +936,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 	VoteFlushAll();
 #ifndef SERVERONLY
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		cl.worldmodel[i] = NULL;
 	r_worldentity.model = NULL;
@@ -1004,7 +1014,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		qboolean QDECL Mod_LoadQ2BrushModel (model_t *mod, void *buffer, size_t fsize);
 
 		Q_strncpyz (svs.name, server, sizeof(svs.name));
-
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 		{
 			Q_strncpyz (sv.modelname[i], "", sizeof(sv.modelname[i]));
@@ -1026,7 +1036,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		flocation_t loc;
 		time_t filetime;
 		char *mod = NULL;
-
+		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 		{
 			bestdepth = FDEPTH_MISSING;
@@ -1102,18 +1112,18 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 			Mod_SetModifier(mod);
 
+			// Missi: Blank out the world name if we really could not find
+			// a BSP for this time period (2025.9.20)
 			if ( bestdepth == FDEPTH_MISSING )
 			{
-				// Missi: Just generate a blank model for this slot.
-				// Shit solution, but Quake's model list does not handle
-				// null entries well at all (2025.9.19)
-				sv.world.worldmodel[j] = Mod_FindName ("");
-				Q_strncpyz( sv.world.worldmodel[j], "nomap", 5 );
+				memset( sv.modelname[j], 0, sizeof( sv.modelname[j] ) );
+				sv.world.worldmodel[j] = NULL;
 				continue;
 			}
 			else
 			{
 				sv.world.worldmodel[j] = Mod_ForName (sv.modelname[j], MLV_ERROR);
+				tc_sv_loaded_bsps++;
 			}
 
 			if (FS_FLocateFile(sv.modelname[j],FSLF_IFFOUND, &loc) && FS_GetLocMTime(&loc, &filetime))
@@ -1141,6 +1151,9 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
+		if ( !sv.world.worldmodel[j] )
+			continue;
+
 		//make sure our map's package is loaded.
 		if (sv.world.worldmodel[j])
 			FS_LoadMapPackFile(sv.world.worldmodel[j]->name, sv.world.worldmodel[j]->archive);
@@ -1164,8 +1177,12 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	SCR_SetLoadingFile("gamecode");
 #endif
 
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
+		if ( !sv.world.worldmodel[j] )
+			continue;
+
 		if (sv.world.worldmodel[j]->type != mod_brush)
 			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
 		else if (sv.world.worldmodel[j]->fromgame == fg_doom)
@@ -1298,6 +1315,10 @@ MSV_OpenUserDatabase();
 	svs.gametype = newgametype;
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
+	// Missi (2025.9.19)
+	sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
+
+	// Missi (2025.9.19)
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
 		sv.models[1+j] = sv.world.worldmodel[j];
@@ -1321,7 +1342,7 @@ MSV_OpenUserDatabase();
 				char *z, *s = va("*%u", i);
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
-				sv.strings.model_precache[1+i+j] = z;
+				sv.strings.model_precache[1+i] = z;
 				sv.models[i+j+1] = Mod_ForName (Mod_FixName(z, sv.modelname[j]), MLV_WARN);
 			}
 
@@ -1338,21 +1359,23 @@ MSV_OpenUserDatabase();
 			)
 		{
 			int subs;
-			sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
-			sv.strings.model_precache[1+j] = PR_AddString(svprogfuncs, sv.modelname[j], 0, false);
 
-			subs = sv.world.worldmodel[j]->numsubmodels;
-			if (subs > MAX_PRECACHE_MODELS-2)
+			sv.strings.model_precache[1+j] = sv.world.worldmodel[j] ? PR_AddString(svprogfuncs, sv.modelname[j], 0, false) : NULL;
+			// Missi (2025.9.19)
+			if ( sv.world.worldmodel[j] )
 			{
-				Con_Printf("Warning: worldmodel has too many submodels\n");
-				subs = MAX_PRECACHE_MODELS-2;
+				subs = sv.world.worldmodel[j]->numsubmodels;
+				if (subs > MAX_PRECACHE_MODELS-2)
+				{
+					Con_Printf("Warning: worldmodel has too many submodels\n");
+					subs = MAX_PRECACHE_MODELS-2;
+				}
+				for (i=1 ; i<subs ; i++)
+				{
+					sv.strings.model_precache[i+MAX_TIME_PERIODS] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+					sv.models[i+MAX_TIME_PERIODS] = Mod_ForName (Mod_FixName(sv.strings.model_precache[MAX_TIME_PERIODS+i], sv.modelname[j]), MLV_WARN);
+				}
 			}
-			for (i=1 ; i<subs ; i++)
-			{
-				sv.strings.model_precache[i+MAX_TIME_PERIODS] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-				sv.models[i+MAX_TIME_PERIODS] = Mod_ForName (Mod_FixName(sv.strings.model_precache[MAX_TIME_PERIODS+i], sv.modelname[j]), MLV_WARN);
-			}
-
 			//check player/eyes models for hacks
 			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
 			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
@@ -1423,6 +1446,7 @@ MSV_OpenUserDatabase();
 #endif
 	case GT_Q1QVM:
 	case GT_PROGS:
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			ent = EDICT_NUM_PB(svprogfuncs, t);
@@ -1531,11 +1555,11 @@ MSV_OpenUserDatabase();
 	// precache and static commands can be issued during
 	// map initialization
 	sv.state = ss_loading;
-
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
 		if ( !sv.world.worldmodel[j] )
-			break;
+			continue;
 
 		if (svprogfuncs)
 		{
@@ -1632,10 +1656,11 @@ MSV_OpenUserDatabase();
 	if (!deathmatch.value && !*skill.string)	//skill was left blank so it doesn't polute serverinfo on deathmatch servers. in single player, we ensure that it gets a proper value.
 		Cvar_Set(&skill, "1");
 //do this and get the precaches/start up the game
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
-		if ( !sv.world.worldmodel[j]->name || !sv.world.worldmodel[j]->name[0] )
-			break;
+		if ( !sv.world.worldmodel[j] )
+			continue;
 
 		if (sv.world.worldmodel[j]->entitiescrc)
 		{
@@ -1679,13 +1704,12 @@ MSV_OpenUserDatabase();
 	SCR_ImageName(server);
 #endif
 
-
+	// Missi: Iterate through each time period (2025.9.20)
 	for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 	{
 		if ( !sv.world.worldmodel[j] )
-			break;
+			continue;
 
-		Q_strncpyz(sv.mapname[j], svs.name, sizeof(sv.mapname[j]));
 		if (svprogfuncs)
 		{
 			eval_t *val;
@@ -1821,10 +1845,11 @@ MSV_OpenUserDatabase();
 					extent = ne;
 			}
 		}
+		// Missi: Iterate through each time period (2025.9.20)
 		for ( j = 0; j < MAX_TIME_PERIODS; j++ )
 		{
 			if ( !sv.world.worldmodel[j] )
-				break;
+				continue;
 
 			if (extent > (1u<<15)/8
 #ifdef TERRAIN

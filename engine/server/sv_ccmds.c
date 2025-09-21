@@ -751,6 +751,8 @@ void SV_Map_f (void)
 		Cbuf_AddText(va("wait;%s %s\n", cmd, Cmd_Args()), Cmd_ExecLevel);
 		return;
 	}
+
+	tc_cl_loaded_bsps = 0;	// Missi (2025.9.19)
 #endif
 
 #ifdef SUBSERVERS
@@ -846,6 +848,7 @@ void SV_Map_f (void)
 		;//restart current - deprecated.
 	else
 	{
+		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			switch( t )
@@ -969,7 +972,7 @@ void SV_Map_f (void)
 	{
 		char *exts[] = {"%s%s", "maps/%s%s", "maps/%s%s.bsp", "maps/%s%s.bsp.gz", "maps/%s%s.bsp.xz", "maps/%s%s.d3dbsp", "maps/%s%s.cm", "maps/%s%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
 		int i, j;
-
+		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			switch( t )
@@ -3573,11 +3576,34 @@ void SV_ChangeTimePeriod( timeperiod_t tTimePeriod )
 void SV_ChangeTimePeriod_f()
 {
 	const char* pszArg = Cmd_Argv(1);
+	const char* pszTime = NULL;
 
 	if ( !pszArg )
 	{
 		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
 		return;
+	}
+
+	if ( !sv.world.worldmodel[atoi(pszArg)] )
+	{
+		switch( cl_current_time_period )
+		{
+			case TIME_PERIOD_PRESENT:
+				pszTime = "present";
+				break;
+			case TIME_PERIOD_PAST:
+				pszTime = "past";
+				break;
+			case TIME_PERIOD_FUTURE:
+				pszTime = "future";
+				break;
+			default:
+				pszTime = "unknown";
+				break;
+		}
+
+		Con_Printf( "This map can only be played in the %s time period.\n", pszTime );
+		return;		// Missi: No worldmodel for this time period (2025.9.20)
 	}
 
 	SV_ChangeTimePeriod( (timeperiod_t)atoi(pszArg) );
