@@ -36,12 +36,15 @@ struct edict_s *PDECL ED_AllocIndex (pubprogfuncs_t *ppf, unsigned int num, pboo
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
 	edictrun_t *e;
+	unsigned int maxedicts;
 
 	unsigned int fields_size;
 
-	if (num >= prinst.maxedicts)
+	maxedicts = prinst.maxedicts;
+
+	if (num >= maxedicts)
 	{
-		externs->Sys_Error ("ED_AllocIndex: index %u exceeds limit of %u", num, prinst.maxedicts);
+		externs->Sys_Error ("ED_AllocIndex: index %u exceeds limit of %u", num, maxedicts);
 		return NULL;
 	}
 	if (!object)
@@ -54,7 +57,10 @@ struct edict_s *PDECL ED_AllocIndex (pubprogfuncs_t *ppf, unsigned int num, pboo
 				e = (edictrun_t*)ED_AllocIndex(&progfuncs->funcs, sv_num_edicts, object, extrasize);
 				e->ereftype=ER_FREE;
 			}
+
 			sv_num_edicts++;
+
+
 		}
 		if (num >= sv_num_edicts)
 			sv_num_edicts=num+1;
@@ -313,7 +319,7 @@ ddef16_t *ED_FindGlobal16 (progfuncs_t *progfuncs, const char *name)
 	ddef16_t		*def;
 	unsigned int			i;
 
-	for (i=MAX_TIME_PERIODS ; i<pr_progs->numglobaldefs ; i++)
+	for (i=1 ; i<pr_progs->numglobaldefs ; i++)
 	{
 		def = &pr_globaldefs16[i];
 		if (!strcmp(def->s_name+progfuncs->funcs.stringtable,name) )
@@ -2036,7 +2042,11 @@ char *PDECL PR_SaveEnts(pubprogfuncs_t *ppf, char *buf, size_t *bufofs, size_t b
 }
 
 //if 'general' block is found, this is a compleate state, otherwise, we should spawn entities like
+#ifdef TEMPORALCORTEX
+int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline), int bspnum)
+#else
 int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline))
+#endif
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
 	const char *datastart;
@@ -2052,7 +2062,6 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 	ddef32_t *d32;
 	void *oldglobals = NULL;
 	int oldglobalssize = 0;
-	int t = 0;
 
 	extern edictrun_t tempedict;
 
@@ -2173,6 +2182,9 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
+#ifdef TEMPORALCORTEX
+			ed->bspnum = bspnum;
+#endif
 		}
 		else if (!strcmp(qcc_token, "progs"))
 		{
@@ -2348,7 +2360,7 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 			pr_progstate = PRHunkAlloc(progfuncs, sizeof(progstate_t) * prinst.maxprogs, "progstatetable");
 			prinst.pr_typecurrent=0;
 
-			sv_num_edicts = 1;	//set up a safty buffer so things won't go horribly wrong too often
+			sv_num_edicts = sv_loaded_bsps;	//set up a safty buffer so things won't go horribly wrong too often
 			sv_edicts=(struct edict_s *)&tempedict;
 			prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = &sv_edicts);
 			progfuncs->funcs.edicttable_length = numents;
@@ -2438,11 +2450,17 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 			if (!ed)	//first entity
 			{
-				ed = (edictrun_t *)EDICT_NUM(progfuncs, t);
-				t++;
+#ifdef TEMPORALCORTEX
+				ed = (edictrun_t *)EDICT_NUM(progfuncs, bspnum);
+#else
+				ed = (edictrun_t *)EDICT_NUM(progfuncs, 0);
+#endif
 			}
 			else
+			{
 				ed = (edictrun_t *)ED_Alloc(&progfuncs->funcs, false, 0);
+			}
+
 			ed->ereftype = ER_ENTITY;
 			if (externs->entspawn)
 				externs->entspawn((struct edict_s *) ed, true);
@@ -2450,6 +2468,9 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
+#ifdef TEMPORALCORTEX
+			ed->bspnum = bspnum;
+#endif
 		}
 		else if (extendedterm && extendedterm(ppf, ctx, &datastart))
 			file = datastart;

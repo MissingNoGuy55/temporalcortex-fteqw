@@ -89,6 +89,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 		#define CONFIG_FILE_NAME config_nocompat.h
 	#elif defined(MINIMAL)
 		#define CONFIG_FILE_NAME config_minimal.h
+	#elif defined(TEMPORALCORTEX)
+		#define CONFIG_FILE_NAME config_fteqwtc.h
 	#else
 		#define CONFIG_FILE_NAME config_fteqw.h
 	#endif
@@ -1129,6 +1131,12 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 #define	IT_SIGIL2				(1u<<29)
 #define	IT_SIGIL3				(1u<<30)
 #define	IT_SIGIL4				(1u<<31)
+#endif
+
+#ifdef TEMPORALCORTEX
+#define	IT2_GRAPPLING_HOOK		(1u<<1)
+#define	IT2_PSYCHOSIS			(1u<<2)
+#define	IT2_INCENDIARY_AMMO		(1u<<3)
 #endif
 
 //

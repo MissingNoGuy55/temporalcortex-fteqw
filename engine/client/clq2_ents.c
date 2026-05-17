@@ -111,7 +111,11 @@ sfx_t *S_PrecacheSexedSound(int entnum, const char *soundname)
 	{	//a 'sexed' sound
 		if (entnum > 0 && entnum <= MAX_CLIENTS)
 		{
+#ifdef TEMPORALCORTEX
+			char *model = InfoBuf_ValueForKey(&cl.players[entnum-tc_cl_loaded_bsps].userinfo, "skin");
+#else
 			char *model = InfoBuf_ValueForKey(&cl.players[entnum-1].userinfo, "skin");
+#endif
 			char *skin;
 			skin = strchr(model, '/');
 			if (skin)
@@ -1933,7 +1937,11 @@ void CLQ2_ParseFrame (int extrabits)
 	CLQ2_ParsePacketEntities (old, &cl.q2frame);
 
 	for (cmd = 0; cmd < MAX_SPLITS; cmd++)
-		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+tc_cl_loaded_bsps;
+#else
+		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+1;
+#endif
 
 	// save the frame off in the backup array for later delta comparisons
 	cl.q2frames[cl.q2frame.serverframe & Q2UPDATE_MASK] = cl.q2frame;
@@ -2038,7 +2046,11 @@ unsigned int CLQ2_GatherSounds(vec3_t *positions, unsigned int *entnums, sfx_t *
 		s1 = &clq2_parse_entities[(frame->parse_entities+pnum)&(MAX_PARSE_ENTITIES-1)];
 		if (s1->u.q2.sound > 0 && s1->u.q2.sound < MAX_PRECACHE_SOUNDS)
 		{
+#ifdef TEMPORALCORTEX
+			sfx = cl.sound_precache[cl_current_bsp_index][s1->u.q2.sound];
+#else
 			sfx = cl.sound_precache[s1->u.q2.sound];
+#endif
 			if (sfx)
 			{
 				if (count == max)
@@ -2411,7 +2423,11 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 			{
 				ent.skinnum = s1->skinnum;
 //				ent.skin = NULL;
+#ifdef TEMPORALCORTEX
+				ent.model = cl.model_precache[cl_current_bsp_index][s1->modelindex];
+#else
 				ent.model = cl.model_precache[s1->modelindex];
+#endif
 			}
 		}
 
@@ -2628,7 +2644,11 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 					ent.model = Mod_ForName(va("players/%s/%s", "male", cl.q2visibleweapons[i]), MLV_WARN);
 			}
 			else
+#ifdef TEMPORALCORTEX
+				ent.model = cl.model_precache[cl_current_bsp_index][s1->modelindex2];
+#else
 				ent.model = cl.model_precache[s1->modelindex2];
+#endif
 
 			// PMM - check for the defender sphere shell .. make it translucent
 			// replaces the previous version which used the high bit on modelindex2 to determine transparency
@@ -2650,12 +2670,20 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 		}
 		if (s1->u.q2.modelindex3)
 		{
+#ifdef TEMPORALCORTEX
+			ent.model = cl.model_precache[cl_current_bsp_index][s1->u.q2.modelindex3];
+#else
 			ent.model = cl.model_precache[s1->u.q2.modelindex3];
+#endif
 			V_AddEntity (&ent);
 		}
 		if (s1->u.q2.modelindex4)
 		{
+#ifdef TEMPORALCORTEX
+			ent.model = cl.model_precache[cl_current_bsp_index][s1->u.q2.modelindex4];
+#else
 			ent.model = cl.model_precache[s1->u.q2.modelindex4];
+#endif
 			V_AddEntity (&ent);
 		}
 
@@ -2867,13 +2895,20 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 	AngleVectors(pv->simangles, r_refdef.weaponmatrix[0], r_refdef.weaponmatrix[1], r_refdef.weaponmatrix[2]);
 	VectorInverse(r_refdef.weaponmatrix[1]);
 	memcpy(r_refdef.weaponmatrix_bob, r_refdef.weaponmatrix, sizeof(r_refdef.weaponmatrix_bob));
-
+#ifdef TEMPORALCORTEX
+	if (om != cl.model_precache[cl_current_bsp_index][ps->gunindex])
+#else
 	if (om != cl.model_precache[ps->gunindex])
+#endif
 	{
 		pv->vm.prevframe = pv->vm.oldframe = ps->gunframe;
 		pv->vm.lerptime = pv->vm.oldlerptime = cl.oldgametime;
 	}
+#ifdef TEMPORALCORTEX
+	pv->vm.oldmodel = cl.model_precache[cl_current_bsp_index][ps->gunindex];
+#else
 	pv->vm.oldmodel = cl.model_precache[ps->gunindex];
+#endif
 	if (!pv->vm.oldmodel)
 		return;
 
@@ -2927,7 +2962,11 @@ void CLQ2_CalcViewValues (int seat)
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
-	if (cl.worldmodel[cl_current_time_period] && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index] && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
+#else
+	if (cl.worldmodel && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
+#endif
 	{	// use predicted values
 		float	delta;
 
@@ -2953,7 +2992,11 @@ void CLQ2_CalcViewValues (int seat)
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
-	if (cl.worldmodel[cl_current_time_period] && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index] && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
+#else
+	if (cl.worldmodel && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
+#endif
 	{	// use predicted values
 		for (i=0 ; i<3 ; i++)
 			pv->simangles[i] = pv->predicted_angles[i];
@@ -3023,7 +3066,7 @@ void CLQ2_AddEntities (void)
 		AngleVectors(r_refdef.viewangles, axis[0], axis[1], axis[2]);
 		VectorMA(r_refdef.vieworg, -chase_back.value, axis[0], camorg);
 		VectorMA(camorg, -chase_up.value, pv->gravitydir, camorg);
-//		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
+//		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
 		VectorCopy(camorg, r_refdef.vieworg);
 
 		V_EditExternalModels(0, NULL, 0);

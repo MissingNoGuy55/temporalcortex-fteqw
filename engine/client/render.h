@@ -355,7 +355,11 @@ void R_Clutter_Emit(struct batch_s **batches);
 void R_Clutter_Purge(void);
 
 //r_surf.c
+#ifdef TEMPORALCORTEX
 void Surf_NewMap (struct model_s *worldmodel, int num);
+#else
+void Surf_NewMap (struct model_s *worldmodel);
+#endif
 void Surf_PreNewMap(void);
 void Surf_SetupFrame(void);	//determine pvs+viewcontents
 void Surf_DrawWorld(void);
@@ -711,6 +715,10 @@ extern	cvar_t r_lightprepass_cvar;
 extern	int r_lightprepass;	//0=off,1=16bit,2=32bit
 
 extern cvar_t	r_xflip;
+
+#ifdef TEMPORALCORTEX
+extern cvar_t tc_r_timetravel_warp_intensity;
+#endif
 
 extern cvar_t gl_mindist, gl_maxdist;
 extern	cvar_t	r_clear;

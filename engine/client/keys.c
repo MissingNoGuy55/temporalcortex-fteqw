@@ -864,7 +864,11 @@ void Key_DefaultLinkClicked(console_t *con, char *text, char *info)
 	{
 		unsigned int player = atoi(c);
 		int i;
+#ifdef TEMPORALCORTEX
+		if (player >= cl.allocated_client_slots + tc_cl_loaded_bsps || !*cl.players[player].name)
+#else
 		if (player >= cl.allocated_client_slots || !*cl.players[player].name)
+#endif
 			return;
 
 		c = Info_ValueForKey(info, "action");

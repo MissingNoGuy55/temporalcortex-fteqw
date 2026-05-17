@@ -273,18 +273,28 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 	wedict_t *ent;
 #endif
 
+#ifdef TEMPORALCORTEX
 	int t;
 
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+#endif
 		int maxdepth;
 		vec3_t mins, maxs;
+#ifdef TEMPORALCORTEX
 		if (w->worldmodel[t])
 		{
 			VectorCopy(w->worldmodel[t]->mins, mins);
 			VectorCopy(w->worldmodel[t]->maxs, maxs);
 		}
+#else
+		if (w->worldmodel)
+		{
+			VectorCopy(w->worldmodel->mins, mins);
+			VectorCopy(w->worldmodel->maxs, maxs);
+		}
+#endif
 		else
 		{
 			VectorSet(mins, -4096, -4096, -4096);
@@ -327,7 +337,9 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 			}
 		}
 #endif
+#ifdef TEMPORALCORTEX
 	}
+#endif
 }
 #endif
 
@@ -335,23 +347,41 @@ void World_ClearWorld_Nodes (world_t *w, qboolean relink)
 static void World_ClearWorld_AreaGrid (world_t *w, qboolean relink)
 {
 	int numareas = 1;
-	int i, j, t;
+	int i, j;
 	wedict_t *ent;
 	vec3_t mins, maxs, size;
+#ifdef TEMPORALCORTEX
+	int t;
+
 	// Missi: Iterate through each time period (2025.9.20)
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+#if defined(HAVE_CLIENT)
+	for ( t = 0; t < tc_cl_loaded_bsps; t++ )
+#elif defined(HAVE_SERVER)
+	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+#endif
 	{
+#endif
+#ifdef TEMPORALCORTEX
 		if (w->worldmodel[t])
 		{
 			VectorCopy(w->worldmodel[t]->mins, mins);
 			VectorCopy(w->worldmodel[t]->maxs, maxs);
 		}
+#else
+		if (w->worldmodel)
+		{
+			VectorCopy(w->worldmodel->mins, mins);
+			VectorCopy(w->worldmodel->maxs, maxs);
+		}
+#endif
 		else
 		{
 			VectorSet(mins, -4096, -4096, -4096);
 			VectorSet(maxs, 4096, 4096, 4096);
 		}
+#ifdef TEMPORALCORTEX
 	}
+#endif
 	Vector2Set(w->gridsize, 128, 128);
 	for (i = 0; i < 2; i++)
 	{
@@ -536,7 +566,15 @@ void QDECL World_LinkEdict (world_t *w, wedict_t *ent, qboolean touch_triggers)
 #endif
 	
 	//if (ent == w->edicts)
-	if ( ent->entnum < MAX_TIME_PERIODS )
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	if ( ent->entnum < tc_sv_loaded_bsps )
+#elif defined( HAVE_CLIENT )
+	if ( ent->entnum < tc_cl_loaded_bsps )
+#endif
+#else
+	if ( ent->entnum < 1 )
+#endif
 		return;		// don't add the world
 
 	if (ED_ISFREE(ent))
@@ -662,10 +700,24 @@ void QDECL World_LinkEdict (world_t *w, wedict_t *ent, qboolean touch_triggers)
 	}
 	
 // link to PVS leafs
-	if (w->worldmodel[sv_current_time_period] && w->worldmodel[sv_current_time_period]->loadstate == MLS_LOADED && w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	if (w->worldmodel[sv_current_bsp_index] && w->worldmodel[sv_current_bsp_index]->loadstate == MLS_LOADED && w->worldmodel[sv_current_bsp_index]->funcs.FindTouchedLeafs)
 	{
-		w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_time_period], &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
+		w->worldmodel[sv_current_bsp_index]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_bsp_index], &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
 	}
+#elif defined(HAVE_CLIENT)
+	if (w->worldmodel[cl_current_bsp_index] && w->worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && w->worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs)
+	{
+		w->worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(w->worldmodel[cl_current_bsp_index], &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
+	}
+#endif
+#else
+	if (w->worldmodel && w->worldmodel->loadstate == MLS_LOADED && w->worldmodel->funcs.FindTouchedLeafs)
+	{
+		w->worldmodel->funcs.FindTouchedLeafs(w->worldmodel, &ent->pvsinfo, ent->v->absmin, ent->v->absmax);
+	}
+#endif
 
 	if (ent->v->solid == SOLID_NOT && !sv_gameplayfix_linknonsolid.ival)
 		return;
@@ -807,7 +859,11 @@ void VARGS WorldQ2_LinkEdict(world_t *w, q2edict_t *ent)
 // link to PVS leafs
 	{
 		pvscache_t cache;
-		w->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_time_period], &cache, ent->absmin, ent->absmax);
+#ifdef TEMPORALCORTEX
+		w->worldmodel[sv_current_bsp_index]->funcs.FindTouchedLeafs(w->worldmodel[sv_current_bsp_index], &cache, ent->absmin, ent->absmax);
+#else
+		w->worldmodel->funcs.FindTouchedLeafs(w->worldmodel, &cache, ent->absmin, ent->absmax);
+#endif
 
 		//evilness: copy into the q2 state (we don't have anywhere else to store it, and there's a chance that the gamecode will care).
 		ent->num_clusters = cache.num_leafs;
@@ -867,12 +923,28 @@ SV_PointContents
 */
 int World_PointContentsWorldOnly (world_t *w, vec3_t p)
 {
-	return w->worldmodel[sv_current_time_period]->funcs.PointContents(w->worldmodel[sv_current_time_period], NULL, p);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	return w->worldmodel[sv_current_bsp_index]->funcs.PointContents(w->worldmodel[sv_current_bsp_index], NULL, p);
+#elif defined(HAVE_CLIENT)
+	return w->worldmodel[cl_current_bsp_index]->funcs.PointContents(w->worldmodel[cl_current_bsp_index], NULL, p);
+#endif
+#else
+	return w->worldmodel->funcs.PointContents(w->worldmodel, NULL, p);
+#endif
 }
 
 int World_PointContentsAllBSPs (world_t *w, vec3_t p)
 {
-	int c = w->worldmodel[sv_current_time_period]->funcs.PointContents(w->worldmodel[sv_current_time_period], NULL, p);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	int c = w->worldmodel[sv_current_bsp_index]->funcs.PointContents(w->worldmodel[sv_current_bsp_index], NULL, p);
+#elif defined(HAVE_CLIENT)
+	int c = w->worldmodel[cl_current_bsp_index]->funcs.PointContents(w->worldmodel[cl_current_bsp_index], NULL, p);
+#endif
+#else
+	int c = w->worldmodel->funcs.PointContents(w->worldmodel, NULL, p);
+#endif
 	c |= World_ContentsOfAllLinks(w, p);
 	return c;
 }
@@ -890,8 +962,11 @@ supplied entity.
 wedict_t	*World_TestEntityPosition (world_t *w, wedict_t *ent)
 {
 	trace_t	trace;
-
+#ifdef TEMPORALCORTEX
+	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, ((ent->v->solid == SOLID_NOT || ent->v->solid == SOLID_TRIGGER || ent->v->solid == SOLID_BSPTRIGGER)?MOVE_NOMONSTERS:0), ent, ent->bspnum);
+#else
 	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, ((ent->v->solid == SOLID_NOT || ent->v->solid == SOLID_TRIGGER || ent->v->solid == SOLID_BSPTRIGGER)?MOVE_NOMONSTERS:0), ent);
+#endif
 	
 	if (trace.startsolid || trace.allsolid)
 		return trace.ent?trace.ent:w->edicts;
@@ -973,11 +1048,22 @@ Handles selection or creation of a clipping hull, and offseting (and
 eventually rotation) of the end points
 ==================
 */
+#ifdef TEMPORALCORTEX
+static trace_t World_ClipMoveToEntity (world_t *w, wedict_t *ent, vec3_t eorg, vec3_t eang, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hullnum, qboolean hitmodel, qboolean capsule, unsigned int hitcontentsmask, int timeperiod)	//hullnum overrides min/max for q1 style bsps
+#else
 static trace_t World_ClipMoveToEntity (world_t *w, wedict_t *ent, vec3_t eorg, vec3_t eang, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hullnum, qboolean hitmodel, qboolean capsule, unsigned int hitcontentsmask)	//hullnum overrides min/max for q1 style bsps
+#endif
 {
 	trace_t		trace;
 	model_t		*model;
+
+	// Missi: Kind of weird, but the world logic is too complicated (2025.9.21)
+#ifdef TEMPORALCORTEX
+	int mdlidx = ent->v->modelindex+timeperiod;
+#else
 	int mdlidx = ent->v->modelindex;
+#endif
+
 	framestate_t framestate;
 	int solid = ent->v->solid;
 
@@ -1537,12 +1623,24 @@ like SV_ClipToLinks, but doesn't use the links part. This can be used for checki
 Sounds pointless, I know.
 ====================
 */
+#ifdef TEMPORALCORTEX
+static void World_ClipToEverything (world_t *w, moveclip_t *clip, int timeperiod)
+#else
 static void World_ClipToEverything (world_t *w, moveclip_t *clip)
+#endif
 {
 	int e;
 	trace_t		trace;
 	wedict_t		*touch;
-	for (e=MAX_TIME_PERIODS ; e<w->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	for (e=tc_sv_loaded_bsps ; e<w->num_edicts ; e++)
+#elif defined(HAVE_CLIENT)
+	for (e=tc_cl_loaded_bsps ; e<w->num_edicts ; e++)
+#endif
+#else
+	for (e=1 ; e<w->num_edicts ; e++)
+#endif
 	{
 		touch = (wedict_t*)EDICT_NUM_PB(w->progs, e);
 
@@ -1603,9 +1701,17 @@ static void World_ClipToEverything (world_t *w, moveclip_t *clip)
 		}
 
 		if ((int)touch->v->flags & FL_MONSTER)
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, timeperiod);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 		else
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, timeperiod);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 
 		if (trace.fraction < clip->trace.fraction)
 		{
@@ -1674,7 +1780,11 @@ void World_TouchAllLinks (world_t *w, wedict_t *ent)
 
 		if (solid == SOLID_BSPTRIGGER)
 		{
+#ifdef TEMPORALCORTEX
+			if (!World_ClipMoveToEntity(w, touch, touch->v->origin, touch->v->angles, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, false, (ent->xv->geomtype == GEOMTYPE_CAPSULE), MASK_WORLDSOLID, ent->bspnum).startsolid)
+#else
 			if (!World_ClipMoveToEntity(w, touch, touch->v->origin, touch->v->angles, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, false, (ent->xv->geomtype == GEOMTYPE_CAPSULE), MASK_WORLDSOLID).startsolid)
+#endif
 				continue;
 		}
 
@@ -1730,7 +1840,15 @@ static void World_ClipToLinks (world_t *w, areagridlink_t *node, moveclip_t *cli
 		if (clip->type & MOVE_LAGGED)
 		{
 			//can't touch lagged ents - we do an explicit test for them later.
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+			if (touch->entnum-tc_sv_loaded_bsps < w->maxlagents)
+#elif defined(HAVE_CLIENT)
+			if (touch->entnum-tc_cl_loaded_bsps < w->maxlagents)
+#endif
+#else
 			if (touch->entnum-1 < w->maxlagents)
+#endif
 				if (w->lagents[touch->entnum-1].present)
 					continue;
 		}
@@ -1787,9 +1905,17 @@ static void World_ClipToLinks (world_t *w, areagridlink_t *node, moveclip_t *cli
 		}
 
 		if ((int)touch->v->flags & FL_MONSTER)
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, touch->bspnum);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 		else
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, touch->bspnum);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 
 		if (trace.fraction < clip->trace.fraction)
 		{
@@ -2174,7 +2300,11 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 		{
 			if (touch->modelindex <= 0 || touch->modelindex >= MAX_PRECACHE_MODELS)
 				continue;	//erk
+#ifdef TEMPORALCORTEX
+			model = cl.model_precache[cl_current_bsp_index][touch->modelindex];
+#else
 			model = cl.model_precache[touch->modelindex];
+#endif
 			if (!model || model->loadstate != MLS_LOADED || !model->funcs.NativeTrace)
 				continue;
 			VectorCopy(model->mins, bmins);
@@ -2391,7 +2521,11 @@ qboolean SV_AntiKnockBack(world_t *w, client_t *client)
 SV_Move
 ==================
 */
+#ifdef TEMPORALCORTEX
+trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, wedict_t *passedict, int timeperiod)
+#else
 trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, wedict_t *passedict)
+#endif
 {
 	moveclip_t	clip;
 	int			i;
@@ -2417,13 +2551,24 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 		//z pos/height are assumed to be different from all the others.
 		for (i = 0; i < MAX_MAP_HULLSM; i++)
 		{
-			if (!w->worldmodel[sv_current_time_period]->hulls[i].available)
+#ifdef TEMPORALCORTEX
+			if (!w->worldmodel[timeperiod]->hulls[i].available)
+#else
+			if (!w->worldmodel->hulls[i].available)
+#endif
 				continue;
 #define sq(x) ((x)*(x))
-			diff = sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_maxs[2] - maxs[2]) +
-				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_mins[2] - mins[2]) +
-				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_maxs[1] - maxs[1]) +
-				sq(w->worldmodel[sv_current_time_period]->hulls[i].clip_mins[0] - mins[0]);
+#ifdef TEMPORALCORTEX
+			diff = sq(w->worldmodel[timeperiod]->hulls[i].clip_maxs[2] - maxs[2]) +
+				sq(w->worldmodel[timeperiod]->hulls[i].clip_mins[2] - mins[2]) +
+				sq(w->worldmodel[timeperiod]->hulls[i].clip_maxs[1] - maxs[1]) +
+				sq(w->worldmodel[timeperiod]->hulls[i].clip_mins[0] - mins[0]);
+#else
+			diff = sq(w->worldmodel->hulls[i].clip_maxs[2] - maxs[2]) +
+				sq(w->worldmodel->hulls[i].clip_mins[2] - mins[2]) +
+				sq(w->worldmodel->hulls[i].clip_maxs[1] - maxs[1]) +
+				sq(w->worldmodel->hulls[i].clip_mins[0] - mins[0]);
+#endif
 			if (diff < best)
 			{
 				best = diff;
@@ -2440,7 +2585,11 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	if ((clip.type & MOVE_LAGGED) && w == &sv.world && passedict->entnum && passedict->entnum <= sv.allocated_client_slots && sv_antilag.ival==3)
 	{
 		vec3_t nudge;
-		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-MAX_TIME_PERIODS]))
+#ifdef TEMPORALCORTEX
+		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-tc_sv_loaded_bsps]))
+#else
+		if (SV_AntiKnockBack(w, &svs.clients[passedict->entnum-1]))
+#endif
 		{
 			VectorSubtract(pmove.origin, passedict->v->origin, nudge);
 
@@ -2510,18 +2659,30 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	if (type & MOVE_OTHERONLY)
 	{
 		wedict_t *other = WEDICT_NUM_UB(w->progs, *w->g.other);
+#ifdef TEMPORALCORTEX
+		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+#endif
 	}
 #ifdef HAVE_LEGACY
 	if ((type&MOVE_WORLDONLY) == MOVE_WORLDONLY)
 	{	//for compat with DP
 		wedict_t *other = w->edicts;
+#ifdef TEMPORALCORTEX
+		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+#endif
 	}
 #endif
 
 // clip to world
+#ifdef TEMPORALCORTEX
+	clip.trace = World_ClipMoveToEntity (w, w->edicts, w->edicts->v->origin, w->edicts->v->angles, start, mins, maxs, end, hullnum, false, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 	clip.trace = World_ClipMoveToEntity (w, w->edicts, w->edicts->v->origin, w->edicts->v->angles, start, mins, maxs, end, hullnum, false, clip.capsule, clip.hitcontentsmask);
+#endif
 
 	clip.start = start;
 	clip.end = end;
@@ -2556,7 +2717,11 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 
 // clip to entities
 	if (clip.type & MOVE_EVERYTHING)
+#ifdef TEMPORALCORTEX
+		World_ClipToEverything (w, &clip, timeperiod);
+#else
 		World_ClipToEverything (w, &clip);
+#endif
 	else
 	{
 		if (clip.type & MOVE_LAGGED)
@@ -2565,25 +2730,47 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 #ifndef CLIENTONLY
 			if (w == &sv.world)
 			{
+#ifdef TEMPORALCORTEX
+				if (passedict->entnum >= tc_sv_loaded_bsps && passedict->entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+				{
+					clip.type |= MOVE_LAGGED;
+					w->lagents = svs.clients[passedict->entnum-tc_sv_loaded_bsps].laggedents;
+					w->maxlagents = svs.clients[passedict->entnum-tc_sv_loaded_bsps].laggedents_count;
+					w->lagentsfrac = svs.clients[passedict->entnum-tc_sv_loaded_bsps].laggedents_frac;
+					w->lagentstime = svs.clients[passedict->entnum-tc_sv_loaded_bsps].laggedents_time;
+				}
+				else if (passedict->v->owner)
+				{
+					if (passedict->v->owner >= tc_sv_loaded_bsps && passedict->v->owner < sv.allocated_client_slots + tc_sv_loaded_bsps)
+					{
+						clip.type |= MOVE_LAGGED;
+						w->lagents = svs.clients[passedict->v->owner-tc_sv_loaded_bsps].laggedents;
+						w->maxlagents = svs.clients[passedict->v->owner-tc_sv_loaded_bsps].laggedents_count;
+						w->lagentsfrac = svs.clients[passedict->v->owner-tc_sv_loaded_bsps].laggedents_frac;
+						w->lagentstime = svs.clients[passedict->v->owner-tc_sv_loaded_bsps].laggedents_time;
+					}
+				}
+#else
 				if (passedict->entnum && passedict->entnum <= sv.allocated_client_slots)
 				{
 					clip.type |= MOVE_LAGGED;
-					w->lagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents;
-					w->maxlagents = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_count;
-					w->lagentsfrac = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_frac;
-					w->lagentstime = svs.clients[passedict->entnum-MAX_TIME_PERIODS].laggedents_time;
+					w->lagents = svs.clients[passedict->entnum-1].laggedents;
+					w->maxlagents = svs.clients[passedict->entnum-1].laggedents_count;
+					w->lagentsfrac = svs.clients[passedict->entnum-1].laggedents_frac;
+					w->lagentstime = svs.clients[passedict->entnum-1].laggedents_time;
 				}
 				else if (passedict->v->owner)
 				{
 					if (passedict->v->owner && passedict->v->owner <= sv.allocated_client_slots)
 					{
 						clip.type |= MOVE_LAGGED;
-						w->lagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents;
-						w->maxlagents = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_count;
-						w->lagentsfrac = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_frac;
-						w->lagentstime = svs.clients[passedict->v->owner-MAX_TIME_PERIODS].laggedents_time;
+						w->lagents = svs.clients[passedict->v->owner-1].laggedents;
+						w->maxlagents = svs.clients[passedict->v->owner-1].laggedents_count;
+						w->lagentsfrac = svs.clients[passedict->v->owner-1].laggedents_frac;
+						w->lagentstime = svs.clients[passedict->v->owner-1].laggedents_time;
 					}
 				}
+#endif
 			}
 #endif
 		}
@@ -2606,8 +2793,15 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 					continue;
 				if (clip.trace.allsolid)
 					break;
-
-				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+tc_sv_loaded_bsps);
+#elif defined(HAVE_CLIENT)
+				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+tc_cl_loaded_bsps);
+#endif
+#else
+				touch = (wedict_t*)EDICT_NUM_PB(w->progs, i+1);
+#endif
 				if (touch->v->solid == SOLID_NOT)
 					continue;
 				if (touch == clip.passedict)
@@ -2673,16 +2867,27 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 				if ((clip.type & MOVE_HITMODEL) && w->Event_Backdate)
 				{
 					w->Event_Backdate(w, touch, w->lagentstime);
+#ifdef TEMPORALCORTEX
+					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+				}
+				else
+					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
 				}
 				else
 					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+#endif
 
 				if (trace.allsolid || trace.startsolid || trace.fraction < clip.trace.fraction)
 				{
 					if (clip.type & MOVE_ENTCHAIN)
 					{
-						touch->v->chain = EDICT_TO_PROG(w->progs, clip.trace.ent?clip.trace.ent:w->edicts);
+#ifdef TEMPORALCORTEX
+						touch->v->chain = EDICT_TO_PROG(w->progs, clip.trace.ent?clip.trace.ent:&w->edicts[timeperiod]);
+#else
+						touch->v->chain = EDICT_TO_PROG(w->progs, clip.trace.ent?clip.trace.ent:&w->edicts);
+#endif
 						clip.trace.ent = touch;
 					}
 					else
@@ -2732,7 +2937,11 @@ trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 // clip to world
-	w->worldmodel[sv_current_time_period]->funcs.NativeTrace(w->worldmodel[sv_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+#ifdef TEMPORALCORTEX
+	w->worldmodel[sv_current_bsp_index]->funcs.NativeTrace(w->worldmodel[sv_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+#else
+	w->worldmodel->funcs.NativeTrace(w->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+#endif
 	clip.trace.ent = ge->edicts;
 
 	if (clip.trace.fraction == 0)
@@ -2812,7 +3021,15 @@ void World_RBE_Start(world_t *world)
 {
 	if (world_current_physics_engine)
 	{
-		if (world->worldmodel[sv_current_time_period])
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		if (world->worldmodel[sv_current_bsp_index])
+#elif defined(HAVE_CLIENT)
+		if (world->worldmodel[cl_current_bsp_index])
+#endif
+#else
+		if (world->worldmodel)
+#endif
 			world_current_physics_engine(world);
 	}
 }

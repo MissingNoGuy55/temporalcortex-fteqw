@@ -220,7 +220,11 @@ struct world_s
 	wedict_t		*edicts;			// can NOT be array indexed.
 	struct pubprogfuncs_s *progs;
 	qboolean		usesolidcorpse;	//to disable SOLID_CORPSE when running hexen2 due to conflict.
+#ifdef TEMPORALCORTEX
 	model_t			*worldmodel[MAX_TIME_PERIODS];
+#else
+	model_t			*worldmodel;
+#endif
 	unsigned int	spawncount;	//number of times it got restarted, so we can stop events from happening after vm restarts
 	qboolean		remasterlogic;	//workarounds needed
 
@@ -366,7 +370,11 @@ qboolean World_TransformedTrace (struct model_s *model, int hulloverride, frames
 
  passedict is explicitly excluded from clipping checks (normally NULL)
 */
+#ifdef TEMPORALCORTEX
+trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, wedict_t *passedict, int timeperiod);
+#else
 trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, wedict_t *passedict);
+#endif
 
 
 #ifdef Q2SERVER

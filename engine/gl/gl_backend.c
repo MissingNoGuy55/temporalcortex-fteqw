@@ -237,7 +237,11 @@ static void BE_PrintDrawCall(const char *msg)
 		else
 			*modelname = 0;
 #ifdef HAVE_SERVER
-		if (num > FINAL_TIME_PERIOD && num < sv.world.num_edicts)
+#ifdef TEMPORALCORTEX
+		if (num >= tc_cl_loaded_bsps && num < sv.world.num_edicts)
+#else
+		if (num > 0 && num < sv.world.num_edicts)
+#endif
 			Con_Printf("%s shader %s ent %i%s - \"%s\"\n", msg, shadername, shaderstate.curbatch->ent->keynum, modelname, sv.world.progs->StringToNative(sv.world.progs, (WEDICT_NUM_PB(sv.world.progs, num))->v->classname));
 		else
 #endif
@@ -5329,7 +5333,11 @@ static qboolean GLBE_GenerateBatchTextures(batch_t *batch, shader_t *bs)
 		GL_ForceDepthWritable();
 		qglClearColor(0, 0, 0, 1);
 		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		GLR_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, 1);
+#ifdef TEMPORALCORTEX
+		GLR_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 1);
+#else
+		GLR_DrawPortal(batch, cl.worldmodel->batches, NULL, 1);
+#endif
 		GLBE_FBO_Pop(oldfbo);
 		r_refdef.vrect = orect;
 		r_refdef.pxrect = oprect;
@@ -5405,9 +5413,17 @@ static qboolean GLBE_GenerateBatchTextures(batch_t *batch, shader_t *bs)
 			qglClearColor(0, 0, 0, 1);
 			qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			if (bs->flags&SHADER_HASPORTAL)
-				GLR_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, 0);
+#ifdef TEMPORALCORTEX
+				GLR_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 0);
+#else
+				GLR_DrawPortal(batch, cl.worldmodel->batches, NULL, 0);
+#endif
 			else
-				GLR_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#ifdef TEMPORALCORTEX
+				GLR_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#else
+				GLR_DrawPortal(batch, cl.worldmodel->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#endif
 			GLBE_FBO_Pop(oldfbo);
 
 			r_refdef.vrect = ovrect;
@@ -5415,7 +5431,11 @@ static qboolean GLBE_GenerateBatchTextures(batch_t *batch, shader_t *bs)
 			GL_ViewportUpdate();
 		}
 		else
-			GLR_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, 3);
+#ifdef TEMPORALCORTEX
+			GLR_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 3);
+#else
+			GLR_DrawPortal(batch, cl.worldmodel->batches, NULL, 3);
+#endif
 	}
 	if ((bs->flags & SHADER_HASRIPPLEMAP) && gl_config.ext_framebuffer_objects)
 	{
@@ -5459,7 +5479,11 @@ static qboolean GLBE_GenerateBatchTextures(batch_t *batch, shader_t *bs)
 //		r_refdef.waterheight = DotProduct(batch->mesh[0]->xyz_array[0], batch->mesh[0]->normals_array[0]);
 
 		r_refdef.recurse+=1; //paranoid, should stop potential infinite loops
-		GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
+#ifdef TEMPORALCORTEX
+		GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
+#else
+		GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
+#endif
 		r_refdef.recurse-=1;
 		GLBE_FBO_Pop(oldfbo);
 
@@ -6117,7 +6141,11 @@ void GLBE_DrawLightPrePass(void)
 
 	/*do portals*/
 	BE_SelectMode(BEM_STANDARD);
-	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_PORTAL, SHADER_SORT_PORTAL);
+#ifdef TEMPORALCORTEX
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_PORTAL, SHADER_SORT_PORTAL);
+#else
+	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_PORTAL, SHADER_SORT_PORTAL);
+#endif
 
 	BE_SelectMode(BEM_GBUFFER);
 	for (i = 0; i < countof(shaderstate.tex_gbuf); i++)
@@ -6287,7 +6315,11 @@ void GLBE_DrawLightPrePass(void)
 	qglClear(GL_DEPTH_BUFFER_BIT);
 
 	/*draw surfaces that can be drawn this way*/
-	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_OPAQUE, SHADER_SORT_OPAQUE);
+#ifdef TEMPORALCORTEX
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_OPAQUE, SHADER_SORT_OPAQUE);
+#else
+	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_OPAQUE, SHADER_SORT_OPAQUE);
+#endif
 
 	/*reconfigure - now drawing diffuse light info using the previous fb image as a source image*/
 	var = Cvar_Get2("gl_deferred_light_targets", "2 3", 0, "space-separated list of gbuffer indexes for lighting to write to", "Deferred Rendering");
@@ -6310,7 +6342,11 @@ void GLBE_DrawLightPrePass(void)
 
 	GLBE_SelectEntity(&r_worldentity);
 	/*now draw the prelights*/
-	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_DEFERREDLIGHT, SHADER_SORT_DEFERREDLIGHT);
+#ifdef TEMPORALCORTEX
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_DEFERREDLIGHT, SHADER_SORT_DEFERREDLIGHT);
+#else
+	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_DEFERREDLIGHT, SHADER_SORT_DEFERREDLIGHT);
+#endif
 
 	/*final reconfigure - now drawing final surface data onto true framebuffer*/
 	GLBE_FBO_Pop(oldfbo);
@@ -6319,7 +6355,11 @@ void GLBE_DrawLightPrePass(void)
 
 	/*now draw the postlight passes (this includes blended stuff which will NOT be lit)*/
 	GLBE_SelectEntity(&r_worldentity);
-	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_SKY, SHADER_SORT_NEAREST);
+#ifdef TEMPORALCORTEX
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_SKY, SHADER_SORT_NEAREST);
+#else
+	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_SKY, SHADER_SORT_NEAREST);
+#endif
 
 #ifdef RTLIGHTS
 	/*regular lighting now*/
@@ -6423,7 +6463,7 @@ void GLBE_DrawWorld (batch_t **worldbatches)
 		shaderstate.identitylightmap = shaderstate.identitylighting;
 //		shaderstate.identitylightmap *= 1<<gl_overbright.ival;
 
-//		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->fromgame == fg_quake3)
+//		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake3)
 //			shaderstate.identitylighting *= 2;
 
 #ifdef RTLIGHTS

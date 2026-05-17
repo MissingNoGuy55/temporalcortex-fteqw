@@ -1850,9 +1850,17 @@ void SVHL_RunFrame (void)
 		if (retouch)
 			SVHL_LinkEdict (ent, true);	// force retouch even for stationary
 
+#ifdef TEMPORALCORTEX
+		if (i >= tc_sv_loaded_bsps && i <= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 		if (i > 0 && i <= sv.allocated_client_slots)
+#endif
 		{
-			if (!svs.clients[i-MAX_TIME_PERIODS].isindependant)
+#ifdef TEMPORALCORTEX
+			if (!svs.clients[i-tc_sv_loaded_bsps].isindependant)
+#else
+			if (!svs.clients[i-1].isindependant)
+#endif
 			{
 			//	SVHL_RunEntity(ent);
 			}

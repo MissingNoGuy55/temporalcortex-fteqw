@@ -1261,6 +1261,13 @@ static void D3D8_SetupViewPortProjection(void)
 		fov_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * r_waterwarp.value);
 		fov_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * r_waterwarp.value);
 	}
+#ifdef TEMPORALCORTEX
+	if ((r_refdef.flags & TCRDF_TIMETRAVEL) && !(r_refdef.flags & TCRDF_TIMETRAVELWARP))
+	{
+		fov_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+		fov_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+	}
+#endif
 
 	/*view matrix*/
 	Matrix4x4_CM_ModelViewMatrixFromAxis(r_refdef.m_view, vpn, vright, vup, r_refdef.vieworg);
@@ -1306,6 +1313,16 @@ static void	(D3D8_R_RenderView)				(void)
 	//		else if (r_waterwarp.value > 0 && scenepp_waterwarp)
 	//			r_refdef.flags |= RDF_WATERWARP;	//try fullscreen warp instead if we can
 		}
+#ifdef TEMPORALCORTEX
+		if (r_refdef.flags & RDF_TIMETRAVEL)
+		{
+			extern cvar_t r_projection;
+			if (!r_waterwarp.value || r_projection.ival)
+				r_refdef.flags &= ~RDF_TIMETRAVEL;	//no warp at all
+	//		else if (r_waterwarp.value > 0 && scenepp_waterwarp)
+	//			r_refdef.flags |= RDF_WATERWARP;	//try fullscreen warp instead if we can
+		}
+#endif
 
 		D3D8_SetupViewPortProjection();
 
@@ -1318,7 +1335,7 @@ static void	(D3D8_R_RenderView)				(void)
 		RQ_BeginFrame();
 		if (!(r_refdef.flags & RDF_NOWORLDMODEL))
 		{
-			if (cl.worldmodel[cl_current_time_period])
+			if (cl.worldmodel[cl_current_bsp_index])
 				P_DrawParticles ();
 		}
 		Surf_DrawWorld();

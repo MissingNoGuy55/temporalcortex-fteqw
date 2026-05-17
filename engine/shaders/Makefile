@@ -2,11 +2,15 @@
 #NOTE: if you're on windows, you might want to use CC=i686-pc-mingw32-gcc
 
 CC ?= gcc
-VKSDKPATH ?= ~/VulkanSDK/1.1.73.0/x86_64/bin/
+VKSDKPATH ?= ~/VulkanSDK/1.4.335.0/x86_64/bin/
 
 all:
 
 NAMES=	fixedemu	fixedemu_flat altwater	bloom_blur	bloom_filter	bloom_final	colourtint	crepuscular_opaque	crepuscular_rays	crepuscular_sky	depthonly	default2d	defaultadditivesprite		defaultskin	defaultsky	defaultskybox	defaultfill	defaultsprite	defaultwall	defaultwarp	defaultgammacb	drawflat_wall	lpp_depthnorm	lpp_light	lpp_wall	postproc_fisheye	postproc_panorama	postproc_laea	postproc_stereographic	postproc_equirectangular   postproc_panini	fxaa	underwaterwarp	menutint	terrain	rtlight
+
+ifneq ($(findstring -DTEMPORALCORTEX, $(CFLAGS)),)
+	NAMES+=temporalcortex_timetravelwarp
+endif
 
 
 ALLNAMES+=$(foreach v,$(NAMES),glsl/$v.glsl)
@@ -17,14 +21,17 @@ ALLNAMES:=$(realpath $(ALLNAMES))
 VKNAMES=$(realpath $(foreach v,$(NAMES),vulkan/$v.glsl))
 VKNAMES+=postproc_fisheye
 VKNAMES+=rq_rtlight
+ifneq ($(findstring -DTEMPORALCORTEX, $(CFLAGS)),)
+	VKNAMES+=temporalcortex_timetravelwarp
+endif
 VKNAMES:=$(foreach v,$(VKNAMES),vulkanblobs/$(notdir $(basename $v)).fvb)
 ALLNAMES+=$(VKNAMES)
 
 generatebuiltinsl: generatebuiltinsl.c
-	$(CC) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 makevulkanblob: makevulkanblob.c
-	$(CC) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 vulkanblobs/rq_%.fvb: vulkan/%.glsl makevulkanblob vulkan/sys/defs.h vulkan/sys/fog.h vulkan/sys/offsetmapping.h vulkan/sys/skeletal.h
 	@echo Making $@ from $<
@@ -39,3 +46,8 @@ vulkanblobs/%.fvb: vulkan/%.glsl makevulkanblob vulkan/sys/defs.h vulkan/sys/fog
 
 all: generatebuiltinsl $(ALLNAMES)
 	./generatebuiltinsl
+
+clean:
+	-rm -f -r vulkanblobs/*.fvb
+	-rm -f -r generatebuiltinsl
+	-rm -f -r makevulkanblob

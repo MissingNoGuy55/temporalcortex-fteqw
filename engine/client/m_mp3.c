@@ -368,6 +368,14 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 #endif
 		NULL
 	};
+#ifdef TEMPORALCORTEX
+	static char *timeperiod[] =
+	{
+		"present",
+		"past",
+		"future"
+	};
+#endif
 	unsigned int tracknum;
 	char *trackend;
 	unsigned int ip, ie;
@@ -406,7 +414,11 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 				{
 					for(ie = 0; ext[ie]; ie++)
 					{
+#ifdef TEMPORALCORTEX
+						Q_snprintfz(tryname, sizeof(tryname), "%strack%03u_%s%s", path[ip], tracknum, timeperiod[cl_current_bsp_index], ext[ie]);
+#else
 						Q_snprintfz(tryname, sizeof(tryname), "%strack%03u%s", path[ip], tracknum, ext[ie]);
+#endif
 						d = COM_FDepthFile(tryname, false);
 						if (d < bestdepth)
 						{
@@ -419,7 +431,11 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 				{
 					for(ie = 0; ext[ie]; ie++)
 					{
+#ifdef TEMPORALCORTEX
+						Q_snprintfz(tryname, sizeof(tryname), "%strack%02u_%s%s", path[ip], tracknum, timeperiod[cl_current_bsp_index], ext[ie]);
+#else
 						Q_snprintfz(tryname, sizeof(tryname), "%strack%02u%s", path[ip], tracknum, ext[ie]);
+#endif
 						d = COM_FDepthFile(tryname, false);
 						if (d < bestdepth)
 						{

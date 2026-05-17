@@ -1018,7 +1018,11 @@ void QCBUILTIN PF_cl_sprint (pubprogfuncs_t *prinst, struct globalvars_s *pr_glo
 #ifndef CLIENTONLY
 	int clientnum = G_FLOAT(OFS_PARM0);
 	const char *str = PF_VarString(prinst, 1, pr_globals);
+#ifdef TEMPORALCORTEX
+	if (sv.active && clientnum < sv.allocated_client_slots + tc_cl_loaded_bsps && svs.clients[clientnum].state >= cs_connected)
+#else
 	if (sv.active && clientnum < sv.allocated_client_slots && svs.clients[clientnum].state >= cs_connected)
+#endif
 		SV_PrintToClient(&svs.clients[clientnum], PRINT_HIGH, str);
 #endif
 }

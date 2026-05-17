@@ -1491,6 +1491,11 @@ enum {
 
 	TE_BLOOD			= 12,
 	TE_LIGHTNINGBLOOD	= 13,
+#ifdef TEMPORALCORTEX
+	TE_TC_BULLET		= 200,
+	TE_TC_SUPERBULLET	= 201,
+	TE_TC_GRAPPLING_HOOK	= 202,
+#endif
 };
 static void ParseTempEntity(sv_t *tv, netmsg_t *m, int to, unsigned int mask)
 {
@@ -1589,6 +1594,16 @@ static void ParseTempEntity(sv_t *tv, netmsg_t *m, int to, unsigned int mask)
 		ReadCoord (m, tv->pext1);
 		//FIXME: generate svc_particle for nq
 		break;
+#ifdef TEMPORALCORTEX
+	case TE_TC_BULLET:
+	case TE_TC_SUPERBULLET:
+	case TE_TC_GRAPPLING_HOOK:
+		ReadCoord (m, tv->pext1);
+		ReadCoord (m, tv->pext1);
+		ReadCoord (m, tv->pext1);
+		dest |= NQ;
+		break;
+#endif
 	default:
 		Sys_Printf(tv->cluster, "temp entity %i not recognised\n", i);
 		return;

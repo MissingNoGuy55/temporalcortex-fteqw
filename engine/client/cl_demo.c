@@ -43,6 +43,15 @@ static int demopreparsedbytes;	//number of bytes within the valid buffer that ha
 qboolean disablepreparse;
 qboolean endofdemo;
 
+#ifdef TEMPORALCORTEX
+qboolean endoftemporalcache;
+qboolean disablepreparse_cache;
+static unsigned char cachebuffer[1024*66];
+static int cacheoffset;
+static int cachebuffersize;
+static int cachepreparsedbytes;
+#endif
+
 #define BUFFERTIME 0.5
 /*
 ==============================================================================
@@ -137,6 +146,125 @@ void CL_WriteDemoCmd (usercmd_t *pcmd)
 		VFS_FLUSH (cls.demooutfile);
 }
 
+#ifdef TEMPORALCORTEX
+/*
+====================
+CL_WriteDemoCmd
+
+Writes the player0 user cmd (demos don't support split screen)
+====================
+*/
+void CL_WriteTemporalCacheCmd (usercmd_t *pcmd)
+{
+	int		i;
+	float	fl;
+	qbyte	c;
+	q1usercmd_t cmd;
+
+	//nq doesn't have this info
+	if (cls.demorecording != DPB_QUAKEWORLD)
+		return;
+
+//Con_Printf("write: %ld bytes, %4.4f\n", msg->cursize, demtime);
+
+	fl = LittleFloat(Sys_DoubleTime());
+	VFS_WRITE (cls.temporalcacheoutfile, &fl, sizeof(fl));
+
+	c = dem_cmd;
+	VFS_WRITE (cls.temporalcacheoutfile, &c, sizeof(c));
+
+	// correct for byte order, bytes don't matter
+
+	cmd.buttons = pcmd->buttons;
+	cmd.impulse = pcmd->impulse;
+	cmd.msec = pcmd->msec;
+
+	for (i = 0; i < 3; i++)
+		cmd.angles[i] = LittleShort((pcmd->angles[i]*360.0)/65535);
+
+	cmd.forwardmove = LittleShort(pcmd->forwardmove);
+	cmd.sidemove    = LittleShort(pcmd->sidemove);
+	cmd.upmove      = LittleShort(pcmd->upmove);
+
+	VFS_WRITE (cls.temporalcacheoutfile, &cmd, sizeof(cmd));
+
+	for (i=0 ; i<3 ; i++)
+	{
+		fl = LittleFloat (cl.playerview[0].viewangles[i]);
+		VFS_WRITE (cls.temporalcacheoutfile, &fl, 4);
+	}
+
+	if (record_flush.ival)
+		VFS_FLUSH (cls.temporalcacheoutfile);
+}
+#endif
+
+int demo_preparsedemo(unsigned char *buffer, int bytes)
+{
+	int parsed = 0;
+	int ofs;
+	unsigned int length;
+#define dem_mask 7
+	if (cls.demoplayback != DPB_MVD)
+		return bytes;	//no need if its not an mvd (this simplifies it a little)
+
+	while (bytes>2)
+	{
+		switch(buffer[1]&dem_mask)
+		{
+		case dem_cmd:
+			ofs = -(int)(sizeof(q1usercmd_t));
+			ofs = 0;
+			break;
+		case dem_set:
+			ofs = -(8);
+			break;
+		case dem_multiple:
+			ofs = 6;
+			break;
+		default:
+			ofs = 2;
+			break;
+		}
+		if (ofs > 0)
+		{
+			if (ofs+4 > bytes)
+				break;
+			length = (buffer[ofs+0]<<0) + (buffer[ofs+1]<<8) + (buffer[ofs+2]<<16) + (buffer[ofs+3]<<24);
+			if (length > MAX_OVERALLMSGLEN)
+			{
+				disablepreparse = true;
+				Con_Printf("Error looking ahead at demo\n");
+				return parsed;
+			}
+			ofs+=4;
+		}
+		else
+		{
+			length = -ofs;
+			ofs = 2;
+		}
+		//ofs is now the offset of the data
+		if (ofs+length > bytes)
+		{
+			return parsed; //not got it all
+		}
+		if ((buffer[1]&dem_mask) == dem_all && (buffer[1] & ~dem_mask) && length < MAX_OVERALLMSGLEN)
+		{
+			net_message.cursize = length;
+			memcpy(net_message.data, buffer+ofs, length);
+			MSG_BeginReading(&net_message, cls.netchan.netprim);
+			CLQW_ParseServerMessage();
+		}
+
+		parsed += ofs+length;
+		buffer += ofs+length;
+		bytes -= ofs+length;
+	}
+
+	return parsed;
+}
+
 /*
 ====================
 CL_WriteDemoMessage
@@ -209,15 +337,88 @@ void CL_WriteDemoMessage (sizebuf_t *msg, int payloadoffset)
 	if (record_flush.ival)
 		VFS_FLUSH (cls.demooutfile);
 }
+#ifdef TEMPORALCORTEX
+/*
+====================
+CL_WriteTemporalCache
 
-int demo_preparsedemo(unsigned char *buffer, int bytes)
+Dumps the current net message, prefixed by the length and view angles
+====================
+*/
+void CL_WriteTemporalCache (sizebuf_t *msg, int payloadoffset)
+{
+	int		len;
+	int		i;
+	float	fl;
+	qbyte	c;
+
+//Con_Printf("write: %ld bytes, %4.4f\n", msg->cursize, demtime);
+
+	switch (cls.protocol)
+	{
+	default:
+		return;
+	case CP_QUAKEWORLD:	//QW
+		fl = LittleFloat(Sys_DoubleTime());
+		VFS_WRITE (cls.temporalcacheoutfile, &fl, sizeof(fl));
+
+		c = dem_read;
+		VFS_WRITE (cls.temporalcacheoutfile, &c, sizeof(c));
+
+		if (*(int*)msg->data == -1 && payloadoffset==0)
+		{
+			//connectionless packet.
+			len = LittleLong (msg->cursize);
+			VFS_WRITE (cls.temporalcacheoutfile, &len, 4);
+			VFS_WRITE (cls.temporalcacheoutfile, msg->data + payloadoffset, msg->cursize - payloadoffset);
+		}
+		else
+		{
+			//regenerate a legacy netchan. no fragmentation support, but whatever. this ain't udp.
+			//the length
+			len = LittleLong (msg->cursize - payloadoffset + 8);
+			VFS_WRITE (cls.temporalcacheoutfile, &len, 4);
+			//hack the netchan here.
+			i = cls.netchan.incoming_sequence;
+			VFS_WRITE (cls.temporalcacheoutfile, &i, 4);
+			i = cls.netchan.incoming_acknowledged;
+			VFS_WRITE (cls.temporalcacheoutfile, &i, 4);
+			//and the data
+			VFS_WRITE (cls.temporalcacheoutfile, msg->data + payloadoffset, msg->cursize - payloadoffset);
+		}
+		break;
+#ifdef Q2CLIENT
+	case CP_QUAKE2:
+		len = LittleLong (net_message.cursize - payloadoffset);
+		VFS_WRITE(cls.temporalcacheoutfile, &len, sizeof(len));
+		VFS_WRITE(cls.temporalcacheoutfile, net_message.data + payloadoffset, net_message.cursize - payloadoffset);
+		break;
+#endif
+#ifdef NQPROT
+	case CP_NETQUAKE:	//NQ
+		len = LittleLong (net_message.cursize - payloadoffset);
+		VFS_WRITE(cls.temporalcacheoutfile, &len, sizeof(len));
+		for (i=0 ; i<3 ; i++)
+		{
+			float f = LittleFloat (cl.playerview[0].viewangles[i]);
+			VFS_WRITE(cls.temporalcacheoutfile, &f, sizeof(f));
+		}
+		VFS_WRITE(cls.temporalcacheoutfile, net_message.data + payloadoffset, net_message.cursize - payloadoffset);
+		break;
+#endif
+	}
+	if (record_flush.ival)
+		VFS_FLUSH (cls.temporalcacheoutfile);
+}
+#endif
+#ifdef TEMPORALCORTEX
+
+int temporalcache_preparsecache(unsigned char *buffer, int bytes)
 {
 	int parsed = 0;
 	int ofs;
 	unsigned int length;
 #define dem_mask 7
-	if (cls.demoplayback != DPB_MVD)
-		return bytes;	//no need if its not an mvd (this simplifies it a little)
 
 	while (bytes>2)
 	{
@@ -276,6 +477,61 @@ int demo_preparsedemo(unsigned char *buffer, int bytes)
 	return parsed;
 }
 
+int readtemporalcachebytes(int *readpos, void *data, int len)
+{
+	int i;
+	int trybytes;
+	if (len < 0)
+		Host_EndGame("Corrupt temporal cache");
+
+	//if there's not enough space in the buffer, flush it now and allow grabbing a new chunk
+	//try to ensure it happens periodically enough for the preparsing stuff to happen early.
+	if (cacheoffset+*readpos+len > cachebuffersize || cacheoffset > sizeof(cachebuffer)/2)
+	{
+		memmove(cachebuffer, cachebuffer+cacheoffset, cachebuffersize);
+		cacheoffset = 0;
+	}
+
+	if (cachepreparsedbytes < 0)	//won't happen in normal running, but can still happen on corrupt data... if we don't disconnect first.
+	{
+		Con_Printf("reset preparsed (underflow)\n");
+		cachepreparsedbytes = 0;
+	}
+	if (cachepreparsedbytes > cachebuffersize)
+	{
+		Con_Printf("reset preparsed (overflow)\n");
+		cachepreparsedbytes = 0;
+	}
+
+	trybytes = sizeof(cachebuffer)-cacheoffset-cachebuffersize;
+	if (trybytes > 4096)
+		i = VFS_READ(cls.temporalcacheinfile, cachebuffer+cacheoffset+cachebuffersize, trybytes);
+	else
+		i = 0;
+	if (i > 0)
+	{
+		cachebuffersize += i;
+		if (disablepreparse_cache)
+			cachepreparsedbytes = cachebuffersize;
+		else
+			cachepreparsedbytes += temporalcache_preparsecache(cachebuffer+cacheoffset+cachepreparsedbytes, cachebuffersize-cachepreparsedbytes);
+	}
+
+	if (*readpos+len > cachebuffersize)
+	{
+		if (i < 0 || (i == 0 && len && cls.temporalcacheinfile->seekstyle < SS_SLOW))
+		{	//0 means no data available yet, don't error on that (unless we can seek, in which case its not a stream and we won't get any more data later on).
+			endoftemporalcache = true;
+			return 0;
+		}
+//		len = demobuffersize;
+		return 0;
+	}
+	memcpy(data, cachebuffer+cacheoffset+*readpos, len);
+	*readpos += len;
+	return len;
+}
+#endif
 int readdemobytes(int *readpos, void *data, int len)
 {
 	int i;
@@ -368,6 +624,46 @@ void demo_resetcache(int bytes, void *data)
 	bytes = 0;
 	readdemobytes(&bytes, NULL, 0);
 }
+
+#ifdef TEMPORALCORTEX
+void temporalcache_flushbytes(int bytes)
+{
+	if (cacheoffset+bytes > cachebuffersize)
+		Sys_Error("temporalcache_flushbytes: flushed too much!\n");
+	cacheoffset += bytes;
+	cachebuffersize -= bytes;
+
+	if (cachepreparsedbytes < bytes)
+		cachepreparsedbytes = 0;
+	else
+		cachepreparsedbytes -= bytes;
+}
+
+void temporalcache_flushcache(void)
+{
+	cacheoffset = 0;
+	cachebuffersize = 0;
+	cachepreparsedbytes = 0;
+
+	//no errors yet
+	disablepreparse_cache = false;
+}
+
+void temporalcache_resetcache(int bytes, void *data)
+{
+	endoftemporalcache = false;
+	temporalcache_flushcache();
+
+	cacheoffset = 0;
+	cachebuffersize = bytes;
+	cachepreparsedbytes = 0;
+	memcpy(cachebuffer, data, bytes);
+
+	//preparse it now
+	bytes = 0;
+	readtemporalcachebytes(&bytes, NULL, 0);
+}
+#endif
 
 
 void CL_ProgressDemoTime(void)
@@ -564,7 +860,11 @@ qboolean CL_GetDemoMessage (void)
 	{	//read the nq demo
 
 		//if we've finished reading the connection part of the demo, but not finished loading, pause the demo
-		if (cls.signon == 1 && !cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+		if (cls.signon == 1 && !cl.worldmodel[cl_current_bsp_index])
+#else
+		if (cls.signon == 1 && !cl.worldmodel)
+#endif
 		{
 			demtime = cl.gametime;
 			return 0;
@@ -1026,6 +1326,448 @@ readit:
 	return 1;
 }
 
+#ifdef TEMPORALCORTEX
+/*
+====================
+CL_GetTemporalCacheMessage
+
+  FIXME...
+====================
+*/
+
+vec3_t cacheangles;
+qboolean CL_GetTemporalCacheMessage (void)
+{
+	int		r, i, j, tracknum;
+	float	f;
+	float	demotime;
+	qbyte	c;
+	usercmd_t *pcmd;
+	q1usercmd_t q1cmd;
+	int demopos = 0;
+	int msglength;
+	static float throttle;
+	static qboolean newseq;
+
+	if (endoftemporalcache)
+	{
+		endoftemporalcache = false;
+
+		return 0;
+	}
+
+#ifdef NQPROT
+	if (cls.protocol == CP_NETQUAKE
+#ifdef Q2CLIENT
+		|| cls.protocol == CP_QUAKE2
+#endif
+		)
+	{	//read the nq demo
+
+		//if we've finished reading the connection part of the demo, but not finished loading, pause the demo
+#ifdef TEMPORALCORTEX
+		if (cls.signon == 1 && !cl.worldmodel[cl_current_bsp_index])
+#else
+		if (cls.signon == 1 && !cl.worldmodel)
+#endif
+		{
+			demtime = cl.gametime;
+			return 0;
+		}
+
+		//if this is the starting frame of a timedemo
+		if (cls.timedemo)
+		if (cls.td_startframe == -1 && cls.state == ca_active)
+		{	//start the timer only once we are connected.
+			//make sure everything is loaded, to avoid stalls
+
+			Menu_PopAll();
+			COM_WorkerFullSync();
+
+			cls.td_starttime = Sys_DoubleTime();
+			cls.td_startframe = host_framecount;
+
+			//force the console up, we're done loading.
+			Key_Dest_Remove(kdm_console);
+			scr_con_current = 0;
+		}
+
+#ifdef Q2CLIENT
+		//q2 uses a fixed 10fps packet rate, even demos enforce it.
+		if (cls.protocol == CP_QUAKE2)
+		{
+			if (cls.timedemo)
+			{
+				if (demoframe == host_framecount)
+					return 0;
+				demoframe = host_framecount;
+			}
+#if 1
+			else if (demtime < cl.gametime && cl.gametime)
+			{
+				if (demtime <= cl.gametime-1)
+					demtime = cl.gametime;
+				return 0;
+			}
+#else
+			else if (cls.netchan.last_received == realtime || cls.netchan.last_received > realtime-0.1)
+				return 0;
+#endif
+		}
+		else
+#endif
+			if (cls.protocol == CP_NETQUAKE && cls.signon == 4/*SIGNONS*/)
+		{
+			/*if (!demtime)
+			{
+				cl.gametime = 0;
+				cl.gametimemark = demtime;
+				olddemotime = 0;
+				return 0;
+			}*/
+			cls.netchan.last_received = realtime;
+			if (cls.demoseeking == DEMOSEEK_TIME)
+			{
+				if (cl.gametime > cls.demoseektime)
+				{
+					cls.demoseeking = DEMOSEEK_NOT;
+					return 0;
+				}
+			}
+			else if (cl.demonudge > 0)
+				cl.demonudge--;
+			else if ((cls.timedemo && host_framecount == demoframe) || (!cls.timedemo && demtime < cl.gametime && cl.gametime))// > dem_lasttime+demtime)
+			{
+				if (demtime <= cl.gametime-1)
+					demtime = cl.gametime;
+				return 0;
+			}
+			demoframe = host_framecount;
+		}
+		else if (cls.signon < 4)
+			demtime = 0;
+		if (readtemporalcachebytes(&demopos, &msglength, 4) != 4)
+		{
+			return 0;
+		}
+		msglength = LittleLong (msglength);
+		if (msglength == -1)
+		{
+			int tmppos = demopos;
+			//q2 writes a length of -1 to mark eof. if this peek fails then it really is eof and we shouldn't fail from weird message length checks.
+			if (readtemporalcachebytes(&tmppos, &msglength, 4) != 4)
+			{
+				endofdemo = true;
+				return 0;
+			}
+		}
+		if (cls.protocol == CP_NETQUAKE)
+		{
+			for (i=0 ; i<3 ; i++)
+			{
+				readtemporalcachebytes(&demopos, &f, 4);
+				demoangles[i] = LittleFloat (f);
+			}
+		}
+
+		olddemotime = demtime;
+
+		if (msglength > net_message.maxsize)
+		{
+			Con_Printf ("Demo message > MAX_MSGLEN\n");
+			CL_StopPlayback ();
+			return 0;
+		}
+		if (readtemporalcachebytes(&demopos, net_message.data, msglength) != msglength)
+		{
+			return 0;
+		}
+		temporalcache_flushbytes(demopos);
+		NET_UpdateRates(cls.sockets, true, msglength);	//keep any rate calcs sane
+		net_message.cursize = msglength;
+
+		return 1;
+	}
+#endif
+
+readnext:
+	if (demopos)
+	{
+		temporalcache_flushbytes(demopos);
+		demopos = 0;
+	}
+
+	if (cls.protocol == CP_QUAKEWORLD)
+	{
+		if (readtemporalcachebytes(&demopos, &demotime, sizeof(demotime)) != sizeof(demotime))
+		{
+			Con_ThrottlePrintf(&throttle, 1, "Not enough buffered\n");
+			olddemotime = demtime;	//if we ran out of buffered demo, delay the demo parsing a little
+			return 0;
+		}
+		demotime = LittleFloat(demotime);
+	}
+	else
+		return 0;
+
+	if (cl.sendprespawn)
+	{
+		CL_RequestNextDownload();
+		if (!cls.timedemo)
+			return 0;
+	}
+
+
+// decide if it is time to grab the next message
+	if ( rewinding )
+	{
+		demtime = demotime;	//warp
+		if (cls.demoseeking == DEMOSEEK_TIME && demtime >= cls.demoseektime)
+			cls.demoseeking = DEMOSEEK_NOT;
+	}
+
+	if (!(cl.paused&~4) && cls.state >= ca_onserver)
+	{	// always grab until fully connected
+		if (demtime + 1.0 < demotime)
+		{
+			// too far back
+			demtime = demotime - 1.0;
+			return 0;
+		}
+		else if (demtime < demotime)
+		{
+			return 0;		// don't need another message yet
+		}
+	}
+	else
+		demtime = demotime; // we're warping
+
+	if (cls.state != ca_active)
+		Host_Error ("CL_GetDemoMessage: cls.state != ca_active");
+
+	// get the msg type
+	if (readtemporalcachebytes (&demopos, &c, sizeof(c)) != sizeof(c))
+	{
+		Con_ThrottlePrintf(&throttle, 1, "Not enough buffered\n");
+		olddemotime = demtime+1;
+		return 0;
+	}
+	switch (c&7)
+	{
+	case dem_cmd :
+		if (cls.demoplayback == DPB_MVD)
+		{
+			Con_Printf("mvd demos/qtv streams should not contain dem_cmd\n");
+			olddemotime = demtime+1;
+			CL_StopPlayback ();
+			return 0;
+		}
+		else
+		{
+			// user sent input
+			i = cl.movesequence & UPDATE_MASK;
+			pcmd = &cl.outframes[i].cmd[0];
+			r = readtemporalcachebytes (&demopos, &q1cmd, sizeof(q1cmd));
+			if (r != sizeof(q1cmd))
+			{
+				Con_ThrottlePrintf(&throttle, 1, "Not enough buffered\n");
+				olddemotime = demtime+1;
+				CL_StopPlayback ();
+				return 0;
+			}
+			// byte order stuff
+			for (j = 0; j < 3; j++)
+			{
+				q1cmd.angles[j] = LittleFloat(q1cmd.angles[j]);
+				pcmd->angles[j] = ((int)(q1cmd.angles[j]*65536.0/360)&65535);
+			}
+			pcmd->forwardmove = q1cmd.forwardmove	= LittleShort(q1cmd.forwardmove);
+			pcmd->sidemove = q1cmd.sidemove			= LittleShort(q1cmd.sidemove);
+			pcmd->upmove = q1cmd.upmove				= LittleShort(q1cmd.upmove);
+			pcmd->msec = q1cmd.msec;
+			pcmd->buttons = q1cmd.buttons;
+
+
+			cl.outframes[i].senttime = realtime;
+			cl.outframes[i].server_message_num = cl.validsequence;
+			cl.outframes[i].cmd_sequence = cl.movesequence;
+			cls.netchan.outgoing_sequence++;
+			cl.movesequence = cls.netchan.outgoing_sequence;
+			for (i=0 ; i<3 ; i++)
+			{
+				readtemporalcachebytes (&demopos, &f, 4);
+				demoangles[i] = LittleFloat (f);
+				cl.playerview[0].viewangles[i] = LittleFloat (f);
+			}
+			goto readnext;
+		}
+		break;
+
+	case dem_read:
+readit:
+		// get the next message
+		if (readtemporalcachebytes (&demopos, &msglength, 4) != 4)
+		{
+			Con_ThrottlePrintf(&throttle, 1, "Not enough buffered\n");
+			olddemotime = demtime+1;
+			return 0;
+		}
+		msglength = LittleLong (msglength);
+	//Con_Printf("read: %ld bytes\n", msglength);
+		if ((unsigned int)msglength > MAX_OVERALLMSGLEN)
+		{
+			Con_Printf ("Demo message > MAX_OVERALLMSGLEN\n");
+			CL_StopPlayback ();
+			return 0;
+		}
+		if (readtemporalcachebytes (&demopos, net_message.data, msglength) != msglength)
+		{
+			Con_ThrottlePrintf(&throttle, 1, "Not enough buffered\n");
+			olddemotime = demtime+1;
+			return 0;
+		}
+		NET_UpdateRates(cls.sockets, true, msglength);	//keep any rate calcs sane
+		net_message.cursize = msglength;
+
+		if (cls.demoplayback == DPB_MVD)
+		{
+			int seat;
+			cl.defaultnetsplit = 0;
+			switch(cls_lasttype)
+			{
+			case dem_multiple:
+				if (!cls_lastto && (cls.ezprotocolextensions1 & EZPEXT1_HIDDEN_MESSAGES))
+				{	//an 'mvdsv hidden message' packet.
+					MSG_BeginReading(&net_message, cls.netchan.netprim);
+					CLEZ_ParseHiddenDemoMessage();
+					olddemotime = demotime;
+					goto readnext;
+				}
+				for (seat = 0; seat < cl.splitclients; seat++)
+				{
+					tracknum = cl.playerview[seat].cam_spec_track;
+					if (cl.playerview[seat].cam_state == CAM_FREECAM)
+						tracknum = -1;
+					if (tracknum == -1 || !(cls_lastto & (1 << tracknum)))
+						continue;
+				}
+				if (seat == cl.splitclients)
+				{
+					olddemotime = demotime;
+					goto readnext;
+				}
+				cl.defaultnetsplit = seat;
+				break;
+			case dem_single:
+				{
+					int maxseat = cl.splitclients;
+					//only accept single messages that are directed to the first player view.
+					//this is too problematic otherwise (apparently mvdsv doesn't use dem_multiple for team says any more).
+					if (1)
+						maxseat = 1;
+					for (seat = 0; seat < maxseat; seat++)
+					{
+						tracknum = cl.playerview[seat].cam_spec_track;
+						if (cl.playerview[seat].cam_state == CAM_FREECAM)
+							tracknum = -1;
+						if (tracknum == -1 || (cls_lastto != tracknum))
+							continue;
+						break;
+					}
+					if (seat == maxseat)
+					{
+						olddemotime = demotime;
+						goto readnext;
+					}
+					cl.defaultnetsplit = seat;
+				}
+				break;
+			case dem_all:
+				if (c & ~dem_mask)
+				{
+					olddemotime = demotime;
+					goto readnext;
+				}
+				break;
+			}
+		}
+		break;
+
+	case dem_set:
+		if (readtemporalcachebytes (&demopos, &j, 4) != 4)
+		{
+			olddemotime = demtime;
+			return 0;
+		}
+		if (readtemporalcachebytes (&demopos, &i, 4) != 4)
+		{
+			olddemotime = demtime;
+			return 0;
+		}
+		cls.demostarttime = demtime;
+		cls.netchan.outgoing_sequence = LittleLong(j);
+		cls.netchan.incoming_sequence = LittleLong(i);
+		cl.movesequence = cls.netchan.outgoing_sequence;
+
+		NET_UpdateRates(cls.sockets, false, demopos);	//keep any rate calcs sane
+
+		if (cls.demoplayback == DPB_MVD)
+			cls.netchan.incoming_acknowledged = cls.netchan.incoming_sequence;
+		goto readnext;
+
+	case dem_multiple:
+		if (readtemporalcachebytes (&demopos, &i, sizeof(i)) != sizeof(i))
+		{
+			olddemotime = demtime;
+			return 0;
+		}
+		cls_lastto = LittleLong(i);
+		cls_lasttype = dem_multiple;
+		goto readit;
+
+	case dem_single:
+		cls_lastto = c >> 3;
+		cls_lasttype = dem_single;
+		goto readit;
+
+	case dem_stats:
+		cls_lastto = c >> 3;
+		cls_lasttype = dem_stats;
+		goto readit;
+
+	case dem_all:
+		cls_lastto = 0;
+		cls_lasttype = dem_all;
+		goto readit;
+
+	default :
+		Con_Printf("Corrupted demo.\n");
+		CL_StopPlayback ();
+		return 0;
+	}
+	temporalcache_flushbytes(demopos);
+
+	if (cls.demoplayback == DPB_MVD)
+	{
+		if (/*(msecsadded || cls.netchan.incoming_sequence < 2) && olddemotime != demotime ||*/ newseq)
+		{
+			newseq = false;
+			if (!(cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+			{
+				cls.netchan.incoming_sequence++;
+				cls.netchan.incoming_acknowledged++;
+			}
+			cls.netchan.frame_latency = 0;
+			cls.netchan.last_received = realtime; // just to happy timeout check
+		}
+	}
+
+	olddemotime = demotime;
+	net_from.type = NA_INVALID;
+	return 1;
+}
+#endif
+
 /*
 ====================
 CL_Stop_f
@@ -1133,6 +1875,85 @@ void CL_WriteRecordDemoMessage (sizebuf_t *msg, int seq)
 		VFS_FLUSH (cls.demooutfile);
 }
 
+#ifdef TEMPORALCORTEX
+/*
+====================
+CL_WriteRecordTemporalCacheMessage
+
+Dumps the specified net message as part of initial mid-map demo writing.
+====================
+*/
+void CL_WriteRecordTemporalCacheMessage (sizebuf_t *msg, int seq)
+{
+	int		len;
+	int		i;
+	float	fl;
+	qbyte	c;
+
+	// Missi: Yes, I commented this out (2025.12.30)
+	//if (!cls.demorecording)
+		//return;
+
+#ifdef NQPROT
+	if (cls.protocol == CP_NETQUAKE)
+	{
+		len = LittleLong (msg->cursize);
+		VFS_WRITE(cls.temporalcacheoutfile, &len, sizeof(len));
+		for (i=0 ; i<3 ; i++)
+		{
+			float f = LittleFloat (cl.playerview[0].viewangles[i]);
+			VFS_WRITE(cls.temporalcacheoutfile, &f, sizeof(f));
+		}
+	}
+	else
+#endif
+	{
+		fl = LittleFloat(Sys_DoubleTime());
+		VFS_WRITE (cls.temporalcacheoutfile, &fl, sizeof(fl));
+
+		c = dem_read;
+		VFS_WRITE (cls.temporalcacheoutfile, &c, sizeof(c));
+
+		len = LittleLong (msg->cursize + 8);
+		VFS_WRITE (cls.temporalcacheoutfile, &len, 4);
+
+		i = LittleLong(seq);
+		VFS_WRITE (cls.temporalcacheoutfile, &i, 4);
+		VFS_WRITE (cls.temporalcacheoutfile, &i, 4);
+	}
+	VFS_WRITE (cls.temporalcacheoutfile, msg->data, msg->cursize);
+
+	SZ_Clear(msg);
+
+	if (record_flush.ival)
+		VFS_FLUSH (cls.temporalcacheoutfile);
+}
+void CLTC_WriteSetTemporalCacheMessage (void)
+{
+	int		len;
+	float	fl;
+	qbyte	c;
+
+//Con_Printf("write: %ld bytes, %4.4f\n", msg->cursize, demtime);
+
+	if ( !rewinding )
+		return;
+
+	fl = LittleFloat(Sys_DoubleTime());
+	VFS_WRITE (cls.temporalcacheoutfile, &fl, sizeof(fl));
+
+	c = dem_set;
+	VFS_WRITE (cls.temporalcacheoutfile, &c, sizeof(c));
+
+	len = LittleLong(cls.netchan.outgoing_sequence);
+	VFS_WRITE (cls.temporalcacheoutfile, &len, 4);
+	len = LittleLong(cls.netchan.incoming_sequence);
+	VFS_WRITE (cls.temporalcacheoutfile, &len, 4);
+
+	if (record_flush.ival)
+		VFS_FLUSH (cls.temporalcacheoutfile);
+}
+#endif
 
 void CL_WriteSetDemoMessage (void)
 {
@@ -1299,7 +2120,10 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 
 	// send full levelname
 	MSG_WriteString (buf, cl.levelname);
-
+#ifdef TEMPORALCORTEX
+	// Missi: Send full mapname (2026.1.6)
+	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+#endif
 	// send the movevars
 	MSG_WriteFloat(buf, movevars.gravity);
 	MSG_WriteFloat(buf, movevars.stopspeed);
@@ -1364,6 +2188,130 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 	}
 	InfoSync_Clear(&sync);
 }
+
+#ifdef TEMPORALCORTEX
+// Missi: Time dilation shenanigans (2025.12.23)
+void CLQW_RecordServerData_Reverse(sizebuf_t *buf, int *seq)
+{
+	extern	char gamedirfile[];
+	unsigned int i;
+	infosync_t sync;
+	char serverinfostring[1024];
+
+// send the serverdata
+	MSG_WriteByte (buf, svc_serverdata);
+	if (cls.fteprotocolextensions&~PEXT1_HIDEPROTOCOLS)	//maintain demo compatability
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_FTE1);
+		MSG_WriteLong (buf, cls.fteprotocolextensions&~PEXT1_HIDEPROTOCOLS);
+	}
+	if (cls.fteprotocolextensions2)	//maintain demo compatability
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_FTE2);
+		MSG_WriteLong (buf, cls.fteprotocolextensions2);
+	}
+	if (cls.ezprotocolextensions1)
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_EZQUAKE1);
+		MSG_WriteLong (buf, cls.ezprotocolextensions1);
+	}
+	MSG_WriteLong (buf, PROTOCOL_VERSION_QW);
+	MSG_WriteLong (buf, cl.servercount);
+	MSG_WriteString (buf, gamedirfile);
+
+	if (cls.fteprotocolextensions2 & PEXT2_MAXPLAYERS)
+	{
+		MSG_WriteByte (buf, cl.allocated_client_slots);
+		MSG_WriteByte (buf, cl.splitclients);
+		for (i = 0; i < cl.splitclients; i++)
+			MSG_WriteByte (buf, cl.playerview[i].playernum);
+	}
+	else
+	{
+		for (i = 0; i < cl.splitclients; i++)
+		{
+			if (cl.playerview[i].spectator)
+				MSG_WriteByte (buf, cl.playerview[i].playernum | 128);
+			else
+				MSG_WriteByte (buf, cl.playerview[i].playernum);
+		}
+		if (cls.fteprotocolextensions & PEXT_SPLITSCREEN)
+			MSG_WriteByte (buf, 128);
+	}
+
+	// send full levelname
+	MSG_WriteString (buf, cl.levelname);
+
+#ifdef TEMPORALCORTEX
+	// Missi: Send full mapname (2026.1.6)
+	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+#endif
+
+	// send the movevars
+	MSG_WriteFloat(buf, movevars.gravity);
+	MSG_WriteFloat(buf, movevars.stopspeed);
+	MSG_WriteFloat(buf, movevars.maxspeed);
+	MSG_WriteFloat(buf, movevars.spectatormaxspeed);
+	MSG_WriteFloat(buf, movevars.accelerate);
+	MSG_WriteFloat(buf, movevars.airaccelerate);
+	MSG_WriteFloat(buf, movevars.wateraccelerate);
+	MSG_WriteFloat(buf, movevars.friction);
+	MSG_WriteFloat(buf, movevars.waterfriction);
+	MSG_WriteFloat(buf, movevars.entgravity);
+
+	// send server info string
+	memset(&sync, 0, sizeof(sync));
+	InfoBuf_ToString(&cl.serverinfo, serverinfostring, sizeof(serverinfostring), NULL, NULL, NULL, &sync, NULL);
+	MSG_WriteByte (buf, svc_stufftext);
+	MSG_WriteString (buf, va("fullserverinfo \"%s\"\n", serverinfostring));
+	while(sync.numkeys)
+	{
+		char *keyname = sync.keys[0].name;
+		char enckey[2048], encdata[2048];
+		if (InfoBuf_EncodeString(keyname,strlen(keyname), enckey, sizeof(enckey)))
+		{
+			size_t k;
+			if (InfoBuf_FindKey(&cl.serverinfo, keyname, &k))
+			{
+				size_t offset, chunk;
+				qboolean final;
+				for (offset = 0 ; offset < cl.serverinfo.keys[k].size; offset += chunk)
+				{
+					chunk = cl.serverinfo.keys[k].size - offset;
+					if (chunk > 1024)
+						chunk = 1024;
+
+					if (!InfoBuf_EncodeString(cl.serverinfo.keys[k].value, chunk, encdata, sizeof(encdata)))
+						break;	//shouldn't happen.
+
+					if (buf->cursize > 512)
+						CL_WriteRecordDemoMessage (buf, (*seq)++);
+
+					final = (offset+chunk == cl.serverinfo.keys[k].size) && !cl.serverinfo.keys[k].partial;
+					if (!offset && final)
+					{	//vanilla compat. we must just have a lot of data.
+						MSG_WriteByte(buf, svc_serverinfo);
+						MSG_WriteString(buf, enckey);
+						MSG_WriteString(buf, encdata);
+					}
+					else
+					{	//awkward stuff.
+						MSG_WriteByte(buf, svc_setinfo);
+						MSG_WriteByte(buf, 255); //special meaning to say that this is a partial update
+						MSG_WriteByte(buf, 255);	//the serverinfo
+						MSG_WriteLong(buf, (final?0x80000000:0)|offset);
+						MSG_WriteString(buf, enckey);
+						MSG_WriteString(buf, encdata);
+					}
+					offset += chunk;
+				}
+			}
+		}
+		InfoSync_Remove(&sync, 0);
+	}
+	InfoSync_Clear(&sync);
+}
+#endif
 
 #ifdef NQPROT
 void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
@@ -1441,12 +2389,27 @@ void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
 	MSG_WriteByte (buf, cl.deathmatch?GAME_DEATHMATCH:GAME_COOP);
 	MSG_WriteString (buf, cl.levelname);
 
+#ifdef TEMPORALCORTEX
+	// Missi: Send full mapname (2026.1.6)
+	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+#endif
+
+#ifdef TEMPORALCORTEX
+	for (i = 1; cl.model_name[cl_current_bsp_index][i] && i < MAX_PRECACHE_MODELS; i++)
+		MSG_WriteString (buf, cl.model_name[cl_current_bsp_index][i]);
+#else
 	for (i = 1; cl.model_name[i] && i < MAX_PRECACHE_MODELS; i++)
 		MSG_WriteString (buf, cl.model_name[i]);
+#endif
 	MSG_WriteByte (buf, 0);
 
+#ifdef TEMPORALCORTEX
+	for (i = 1; cl.sound_name[cl_current_bsp_index][i] && i < MAX_PRECACHE_SOUNDS ; i++)
+		MSG_WriteString (buf, cl.sound_name[cl_current_bsp_index][i]);
+#else
 	for (i = 1; cl.sound_name[i] && i < MAX_PRECACHE_SOUNDS ; i++)
 		MSG_WriteString (buf, cl.sound_name[i]);
+#endif
 	MSG_WriteByte (buf, 0);
 }
 #endif
@@ -1775,6 +2738,332 @@ static int CL_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq)
 	return seq;
 }
 
+#ifdef TEMPORALCORTEX
+void CLTC_Record_Baseline(sizebuf_t *buf, entity_state_t *state, unsigned int fitzbits)
+{
+	unsigned int j;
+	if (fitzbits & FITZ_B_LARGEMODEL)
+		MSG_WriteShort (buf, state->modelindex);
+	else
+		MSG_WriteByte (buf, state->modelindex);
+	if (fitzbits & FITZ_B_LARGEFRAME)
+		MSG_WriteShort (buf, state->frame);
+	else
+		MSG_WriteByte (buf, state->frame);
+	MSG_WriteByte (buf, state->colormap);
+	MSG_WriteByte (buf, state->skinnum);
+	for (j=0 ; j<3 ; j++)
+	{
+		MSG_WriteCoord (buf, state->origin[j]);
+		MSG_WriteAngle (buf, state->angles[j]);
+	}
+
+	if (fitzbits & FITZ_B_ALPHA)
+		MSG_WriteByte(buf, state->trans);
+	if (fitzbits & RMQFITZ_B_SCALE)
+		MSG_WriteByte(buf, state->scale);
+}
+
+//nq+qw generic stuff.
+int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
+{
+	unsigned int i;
+	entity_state_t *es;
+
+	//particleeffectnum stuff
+	for (i = 1; i < MAX_SSPARTICLESPRE; i++)
+	{
+		if (!cl.particle_ssname[i])
+			break;
+		MSG_WriteByte(buf, svcfte_precache);
+		MSG_WriteShort(buf, PC_PARTICLE | i);
+		MSG_WriteString(buf, cl.particle_ssname[i]);
+
+		if (buf->cursize > buf->maxsize/2)
+			CL_WriteRecordTemporalCacheMessage (buf, seq++);
+	}
+
+	//custom tents (needed for hexen2, if nothing else)
+	for (i = 0; ; i++)
+	{
+		if (!CL_WriteCustomTEnt(buf, i))
+			break;
+
+		if (buf->cursize > buf->maxsize/2)
+			CL_WriteRecordTemporalCacheMessage (buf, seq++);
+	}
+
+// spawnstatic
+
+	for (i = 0; i < cl.num_statics; i++)
+	{
+		es = &cl_static_entities[i].state;
+
+#ifndef CLIENTONLY	//FIXME
+		if (cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS)
+		{
+			MSG_WriteByte(buf, svcfte_spawnstatic2);
+			SVFTE_EmitBaseline(es, false, buf, cls.fteprotocolextensions2, cls.ezprotocolextensions1);
+		}
+		//else if (cls.fteprotocolextensions & PEXT_SPAWNSTATIC2) //qw deltas
+		else
+#endif
+		{
+			unsigned int bits = 0;
+#ifdef NQPROT
+			if (es->modelindex > 255)
+				bits |= FITZ_B_LARGEMODEL;
+			if (es->frame > 255)
+				bits |= FITZ_B_LARGEFRAME;
+			if (es->trans != 255)
+				bits |= FITZ_B_ALPHA;
+			if (es->scale != 16)
+				bits |= RMQFITZ_B_SCALE;
+			if (cls.protocol == CP_NETQUAKE && CPNQ_IS_BJP)
+			{
+				MSG_WriteByte (buf, svc_spawnstatic);
+				bits = FITZ_B_LARGEMODEL;	//bjp always uses shorts for models.
+			}
+			else if (cls.protocol == CP_NETQUAKE && cls.protocol_nq == CPNQ_FITZ666 && bits)
+			{
+				MSG_WriteByte (buf, svcfitz_spawnstatic2);
+				MSG_WriteByte (buf, bits);
+			}
+//			else if (baselinetype2 >= CPNQ_DP5 && baselinetype2 <= CPNQ_DP7 && (bits & (FITZ_B_LARGEMODEL|FITZ_B_LARGEFRAME)))
+//			{
+//				MSG_WriteByte (buf, svcdp_spawnstatic2);
+//				bits = FITZ_B_LARGEMODEL|FITZ_B_LARGEFRAME;	//dp's baseline2 always has these (regular baseline is unmodified)
+//			}
+			else
+#endif
+			{
+				//classic protocol
+				MSG_WriteByte (buf, svc_spawnstatic);
+				bits = 0;
+			}
+			CLTC_Record_Baseline(buf, es, bits);
+		}
+
+		if (buf->cursize > buf->maxsize/2)
+			CL_WriteRecordTemporalCacheMessage (buf, seq++);
+	}
+
+// FIXME: static sounds
+	// static sounds are skipped in demos, life is hard
+
+// baselines
+
+	for (i = 0; i < cl_baselines_count; i++)
+	{
+		es = cl_baselines + i;
+
+		if (memcmp(es, &nullentitystate, sizeof(nullentitystate)))
+		{
+#ifndef CLIENTONLY	//FIXME
+			if (cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS)
+			{
+				MSG_WriteByte(buf, svcfte_spawnbaseline2);
+				SVFTE_EmitBaseline(es, true, buf, cls.fteprotocolextensions2, cls.ezprotocolextensions1);
+			}
+			//else if (cls.fteprotocolextensions & PEXT_SPAWNSTATIC2) //qw deltas
+			else
+#endif
+			{
+				unsigned int fitzbits = 0;	//must take some consistent form for this to work
+#ifdef NQPROT
+				if (es->modelindex > 255)
+					fitzbits |= FITZ_B_LARGEMODEL;
+				if (es->frame > 255)
+					fitzbits |= FITZ_B_LARGEFRAME;
+				if (es->trans != 255)
+					fitzbits |= FITZ_B_ALPHA;
+				if (es->scale != 16)
+					fitzbits |= RMQFITZ_B_SCALE;
+				if (cls.protocol == CP_NETQUAKE && CPNQ_IS_BJP)
+				{
+					MSG_WriteByte (buf, svc_spawnbaseline);
+					fitzbits = FITZ_B_LARGEMODEL;	//bjp always uses shorts for models.
+				}
+				else if (cls.protocol == CP_NETQUAKE && cls.protocol_nq == CPNQ_FITZ666 && fitzbits)
+				{
+					MSG_WriteByte (buf, svcfitz_spawnbaseline2);
+					MSG_WriteByte (buf, fitzbits);
+				}
+				else if (cls.protocol == CP_NETQUAKE && CPNQ_IS_DP && (fitzbits & (FITZ_B_LARGEMODEL|FITZ_B_LARGEFRAME)))
+				{
+					MSG_WriteByte (buf, svcdp_spawnbaseline2);
+					fitzbits = FITZ_B_LARGEMODEL|FITZ_B_LARGEFRAME;	//dp's baseline2 always has these (regular baseline is unmodified)
+				}
+				else
+#endif
+				{
+					MSG_WriteByte (buf,svc_spawnbaseline);
+					fitzbits = 0;
+				}
+				MSG_WriteEntity (buf, i);
+
+				CLTC_Record_Baseline(buf, es, fitzbits);
+			}
+			if (buf->cursize > buf->maxsize/2)
+				CL_WriteRecordTemporalCacheMessage (buf, seq++);
+		}
+	}
+
+	return seq;
+}
+int CLTC_Record_Lightstyles(sizebuf_t *buf, int seq)
+{
+	unsigned int i;
+// send all current light styles
+	for (i=0 ; i<cl_max_lightstyles ; i++)
+	{
+		if (i >= MAX_STANDARDLIGHTSTYLES)
+			if (!*cl_lightstyle[i].map)
+				continue;
+
+#ifdef PEXT_LIGHTSTYLECOL
+		if ((cls.fteprotocolextensions & PEXT_LIGHTSTYLECOL) && (cl_lightstyle[i].colours[0]!=1||cl_lightstyle[i].colours[1]!=1||cl_lightstyle[i].colours[2]!=1) && *cl_lightstyle[i].map)
+		{
+			MSG_WriteByte (buf, svcfte_lightstylecol);
+			MSG_WriteByte (buf, (unsigned char)i);
+			MSG_WriteByte (buf, 0x87);
+			MSG_WriteShort (buf, cl_lightstyle[i].colours[0]*1024);
+			MSG_WriteShort (buf, cl_lightstyle[i].colours[1]*1024);
+			MSG_WriteShort (buf, cl_lightstyle[i].colours[2]*1024);
+			MSG_WriteString (buf, cl_lightstyle[i].map);
+		}
+		else
+#endif
+		{
+			MSG_WriteByte (buf, svc_lightstyle);
+			MSG_WriteByte (buf, (unsigned char)i);
+			MSG_WriteString (buf, cl_lightstyle[i].map);
+		}
+
+		if (buf->cursize > buf->maxsize/2)
+			CL_WriteRecordTemporalCacheMessage (buf, seq++);
+	}
+	return seq;
+}
+
+// send current status of all other players
+int CLTC_RecordInitialPlayers(sizebuf_t *buf, int seq, qboolean isnq)
+{
+	char info[MAX_LOCALINFO_STRING];
+	player_info_t *player;
+	int i;
+	for (i = 0; i < cl.allocated_client_slots; i++)
+	{
+		player = cl.players + i;
+
+		if (buf->cursize > buf->maxsize/2)
+			CL_WriteRecordTemporalCacheMessage (buf, seq++);
+
+		if (player->frags != 0)
+		{
+			MSG_WriteByte (buf, svc_updatefrags);
+			MSG_WriteByte (buf, i);
+			MSG_WriteShort(buf, player->frags);
+		}
+		if (isnq)
+		{
+			if (!*player->name)
+				continue;
+			MSG_WriteByte (buf, svc_updatename);
+			MSG_WriteByte (buf, i);
+			MSG_WriteString (buf, player->name);
+
+			MSG_WriteByte (buf, svc_updatecolors);
+			MSG_WriteByte (buf, i);
+			MSG_WriteByte (buf, player->rtopcolor*16+player->rbottomcolor);
+		}
+		else
+		{
+			if (player->ping != 0)
+			{
+				MSG_WriteByte (buf, svc_updateping);
+				MSG_WriteByte (buf, i);
+				MSG_WriteShort (buf, player->ping);
+			}
+
+			if (player->pl != 0)
+			{
+				MSG_WriteByte (buf, svc_updatepl);
+				MSG_WriteByte (buf, i);
+				MSG_WriteByte (buf, player->pl);
+			}
+
+			if (player->userinfo.numkeys)
+			{
+				MSG_WriteByte (buf, svc_updateentertime);
+				MSG_WriteByte (buf, i);
+				MSG_WriteFloat (buf, realtime - player->realentertime);	//seconds since
+			}
+
+			if (player->userinfo.numkeys)
+			{
+				InfoBuf_ToString(&player->userinfo, info, min(buf->maxsize-buf->cursize-6, sizeof(info)), basicuserinfos, NULL, NULL, NULL, NULL);
+				MSG_WriteByte (buf, svc_updateuserinfo);
+				MSG_WriteByte (buf, i);
+				MSG_WriteLong (buf, player->userid);
+				MSG_WriteString (buf, info);
+
+				//spam svc_setinfo for all the infos that didn't fit.
+			}
+		}
+	}
+	return seq;
+}
+int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq)
+{
+	size_t seat, i;
+	for (seat = 0; seat < cl.splitclients; seat++)
+	{
+		//higher stats should be 0 and thus not be sent, if not valid.
+		for (i = 0; i < MAX_CL_STATS; i++)
+		{
+			if (cl.playerview[seat].stats[i] || cl.playerview[seat].statsf[i])
+			{
+				double fs = cl.playerview[seat].statsf[i];
+				double is = cl.playerview[seat].stats[i];
+				if (seat)
+				{
+					MSG_WriteByte (buf, svcfte_choosesplitclient);
+					MSG_WriteByte (buf, seat);
+				}
+				if ((int)fs == is)
+				{
+					MSG_WriteByte (buf, isnq?svcnq_updatestatlong:svcqw_updatestatlong);
+					MSG_WriteByte (buf, i);
+					MSG_WriteLong (buf, is);
+				}
+				else
+				{
+					MSG_WriteByte (buf, svcfte_updatestatfloat);
+					MSG_WriteByte (buf, i);
+					MSG_WriteLong (buf, fs);
+				}
+			}
+			if (cl.playerview[seat].statsstr[i])
+			{
+				if (seat)
+				{
+					MSG_WriteByte (buf, svcfte_choosesplitclient);
+					MSG_WriteByte (buf, seat);
+				}
+				MSG_WriteByte (buf, svcfte_updatestatstring);
+				MSG_WriteByte (buf, i);
+				MSG_WriteString (buf, cl.playerview[seat].statsstr[i]);
+			}
+
+			if (buf->cursize > buf->maxsize/2)
+				CL_WriteRecordTemporalCacheMessage (buf, seq++);
+		}
+	}
+	return seq;
+}
+#endif
+
 const char *Get_Q2ConfigString(int i);
 
 /*
@@ -1982,7 +3271,11 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, !!cl.paused);
 
 #ifdef PEXT_SETVIEW
-		if (cl.playerview[0].viewentity != cl.playerview[0].playernum+MAX_TIME_PERIODS)	//tell the player if we have a different view entity
+#ifdef TEMPORALCORTEX
+		if (cl.playerview[0].viewentity != cl.playerview[0].playernum+tc_cl_loaded_bsps)	//tell the player if we have a different view entity
+#else
+		if (cl.playerview[0].viewentity != cl.playerview[0].playernum+1)	//tell the player if we have a different view entity
+#endif
 		{
 			MSG_WriteByte (&buf, svc_setview);
 			MSG_WriteEntity (&buf, cl.playerview[0].viewentity);
@@ -1996,7 +3289,11 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, 0);
 
 		n = 0;
+#ifdef TEMPORALCORTEX
+		s = cl.sound_name[cl_current_bsp_index][n+1];
+#else
 		s = cl.sound_name[n+1];
+#endif
 		while (s && *s)
 		{
 			MSG_WriteString (&buf, s);
@@ -2018,7 +3315,11 @@ void CL_Record_f (void)
 				}
 			}
 			n++;
+#ifdef TEMPORALCORTEX
+			s = cl.sound_name[cl_current_bsp_index][n+1];
+#else
 			s = cl.sound_name[n+1];
+#endif
 		}
 		if (buf.cursize)
 		{
@@ -2034,7 +3335,11 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, 0);
 
 		n = 0;
+#ifdef TEMPORALCORTEX
+		s = cl.model_name[cl_current_bsp_index][n+1];
+#else
 		s = cl.model_name[n+1];
+#endif
 		while (s && *s)
 		{
 			MSG_WriteString (&buf, s);
@@ -2056,7 +3361,11 @@ void CL_Record_f (void)
 				}
 			}
 			n++;
+#ifdef TEMPORALCORTEX
+			s = cl.model_name[cl_current_bsp_index][n+1];
+#else
 			s = cl.model_name[n+1];
+#endif
 		}
 		if (buf.cursize)
 		{
@@ -2119,7 +3428,13 @@ void CL_Record_f (void)
 		}
 		else
 			MSG_WriteShort (&buf, cl.playerview[0].playernum);
+
 		MSG_WriteString (&buf, cl.levelname);
+
+#ifdef TEMPORALCORTEX
+		// Missi: Send full mapname (2026.1.6)
+		MSG_WriteString (&buf, cl.mapname[cl_current_bsp_index]);
+#endif
 
 		for (i = 0; i < Q2MAX_CONFIGSTRINGS; i++)
 		{

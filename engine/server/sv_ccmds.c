@@ -740,19 +740,20 @@ void SV_Map_f (void)
 	qboolean waschangelevel	= false;
 	qboolean mapeditor		= false;
 	qboolean forceCheats = false;
-	int i, t;
+	int i;
 	char *startspot;
-	char* suffix;
 	const char *cmd = Cmd_Argv(0);
-
+#ifdef TEMPORALCORTEX
+	char* suffix;
+	qboolean legacy = false;
+	int t;
+#endif
 #ifndef SERVERONLY
 	if (!Renderer_Started() && !isDedicated)
 	{
 		Cbuf_AddText(va("wait;%s %s\n", cmd, Cmd_Args()), Cmd_ExecLevel);
 		return;
 	}
-
-	tc_cl_loaded_bsps = 0;	// Missi (2025.9.19)
 #endif
 
 #ifdef SUBSERVERS
@@ -848,6 +849,7 @@ void SV_Map_f (void)
 		;//restart current - deprecated.
 	else
 	{
+#ifdef TEMPORALCORTEX
 		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
@@ -863,7 +865,12 @@ void SV_Map_f (void)
 					suffix = "_future";
 					break;
 			}
+#endif
+#ifdef TEMPORALCORTEX
 			snprintf (expanded, sizeof(expanded), "maps/%s%s.bsp", level, suffix); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
+#else
+			snprintf (expanded, sizeof(expanded), "maps/%s.bsp", level); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
+#endif
 			if (!COM_FCheckExists (level) && !COM_FCheckExists (expanded))
 			{
 				nextserver = strchr(level, '+');
@@ -873,7 +880,9 @@ void SV_Map_f (void)
 					nextserver++;
 				}
 			}
+#ifdef TEMPORALCORTEX
 		}
+#endif
 	}
 
 	if (startspot)
@@ -970,28 +979,108 @@ void SV_Map_f (void)
 	else
 #endif
 	{
-		char *exts[] = {"%s%s", "maps/%s%s", "maps/%s%s.bsp", "maps/%s%s.bsp.gz", "maps/%s%s.bsp.xz", "maps/%s%s.d3dbsp", "maps/%s%s.cm", "maps/%s%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
+#ifdef TEMPORALCORTEX
+		char *TC_exts[] = {"%s%s", "maps/%s%s", "maps/%s%s.bsp", "maps/%s%s.bsp.gz", "maps/%s%s.bsp.xz", "maps/%s%s.d3dbsp", "maps/%s%s.cm", "maps/%s%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
+#endif
+		char *exts[] = {"%s", "maps/%s", "maps/%s.bsp", "maps/%s.bsp.gz", "maps/%s.bsp.xz", "maps/%s.d3dbsp", "maps/%s.cm", "maps/%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
 		int i, j;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_CLIENT
+		tc_cl_loaded_bsps = 0;
+#endif
+#ifdef HAVE_SERVER
+		tc_sv_loaded_bsps = 0;
+#endif
+
 		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			switch( t )
 			{
-				case 0:
+				case TIME_PERIOD_PRESENT:
 					suffix = "_present";
 					break;
-				case 1:
+				case TIME_PERIOD_PAST:
 					suffix = "_past";
 					break;
-				case 2:
+				case TIME_PERIOD_FUTURE:
 					suffix = "_future";
 					break;
 			}
+			for (i = 0; TC_exts[i]; i++)
+			{
+				snprintf (expanded, sizeof(expanded), TC_exts[i], level, suffix);
+				if (COM_FCheckExists (expanded))
+				{
+					break;
+				}
+			}
+			if (!TC_exts[i])
+			{	//try again.
+				char *mod = strchr(level, '#');
+				if (mod)
+				{
+					*mod = 0;
+					for (i = 0; TC_exts[i]; i++)
+					{
+						snprintf (expanded, sizeof(expanded), TC_exts[i], level, suffix);
+						if (COM_FCheckExists (expanded))
+							break;
+					}
+					*mod = '#';
+				}
+			}
+			if (!TC_exts[i])
+			{
+				for (i = 0; TC_exts[i]; i++)
+				{
+					//doesn't exist, so try lowercase. Q3 does this. really our fs_cache stuff should be handling this, but its possible its disabled.
+					for (j = 0; j < sizeof(level) && level[j]; j++)
+					{
+						if (level[j] >= 'A' && level[j] <= 'Z')
+							level[j] = level[j] - 'A' + 'a';
+					}
+					snprintf (expanded, sizeof(expanded), TC_exts[i], level, suffix);
+					if (COM_FCheckExists (expanded))
+					{
+#ifdef HAVE_CLIENT
+						tc_cl_loaded_bsps++;
+#endif
+#ifdef HAVE_SERVER
+						tc_sv_loaded_bsps++;
+#endif
+						break;
+					}
+				}
+				// Missi: Only fail here if we really cannot find the present timeline BSP.
+				// Some maps in Temporal Cortex can only be played in the present timeline
+				// (e.g. Airship, TrainFight). Kind of a lame solution, but it works. (2025.9.18)
+				if ( !TC_exts[i] && t > TIME_PERIOD_PRESENT )
+					break;
+				else if (!TC_exts[i])
+				{
+					// FTE is still a Quake engine so report BSP missing
+					Con_TPrintf ("Can't find %s, falling back to legacy map searching behavior\n", COM_QuotedString(va("maps/%s%s.bsp", level, suffix), expanded, sizeof(expanded), false));
+
+					legacy = true;
+				}
+			}
+		}
+		// Missi: Still haven't found the map? Fall back to legacy behavior and try again (2025.9.22)
+		if ( legacy )
+		{
+#endif
 			for (i = 0; exts[i]; i++)
 			{
+#ifdef TEMPORALCORTEX
 				snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
+#else
+				snprintf (expanded, sizeof(expanded), exts[i], level);
+#endif
 				if (COM_FCheckExists (expanded))
+				{
 					break;
+				}
 			}
 			if (!exts[i])
 			{	//try again.
@@ -1001,9 +1090,15 @@ void SV_Map_f (void)
 					*mod = 0;
 					for (i = 0; exts[i]; i++)
 					{
+#ifdef TEMPORALCORTEX
 						snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
+#else
+						snprintf (expanded, sizeof(expanded), exts[i], level);
+#endif
 						if (COM_FCheckExists (expanded))
+						{
 							break;
+						}
 					}
 					*mod = '#';
 				}
@@ -1018,16 +1113,13 @@ void SV_Map_f (void)
 						if (level[j] >= 'A' && level[j] <= 'Z')
 							level[j] = level[j] - 'A' + 'a';
 					}
-					snprintf (expanded, sizeof(expanded), exts[i], level, suffix);
+					snprintf (expanded, sizeof(expanded), exts[i], level);
 					if (COM_FCheckExists (expanded))
+					{
 						break;
+					}
 				}
-				// Missi: Only fail here if we really cannot find the present timeline BSP.
-				// Some maps in Temporal Cortex can only be played in the present timeline
-				// (e.g. Airship, TrainFight). Kind of a lame solution, but it works. (2025.9.18)
-				if ( !exts[i] && t > TIME_PERIOD_PRESENT )
-					break;
-				else if (!exts[i])
+				if (!exts[i])
 				{
 #ifdef HAVE_CLIENT
 					SCR_SetLoadingStage(LS_NONE);
@@ -1043,14 +1135,16 @@ void SV_Map_f (void)
 #endif
 
 					// FTE is still a Quake engine so report BSP missing
-					Con_TPrintf ("Can't find %s\n", COM_QuotedString(va("maps/%s%s.bsp", level, suffix), expanded, sizeof(expanded), false));
+					Con_TPrintf ("Can't find %s\n", COM_QuotedString(va("maps/%s.bsp", level), expanded, sizeof(expanded), false));
 
 					if (SSV_IsSubServer() && !sv.state)	//subservers don't leave defunct servers with no maps lying around.
 						Cbuf_AddText("\nquit\n", RESTRICT_LOCAL);
 					return;
 				}
 			}
+#ifdef TEMPORALCORTEX
 		}
+#endif
 	}
 
 #ifdef SUBSERVERS
@@ -1227,6 +1321,7 @@ void SV_Map_f (void)
 	{
 		if (waschangelevel && !startspot)
 			startspot = "";
+
 		SV_SpawnServer (level, startspot, mapeditor, cinematic, 0);
 	}
 	SCR_SetLoadingFile("server spawned");
@@ -2291,6 +2386,9 @@ static void SV_Status_f (void)
 	const char	*p;
 	char		adr[MAX_ADR_SIZE];
 	float pi, po, bi, bo;
+#ifdef TEMPORALCORTEX
+	int			t;
+#endif
 
 	int columns = 80;
 	extern cvar_t sv_listen_qw;
@@ -2448,8 +2546,13 @@ static void SV_Status_f (void)
 #endif
 	Con_TPrintf("map uptime       : %s\n", ShowTime(sv.world.physicstime));
 	//show the current map+name (but hide name if its too long or would be ugly)
-	if (columns >= 80 && *sv.mapname[sv_current_time_period] && strlen(sv.mapname[sv_current_time_period]) < 45 && !strchr(sv.mapname[sv_current_time_period], '\n'))
-		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+	if (columns >= 80 && *sv.mapname[sv_current_bsp_index] && strlen(sv.mapname[sv_current_bsp_index]) < 45 && !strchr(sv.mapname[sv_current_bsp_index], '\n'))
+		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname[sv_current_bsp_index]);
+#else
+	if (columns >= 80 && *sv.mapname && strlen(sv.mapname) < 45 && !strchr(sv.mapname, '\n'))
+		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname);
+#endif
 	else
 		Con_TPrintf ("current map      : %s\n", svs.name);
 
@@ -2465,13 +2568,27 @@ static void SV_Status_f (void)
 			count++;
 		}
 		Con_TPrintf("entities         : %i/%i/%i (mem: %.1f%%)\n", count, sv.world.num_edicts, sv.world.max_edicts, 100.0*(sv.world.progs->stringtablesize/(double)sv.world.progs->stringtablemaxsize));
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+			for (count = 1; count < MAX_PRECACHE_MODELS; count++)
+				if (!sv.strings.model_precache[t][count])
+					break;
+#else
 		for (count = 1; count < MAX_PRECACHE_MODELS; count++)
 			if (!sv.strings.model_precache[count])
 				break;
+#endif
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+			for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
+				if (!sv.strings.sound_precache[t][count])
+					break;
+#else
 		for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
 			if (!sv.strings.sound_precache[count])
 				break;
+#endif
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 
 		for (count = 1; count < MAX_SSPARTICLESPRE; count++)
@@ -3435,6 +3552,9 @@ void SV_ReallyEvilHack_f(void)
 void SV_PrecacheList_f(void)
 {
 	unsigned int i;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 	char *group = Cmd_Argv(1);
 	if (sv.state != ss_active)
 	{
@@ -3453,19 +3573,41 @@ void SV_PrecacheList_f(void)
 #endif
 	if (!*group || !strncmp(group, "model", 5))
 	{
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+		{
+			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+			{
+				if (sv.strings.model_precache[t][i])
+					Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[t][i], Mod_FixName(sv.strings.model_precache[t][i], sv.strings.model_precache[t][1]));
+			}
+		}
+#else
 		for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 		{
 			if (sv.strings.model_precache[i])
 				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[i], Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 		}
+#endif
 	}
 	if (!*group || !strncmp(group, "sound", 5))
 	{
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+		{
+			for (i = 0; i < MAX_PRECACHE_SOUNDS; i++)
+			{
+				if (sv.strings.sound_precache[t][i])
+					Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sv.strings.sound_precache[t][i], sv.strings.sound_precache[t][i]);
+			}
+		}
+#else
 		for (i = 0; i < MAX_PRECACHE_SOUNDS; i++)
 		{
 			if (sv.strings.sound_precache[i])
 				Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sv.strings.sound_precache[i], sv.strings.sound_precache[i]);
 		}
+#endif
 	}
 	if (!*group || !strncmp(group, "part", 4))
 	{
@@ -3551,64 +3693,202 @@ void SV_Download_f (void)
 #endif
 	Con_Printf("scheme not supported\n");
 }
-
-void SV_ChangeTimePeriod( timeperiod_t tTimePeriod )
+#ifdef TEMPORALCORTEX
+void SV_ChangeTimePeriod( int bspindex )
 {
 	sizebuf_t buf;
-	char bufmem[1024];
+	qbyte bufmem[1024];
+	int i, track;
+	edict_t *pWorldEdict, *pEdict;
 
-	if ( !sv.world.worldmodel[(int)tTimePeriod] )
+	if ( !sv.world.worldmodel[bspindex] || bspindex == sv_current_bsp_index )
 		return;
 
-	sv_current_time_period = tTimePeriod;
+	if ( bspindex < TIME_PERIOD_PRESENT || bspindex > TIME_PERIOD_FUTURE )
+	{
+		Con_Printf("Invalid time period requested!\n");
+		return;
+	}
+
+	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
+
+	if ( !pWorldEdict )
+		return;
+
+	sv_current_bsp_index = bspindex;
+
+	for ( i = 0; i < sv.allocated_client_slots; i++ )
+	{
+		pEdict = svs.clients[i].edict;
+		pEdict->bspnum = bspindex;
+	}
+
+	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
+	// It works as intended though, as sv_current_bsp_index and cl_current_bsp_index need to stay in-sync. (2025.9.22)
+	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
+	{
+		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
+		pEdict->v->enemy = pr_global_struct->world;
+
+		if ( pEdict->bspnum == sv_current_bsp_index )
+			World_LinkEdict( &sv.world, (wedict_t*)pEdict, true );	// Missi: Allow collision and interactions again (2025.9.23)
+	}
+
+	track = pWorldEdict->v->sounds;
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 5;
+	buf.cursize = 10;
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-	MSG_WriteLong (&sv.reliable_datagram, sv_current_time_period);
+	MSG_WriteLong (&sv.reliable_datagram, sv_current_bsp_index);
+	MSG_WriteLong (&sv.reliable_datagram, track );
+}
+
+void SV_ChangeTimePeriod_SaveGame( int bspindex )
+{
+	sizebuf_t buf;
+	qbyte bufmem[1024];
+	edict_t* pEdict, *pWorldEdict;
+	int i, track;
+
+	memset( &bufmem, 0, sizeof( bufmem ) );
+
+	// Missi: At the point in which this function is called, changing sv_current_bsp_index is not safe and will lead to
+	// thrashing the edict list, resulting in a crash. (2025.12.6)
+	//sv_current_bsp_index = (int)tTimePeriod;
+
+	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
+
+	if ( !pWorldEdict )
+		return;
+
+	track = pWorldEdict->v->sounds;
+
+	for ( i = 0; i < sv.allocated_client_slots; i++ )
+	{
+		pEdict = svs.clients[i].edict;
+		pEdict->bspnum = bspindex;
+	}
+
+	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
+	// It works as intended though, as sv_current_bsp_index and cl_current_bsp_index need to stay in-sync. (2025.9.22)
+	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
+	{
+		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
+		pEdict->v->enemy = pr_global_struct->world;
+
+		if ( pEdict->bspnum == bspindex )
+			World_LinkEdict( &sv.world, (wedict_t*)pEdict, true );	// Missi: Allow collision and interactions again (2025.9.23)
+		else
+			World_UnlinkEdict( (wedict_t*)pEdict );	// Missi: Disallow collision and interactions (2025.9.23)
+	}
+
+	SZ_Clear (&buf);
+	buf.data = bufmem;
+	buf.maxsize = sizeof(bufmem);
+	buf.cursize = 10;
+	buf.packing = SZ_RAWBYTES;
+	MSG_WriteByte (&buf, svctc_timeperiod);
+	MSG_WriteLong (&buf, bspindex);
+	MSG_WriteLong (&buf, track );
 }
 
 void SV_ChangeTimePeriod_f()
 {
-	const char* pszArg = Cmd_Argv(1);
-	const char* pszTime = NULL;
+	const char* pszArg;
+	int i;
+	char szPrintString[256];
+	trace_t tTrace;
+	client_t* pClient;
+	edict_t* pClientEdict;
+	qboolean bStuck;		// Missi: Only needed because we need to report all players that are stuck (2025.9.22)
 
-	if ( !pszArg )
+	bStuck = false;
+
+	if ( !(pszArg = Cmd_Argv(1)) )
 	{
-		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
+		Con_Printf( "sv_changetimeperiod usage: \"sv_changetimeperiod [time period index]\"\n");
 		return;
 	}
 
-	if ( !sv.world.worldmodel[atoi(pszArg)] )
+	if ( sv.world.worldmodel[atoi(pszArg)] )
 	{
-		switch( cl_current_time_period )
+		for ( i = 0; i < svs.allocated_client_slots; i++ )
+		{
+			pClient = &svs.clients[i];
+
+			pClientEdict = pClient->edict;
+
+			if ( !pClientEdict )
+				break;
+
+			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, 0, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
+
+			if ( tTrace.fraction != 1 )
+			{
+				if ( svs.allocated_client_slots == 1 )
+				{
+					switch( atoi(pszArg) )
+					{
+						case TIME_PERIOD_PRESENT:
+							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the present!" );
+							break;
+						case TIME_PERIOD_PAST:
+							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the past!" );
+							break;
+						case TIME_PERIOD_FUTURE:
+							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the future!" );
+							break;
+					}
+				}
+				else
+				{
+					switch( atoi(pszArg) )
+					{
+						case TIME_PERIOD_PRESENT:
+							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the present!", i, svs.clients[i].name );
+							break;
+						case TIME_PERIOD_PAST:
+							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the past!", i, svs.clients[i].name );
+							break;
+						case TIME_PERIOD_FUTURE:
+							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the future!", i, svs.clients[i].name );
+							break;
+					}
+					Con_Printf( "%s\n", szPrintString );	// Missi: Show all players that wouldn't be able to tag along (2025.9.22)
+				}
+				bStuck = true;
+			}
+		}
+	}
+	else
+	{
+		switch( sv_current_bsp_index )
 		{
 			case TIME_PERIOD_PRESENT:
-				pszTime = "present";
+				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the present time period" );
 				break;
 			case TIME_PERIOD_PAST:
-				pszTime = "past";
+				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the past time period" );
 				break;
 			case TIME_PERIOD_FUTURE:
-				pszTime = "future";
+				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the future time period" );
 				break;
 			default:
-				pszTime = "unknown";
 				break;
 		}
 
-		Con_Printf( "This map can only be played in the %s time period.\n", pszTime );
-		return;		// Missi: No worldmodel for this time period (2025.9.20)
+		return;		// Missi: No worldmodel for that time period (2025.9.20)
 	}
 
-	SV_ChangeTimePeriod( (timeperiod_t)atoi(pszArg) );
+	if ( !bStuck )
+		SV_ChangeTimePeriod( (timeperiod_t)atoi(pszArg) );
 }
-
+#endif
 /*
 ==================
 SV_InitOperatorCommands
@@ -3647,9 +3927,11 @@ void SV_InitOperatorCommands (void)
 	}
 
 	Cmd_AddCommand ("fraglogfile", SV_Fraglogfile_f);
-
-	Cmd_AddCommandD ("changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
-
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	Cmd_AddCommandD ("sv_changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
+#endif
+#endif
 	//ask clients to take a remote screenshot
 	Cmd_AddCommand ("snap", SV_Snap_f);
 	Cmd_AddCommand ("snapall", SV_SnapAll_f);

@@ -38,6 +38,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PF_sqlescapeblob	PF_Fixme
 #endif
 
+#ifdef TEMPORALCORTEX
+// Missi: FIXME: This honestly should be dynamically allocated.
+// The way the logic works with this variable is a bit too complicated
+// at the moment. (2026.1.9)
+int	tc_edictnums[MAX_EDICTS];
+#endif
+
 #ifndef CLIENTONLY
 
 #include "pr_common.h"
@@ -103,6 +110,45 @@ cvar_t dpcompat_nopreparse = CVARD("dpcompat_nopreparse", "0", "Xonotic uses svc
 static cvar_t dpcompat_precachesoundhack = CVARD("dpcompat_precachesoundhack", "0", "Changes the behaviour of only the ssqc's precache_sound to return a precache index. precache_model and csqc's precaches are unchanged.");
 //static cvar_t dpcompat_traceontouch = CVARD("dpcompat_traceontouch", "0", "Report trace plane etc when an entity touches another.");
 extern cvar_t sv_listen_dp;
+
+#ifdef TEMPORALCORTEX
+static cvar_t tc_sv_friendlyfire_pvp					= CVARD("tc_sv_friendlyfire_pvp", "0", "Enables/disables friendly fire between players.");
+static cvar_t tc_sv_friendlyfire_monster				= CVARD("tc_sv_friendlyfire_monster", "0", "Enables/disables friendly fire between monsters.");
+static cvar_t tc_sv_friendlyfire_misc					= CVARD("tc_sv_friendlyfire_misc", "0", "Enables/disables friendly fire between misc objects.");
+static cvar_t tc_sv_hitscan								= CVARD("tc_sv_hitscan", "0", "Enables/disables hitscan (instant hits from bullet-based weapons). NOTE: Temporal Cortex was not meant to be played with hitscan. In many levels, you WILL get gunned down almost immediately. Take caution with this variable.");
+static cvar_t tc_sv_pushable_velocity_scale				= CVARD("tc_sv_pushable_velocity_scale", "1.0", "Scales the velocity from func_pushable when touched." );
+static cvar_t tc_sv_grapple_velocity_scale				= CVARD("tc_sv_grapple_velocity_scale", "1.0", "Scales the velocity when the grappling hook has a target." );
+static cvar_t tc_sv_grapple_boring_behaviour			= CVARD("tc_sv_grapple_boring_behaviour", "0", "This cvar makes the grappling hook more weightier and accounts for distance. The more dramatic a length, the more intense the velocity becomes. This unfortunately prevents some necessary maneuvering from Temporal Cortex, so it is a cvar for those interested." );
+static cvar_t tc_sv_army_grenadier_damage				= CVARD("tc_sv_army_grenadier_damage", "40", "The amount of damage monster_army_grenadier does to everything." );
+static cvar_t tc_sv_army_grenadier_accuracy_x			= CVARD("tc_sv_army_grenadier_accuracy_x", "0.0", "The horizontal spread of gunfire from monster_army_grenadier." );
+static cvar_t tc_sv_army_grenadier_accuracy_y			= CVARD("tc_sv_army_grenadier_accuracy_y", "0.0", "The vertical spread of gunfire from monster_army_grenadier." );
+static cvar_t tc_sv_army_grenadier_accuracy_z			= CVARD("tc_sv_army_grenadier_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_grenadier. This axis is generally never used for this purpose." );
+static cvar_t tc_sv_army_grenadier_barrage_accuracy_x	= CVARD("tc_sv_army_grenadier_barrage_accuracy_x", "0.1", "The horizontal spread of gunfire from monster_army_grenadier with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_grenadier_barrage_accuracy_y	= CVARD("tc_sv_army_grenadier_barrage_accuracy_y", "0.1", "The vertical spread of gunfire from monster_army_grenadier with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_grenadier_barrage_accuracy_z	= CVARD("tc_sv_army_grenadier_barrage_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_grenadier with the \"Rapid fire (2)\" spawnflag set. This axis is generally never used for this purpose." );
+static cvar_t tc_sv_army_shotgunner_damage				= CVARD("tc_sv_army_shotgunner_damage", "2", "The amount of damage monster_army_shotgunner does to everything." );
+static cvar_t tc_sv_army_shotgunner_barrage_damage		= CVARD("tc_sv_army_shotgunner_barrage_damage", "2", "The amount of damage monster_army_shotgunner does to everything with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_shotgunner_accuracy_x			= CVARD("tc_sv_army_shotgunner_accuracy_x", "0.1", "The horizontal spread of gunfire from monster_army_shotgunner." );
+static cvar_t tc_sv_army_shotgunner_accuracy_y			= CVARD("tc_sv_army_shotgunner_accuracy_y", "0.1", "The vertical spread of gunfire from monster_army_shotgunner." );
+static cvar_t tc_sv_army_shotgunner_accuracy_z			= CVARD("tc_sv_army_shotgunner_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_shotgunner. This axis is generally never used for this purpose." );
+static cvar_t tc_sv_army_shotgunner_barrage_accuracy_x	= CVARD("tc_sv_army_shotgunner_barrage_accuracy_x", "0.2", "The horizontal spread of gunfire from monster_army_shotgunner with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_shotgunner_barrage_accuracy_y	= CVARD("tc_sv_army_shotgunner_barrage_accuracy_y", "0.2", "The vertical spread of gunfire from monster_army_shotgunner with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_shotgunner_barrage_accuracy_z	= CVARD("tc_sv_army_shotgunner_barrage_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_shotgunner with the \"Rapid fire (2)\" spawnflag set. This axis is generally never used for this purpose." );
+static cvar_t tc_sv_army_heavygunner_damage				= CVARD("tc_sv_army_heavygunner_damage", "12", "The amount of damage monster_army_heavygunner does to everything." );
+static cvar_t tc_sv_army_heavygunner_barrage_damage		= CVARD("tc_sv_army_heavygunner_barrage_damage", "8", "The amount of damage monster_army_heavygunner does to everything with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_heavygunner_accuracy_x			= CVARD("tc_sv_army_heavygunner_accuracy_x", "0.01", "The horizontal spread of gunfire from monster_army_heavygunner." );
+static cvar_t tc_sv_army_heavygunner_accuracy_y			= CVARD("tc_sv_army_heavygunner_accuracy_y", "0.01", "The vertical spread of gunfire from monster_army_heavygunner." );
+static cvar_t tc_sv_army_heavygunner_accuracy_z			= CVARD("tc_sv_army_heavygunner_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_heavygunner. This axis is generally never used for this purpose." );
+static cvar_t tc_sv_army_heavygunner_barrage_accuracy_x = CVARD("tc_sv_army_heavygunner_barrage_accuracy_x", "0.05", "The amount of horizontal spread that monster_army_heavygunner has when firing with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_heavygunner_barrage_accuracy_y = CVARD("tc_sv_army_heavygunner_barrage_accuracy_y", "0.05", "The amount of vertical spread that monster_army_heavygunner has when firing with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_heavygunner_barrage_accuracy_z = CVARD("tc_sv_army_heavygunner_barrage_accuracy_z", "0.0", "The amount of vertical spread that monster_army_heavygunner has when firing with the \"Rapid fire (2)\" spawnflag set." );
+static cvar_t tc_sv_army_gunner_damage					= CVARD("tc_sv_army_gunner_damage", "6", "The amount of damage monster_army_gunner does to everything." );
+static cvar_t tc_sv_army_gunner_accuracy_x				= CVARD("tc_sv_army_gunner_accuracy_x", "0.05", "The horizontal spread of gunfire from monster_army_gunner." );
+static cvar_t tc_sv_army_gunner_accuracy_y				= CVARD("tc_sv_army_gunner_accuracy_y", "0.05", "The vertical spread of gunfire from monster_army_gunner." );
+static cvar_t tc_sv_army_gunner_accuracy_z				= CVARD("tc_sv_army_gunner_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_gunner. This axis is generally never used for this purpose." );
+
+static char cvargroup_tc_progs[] = "Temporal Cortex (Progs)";
+#endif
 
 static cvar_t sv_addon[MAXADDONS];
 static char cvargroup_progs[] = "Progs variables";
@@ -265,13 +311,23 @@ void PDECL ED_Spawned (struct edict_s *ent, int loading)
 
 pbool PDECL ED_CanFree (edict_t *ed)
 {
-	if (ed < (edict_t*)sv.world.edicts + MAX_TIME_PERIODS)
+	//if (ed < (edict_t*)&sv.world.edicts + tc_sv_loaded_bsps)
+	// Missi: The above was always a weird check... (2025.9.21)
+#ifdef TEMPORALCORTEX
+	if (NUM_FOR_EDICT(svprogfuncs, ed) < tc_sv_loaded_bsps)
+#else
+	if (NUM_FOR_EDICT(svprogfuncs, ed) < 1)
+#endif
 	{
 		if (developer.value)
 			PR_RunWarning(svprogfuncs, "cannot free world entity\n");
 		return false;
 	}
-	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+FINAL_TIME_PERIOD)
+#ifdef TEMPORALCORTEX
+	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+tc_sv_loaded_bsps)
+#else
+	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+1)
+#endif
 	{
 		PR_RunWarning(svprogfuncs, "cannot free player entities\n");
 		return false;
@@ -509,6 +565,9 @@ static void PDECL PR_SSQC_Relocated(pubprogfuncs_t *pr, char *oldb, char *newb, 
 	edict_t *ent;
 #endif
 	int i;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 	union {
 		globalptrs_t *g;
 		char **c;
@@ -530,11 +589,22 @@ static void PDECL PR_SSQC_Relocated(pubprogfuncs_t *pr, char *oldb, char *newb, 
 	}
 #endif
 
+#ifdef TEMPORALCORTEX
+	for (t = 0; t < tc_sv_loaded_bsps; t++)
+	{
+		for (i = 0; sv.strings.model_precache[t][i]; i++)
+		{
+			if (sv.strings.model_precache[t][i] >= oldb && sv.strings.model_precache[t][i] < oldb+oldlen)
+				sv.strings.model_precache[t][i] += newb - oldb;
+		}
+	}
+#else
 	for (i = 0; sv.strings.model_precache[i]; i++)
 	{
 		if (sv.strings.model_precache[i] >= oldb && sv.strings.model_precache[i] < oldb+oldlen)
 			sv.strings.model_precache[i] += newb - oldb;
 	}
+#endif
 	for (i = 0; i < svs.allocated_client_slots; i++)
 	{
 		if (svs.clients[i].name >= oldb && svs.clients[i].name < oldb+oldlen)
@@ -554,9 +624,17 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 	if ((unsigned int)modelindex < MAX_PRECACHE_MODELS)
 	{
 		model_t *mod;
+#ifdef TEMPORALCORTEX
+		if (!sv.models[sv_current_bsp_index][modelindex] && sv.strings.model_precache[sv_current_bsp_index][modelindex])
+			sv.models[sv_current_bsp_index][modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[sv_current_bsp_index][modelindex], sv.modelname[sv_current_bsp_index]), MLV_WARN);
+
+		mod = sv.models[sv_current_bsp_index][modelindex];
+#else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname[sv_current_time_period]), MLV_WARN);
+			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
+
 		mod = sv.models[modelindex];
+#endif
 		if (mod && mod->loadstate != MLS_LOADED)
 		{
 			if (mod->loadstate == MLS_NOTLOADED)
@@ -611,7 +689,11 @@ static void QDECL SVPR_Event_Touch(world_t *w, wedict_t *s, wedict_t *o, trace_t
 static void QDECL SVPR_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, w->edicts);
+#ifdef TEMPORALCORTEX
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+#else
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts);
+#endif
 	if (!s->v->think)
 		Con_Printf("SSQC entity \"%s\" has nextthink with no think function\n", PR_GetString(w->progs, s->v->classname));
 	else
@@ -742,6 +824,10 @@ void Q_SetProgsParms(qboolean forcompiler)
 
 	svprogparms.edicts = (edict_t**)&sv.world.edicts;
 	svprogparms.num_edicts = &sv.world.num_edicts;
+
+#ifdef TEMPORALCORTEX
+	svprogparms.loaded_bsps = &tc_sv_loaded_bsps;
+#endif
 
 	svprogparms.useeditor = QCEditor;
 
@@ -1120,9 +1206,17 @@ void PR_LoadGlabalStruct(qboolean muted)
 
 	for (i = 0; i < countof(buttonfields); i++)
 	{
-		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
+#ifdef TEMPORALCORTEX
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
+#else
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
+#endif
 		if (val)
+#ifdef TEMPORALCORTEX
+			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[sv_current_bsp_index].v;
+#else
 			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts->v;
+#endif
 		else
 			buttonfields[i].offset = -1;
 	}
@@ -1287,9 +1381,17 @@ static progsnum_t AddProgs(const char *name)
 
 	for (i = 0; i < countof(buttonfields); i++)
 	{
-		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
+#ifdef TEMPORALCORTEX
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
+#else
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
+#endif
 		if (val)
-			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts->v;
+#ifdef TEMPORALCORTEX
+			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts[sv_current_bsp_index].v;
+#else
+			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts->v;
+#endif
 		else
 			buttonfields[i].offset = -1;
 	}
@@ -1410,9 +1512,11 @@ static void PR_ApplyCompilation_f (void)
 	PR_Configure(svprogfuncs, PR_ReadBytesString(pr_ssqc_memsize.string), MAX_PROGS, pr_enable_profiling.ival);
 	PR_RegisterFields();
 	sv.world.edict_size=PR_InitEnts(svprogfuncs, sv.world.max_edicts);
-
+#ifdef TEMPORALCORTEX
+	sv.world.edict_size=svprogfuncs->load_ents(svprogfuncs, s, NULL, NULL, NULL, NULL, sv_current_bsp_index);
+#else
 	sv.world.edict_size=svprogfuncs->load_ents(svprogfuncs, s, NULL, NULL, NULL, NULL);
-
+#endif
 
 	PR_LoadGlabalStruct(false);
 
@@ -1420,8 +1524,11 @@ static void PR_ApplyCompilation_f (void)
 
 	for (i=0 ; i<sv.allocated_client_slots ; i++)
 	{
-		ent = EDICT_NUM_PB(svprogfuncs, i+MAX_TIME_PERIODS);
-
+#ifdef TEMPORALCORTEX
+		ent = EDICT_NUM_PB(svprogfuncs, i+tc_sv_loaded_bsps);
+#else
+		ent = EDICT_NUM_PB(svprogfuncs, i+1);
+#endif
 		svs.clients[i].edict = ent;
 	}
 
@@ -1604,6 +1711,44 @@ void PR_Init(void)
 
 	Cvar_Register (&dpcompat_precachesoundhack, cvargroup_progs);
 	Cvar_Register (&dpcompat_nopreparse, cvargroup_progs);
+
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&tc_sv_friendlyfire_pvp, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_friendlyfire_monster, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_friendlyfire_misc, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_hitscan, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_pushable_velocity_scale, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_grapple_velocity_scale, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_grapple_boring_behaviour, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_barrage_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_barrage_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_grenadier_barrage_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_barrage_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_barrage_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_barrage_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_shotgunner_barrage_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_gunner_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_gunner_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_gunner_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_gunner_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_barrage_damage, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_accuracy_z, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_x, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_y, cvargroup_tc_progs);
+	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_z, cvargroup_tc_progs);
+#endif
+
 	Cvar_Register (&pr_nonetaccess, cvargroup_progs);
 	Cvar_Register (&pr_overridebuiltins, cvargroup_progs);
 
@@ -1639,8 +1784,11 @@ static void PR_FallbackSpawn_Misc_Model(pubprogfuncs_t *progfuncs, edict_t *self
 {
 	void *pr_globals;
 	eval_t *val;
-
-	if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->type==mod_brush && sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake3 && !force)
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->type==mod_brush && sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake3 && !force)
+#else
+	if (sv.world.worldmodel && sv.world.worldmodel->type==mod_brush && sv.world.worldmodel->fromgame == fg_quake3 && !force)
+#endif
 	{	//on q3bsp, these are expected to be handled directly by q3map2, but it doesn't always strip it.
 		ED_Free(progfuncs, self);
 		return;
@@ -1848,7 +1996,11 @@ static void PDECL PR_DoSpawnInitialEntity(pubprogfuncs_t *progfuncs, struct edic
 		PR_ExecuteProgram(progfuncs, ctx->SV_OnEntityPreSpawnFunction);
 	}
 }
+#ifdef TEMPORALCORTEX
+void PR_SpawnInitialEntities(const char *file, int bspnum)
+#else
 void PR_SpawnInitialEntities(const char *file)
+#endif
 {
 	extern cvar_t skill;
 	struct spawnents_s ctx;
@@ -1904,7 +2056,11 @@ void PR_SpawnInitialEntities(const char *file)
 	ctx.fulldata = PR_FindGlobal(svprogfuncs, "__fullspawndata", PR_ANY, NULL);
 
 	if (svprogfuncs)
+#ifdef TEMPORALCORTEX
+		sv.world.edict_size = PR_LoadEnts(svprogfuncs, file, &ctx, NULL, PR_DoSpawnInitialEntity, NULL, bspnum);
+#else
 		sv.world.edict_size = PR_LoadEnts(svprogfuncs, file, &ctx, NULL, PR_DoSpawnInitialEntity, NULL);
+#endif
 	else
 		sv.world.edict_size = 0;
 }
@@ -2141,8 +2297,11 @@ void Q_InitProgs(enum initprogs_e flags)
 			}
 		}
 		prnum = 0;
-
-		switch (sv.world.worldmodel[sv_current_time_period]->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
+#ifdef TEMPORALCORTEX
+		switch (sv.world.worldmodel[sv_current_bsp_index]->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
+#else
+		switch (sv.world.worldmodel->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
+#endif
 		{
 		case fg_quake2:
 			if (COM_FDepthFile("q2bsp.dat", true)!=FDEPTH_MISSING)
@@ -2545,7 +2704,11 @@ qboolean PR_ConsoleCmd(const char *command)
 			if (sv_redirected == RD_CLIENT)
 				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, host_client->edict);
 			else
-				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);	// Missi (2025.9.21)
+#else
+				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 
 			G_INT(OFS_PARM0) = PR_TempString(svprogfuncs, command);
 			PR_ExecuteProgram (svprogfuncs, gfuncs.ConsoleCmd);
@@ -2583,7 +2746,11 @@ void PR_LocalInfoChanged(char *name, char *oldivalue, char *newvalue)
 		pr_globals = PR_globals(svprogfuncs, PR_CURRENT);
 
 		pr_global_struct->time = sv.world.physicstime;
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+#else
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 
 		G_INT(OFS_PARM0) = PR_TempString(svprogfuncs, name);
 		G_INT(OFS_PARM1) = PR_TempString(svprogfuncs, oldivalue);
@@ -2603,7 +2770,11 @@ void PR_PreShutdown(void)
 		pr_globals = PR_globals(svprogfuncs, PR_CURRENT);
 
 		pr_global_struct->time = sv.world.physicstime;
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+#else
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 
 		G_INT(OFS_PARM0) = 0;
 		G_INT(OFS_PARM1) = 0;
@@ -2954,6 +3125,9 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 {
 	int		i;
 	model_t	*mod;
+#ifdef TEMPORALCORTEX
+	int		t;
+#endif
 
 	if (!e)
 	{
@@ -2976,60 +3150,118 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 		i = 0;
 	else
 	{
-		for (i=1; sv.strings.model_precache[i] ; i++)
-		{
-			if (!strcmp(sv.strings.model_precache[i], m))
+#ifdef TEMPORALCORTEX
+			for (i=1; sv.strings.model_precache[sv_current_bsp_index][i] ; i++)
 			{
-#ifdef VM_Q1
-				if (svs.gametype != GT_Q1QVM)
-#endif
-					m = sv.strings.model_precache[i];
-				break;
-			}
-		}
-		if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i])
-		{
-			if (i!=MAX_PRECACHE_MODELS)
-			{
-#ifdef VM_Q1
-				if (svs.gametype == GT_Q1QVM)
-					sv.strings.model_precache[i] = m;	//in a qvm, we expect the caller to have used a static location.
-				else
-#endif
-					m = sv.strings.model_precache[i] = PR_AddString(prinst, m, 0, false);
-				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
-					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1]));
-				Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
-
-				if (sv.state != ss_loading)
+				if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i], m))
 				{
-					int j;
-					Con_DPrintf("Delayed model precache: %s\n", m);
+#ifdef VM_Q1
+					if (svs.gametype != GT_Q1QVM)
+#endif
+						m = sv.strings.model_precache[sv_current_bsp_index][i];
+					break;
+				}
+			}
+			if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[sv_current_bsp_index][i])
+			{
+				if (i!=MAX_PRECACHE_MODELS)
+				{
+#ifdef VM_Q1
+					if (svs.gametype == GT_Q1QVM)
+						sv.strings.model_precache[sv_current_bsp_index][i] = m;	//in a qvm, we expect the caller to have used a static location.
+					else
+#endif
+						m = sv.strings.model_precache[sv_current_bsp_index][i] = PR_AddString(prinst, m, 0, false);
+					if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
+						sv.models[sv_current_bsp_index][i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[sv_current_bsp_index][1]));
+					Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
 
-					for (j = 0; j < sv.allocated_client_slots; j++)
+					if (sv.state != ss_loading)
 					{
-						if (svs.clients[j].state < cs_connected)
-							continue;
-						if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+						int j;
+						Con_DPrintf("Delayed model precache: %s\n", m);
+
+						for (j = 0; j < sv.allocated_client_slots; j++)
 						{
-							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
-							ClientReliableWrite_Short (&svs.clients[j], i);
-							ClientReliableWrite_String (&svs.clients[j], m);
-						}
-						else
-						{
-							//client doesn't support this... reset the connection so they're forced to reload everything.
-							//SV_StuffcmdToClient(&svs.clients[j], "cmd new\n");
+							if (svs.clients[j].state < cs_connected)
+								continue;
+							if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+							{
+								ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
+								ClientReliableWrite_Short (&svs.clients[j], i);
+								ClientReliableWrite_String (&svs.clients[j], m);
+							}
+							else
+							{
+								//client doesn't support this... reset the connection so they're forced to reload everything.
+								//SV_StuffcmdToClient(&svs.clients[j], "cmd new\n");
+							}
 						}
 					}
 				}
+				else
+				{
+					PR_BIError (prinst, "no precache: %s\n", m);
+					return;
+				}
 			}
-			else
+#else
+			for (i=1; sv.strings.model_precache[i] ; i++)
 			{
-				PR_BIError (prinst, "no precache: %s\n", m);
-				return;
+				if (!strcmp(sv.strings.model_precache[i], m))
+				{
+#ifdef VM_Q1
+					if (svs.gametype != GT_Q1QVM)
+#endif
+						m = sv.strings.model_precache[i];
+					break;
+				}
+			}
+			if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i])
+			{
+				if (i!=MAX_PRECACHE_MODELS)
+				{
+#ifdef VM_Q1
+					if (svs.gametype == GT_Q1QVM)
+						sv.strings.model_precache[i] = m;	//in a qvm, we expect the caller to have used a static location.
+					else
+#endif
+						m = sv.strings.model_precache[i] = PR_AddString(prinst, m, 0, false);
+					if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
+						sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1]));
+					Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
+
+					if (sv.state != ss_loading)
+					{
+						int j;
+						Con_DPrintf("Delayed model precache: %s\n", m);
+
+						for (j = 0; j < sv.allocated_client_slots; j++)
+						{
+							if (svs.clients[j].state < cs_connected)
+								continue;
+							if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+							{
+								ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
+								ClientReliableWrite_Short (&svs.clients[j], i);
+								ClientReliableWrite_String (&svs.clients[j], m);
+							}
+							else
+							{
+								//client doesn't support this... reset the connection so they're forced to reload everything.
+								//SV_StuffcmdToClient(&svs.clients[j], "cmd new\n");
+							}
+						}
+					}
+				}
+				else
+				{
+					PR_BIError (prinst, "no precache: %s\n", m);
+					return;
+				}
 			}
 		}
+#endif
 	}
 
 	prinst->SetStringField(prinst, e, &e->v->model, m, true);
@@ -3076,10 +3308,17 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	}
 	else*/
 	{
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+		{
 		if (sv_gameplayfix_setmodelrealbox.ival)
 			mod = SVPR_GetCModel(&sv.world, i);
 		else
+#ifdef TEMPORALCORTEX
+			mod = sv.models[t][i];
+#else
 			mod = sv.models[i];
+#endif
 
 		if (progstype != PROG_QW || sv_gameplayfix_setmodelsize_qw.ival)
 		{	//also sets size.
@@ -3088,7 +3327,11 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			//qw dedicated servers only load bsps (better)
 			if (mod)
 			{
-				mod = Mod_ForName (Mod_FixName(m, sv.modelname[sv_current_time_period]), MLV_WARNSYNC);
+#ifdef TEMPORALCORTEX
+				mod = Mod_ForName (Mod_FixName(m, sv.modelname[sv_current_bsp_index]), MLV_WARNSYNC);
+#else
+				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
+#endif
 				if (mod)
 				{
 					while(mod->loadstate == MLS_LOADING)
@@ -3132,6 +3375,9 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			//but do relink, because stuff bugs out otherwise.
 			World_LinkEdict (&sv.world, (wedict_t*)e, false);
 		}
+#ifdef TEMPORALCORTEX
+		}
+#endif
 	}
 }
 
@@ -3229,15 +3475,20 @@ static void QCBUILTIN PF_sprint (pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 		s = PF_VarString(prinst, 2, pr_globals);
 	}
-
-	if ( entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD )
+#ifdef TEMPORALCORTEX
+	if ( entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps )
+#else
+	if ( entnum < 1 || entnum > sv.allocated_client_slots )
+#endif
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return;
 	}
-
-	client = &svs.clients[entnum-MAX_TIME_PERIODS];
-
+#ifdef TEMPORALCORTEX
+	client = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	client = &svs.clients[entnum-1];
+#endif
 	SV_ClientPrintf (client, level, "%s", s);
 
 	if (sv_specprint.ival & SPECPRINT_SPRINT)
@@ -3269,13 +3520,20 @@ static void QCBUILTIN PF_isbackbuffered (pubprogfuncs_t *prinst, struct globalva
 	client_t	*client;
 
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		Con_Printf ("PF_isbackbuffered: Not a client\n");
 		return;
 	}
-	client = &svs.clients[entnum-MAX_TIME_PERIODS];
-
+#ifdef TEMPORALCORTEX
+	client = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	client = &svs.clients[entnum-1];
+#endif
 	G_FLOAT(OFS_RETURN) = client->num_backbuf>0;
 }
 
@@ -3298,14 +3556,20 @@ void PF_centerprint_Internal (int entnum, qboolean plaque, const char *s)
 	if (sv.demofile)
 		return;
 #endif
-
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		PR_RunWarning(sv.world.progs, "tried to centerprint to a non-client\n");
 		return;
 	}
-
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+	cl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	cl = &svs.clients[entnum-1];
+#endif
 	if (cl->centerprintstring)
 		Z_Free(cl->centerprintstring);
 	cl->centerprintstring = NULL;
@@ -3619,8 +3883,25 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 {
 	staticsound_state_t *state;
 	int		soundnum;
+#ifdef TEMPORALCORTEX
+	int t;
 
-// check to see if samp was properly precached
+	// check to see if samp was properly precached
+	for (t = 0; t < tc_sv_loaded_bsps; t++)
+	{
+		for (soundnum=1 ; ; soundnum++)
+		{
+			if (soundnum == MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[t][soundnum])
+			{
+				Con_TPrintf ("no precache: %s\n", samp);
+				return;
+			}
+			if (!strcmp(sv.strings.sound_precache[t][soundnum],samp))
+				break;
+		}
+	}
+#else
+	// check to see if samp was properly precached
 	for (soundnum=1 ; ; soundnum++)
 	{
 		if (soundnum == MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[soundnum])
@@ -3631,6 +3912,7 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 		if (!strcmp(sv.strings.sound_precache[soundnum],samp))
 			break;
 	}
+#endif
 
 	if (sv.num_static_sounds == sv_max_staticsounds)
 	{
@@ -3733,8 +4015,11 @@ static void QCBUILTIN PF_pointsound(pubprogfuncs_t *prinst, struct globalvars_s 
 
 	if (volume > 255)
 		volume = 255;
-
+#ifdef TEMPORALCORTEX
+	SVQ1_StartSound (origin, &sv.world.edicts[sv_current_bsp_index], 0, sample, volume, attenuation, pitchpct, 0, 0);
+#else
 	SVQ1_StartSound (origin, sv.world.edicts, 0, sample, volume, attenuation, pitchpct, 0, 0);
+#endif
 }
 
 //an evil one from telejano.
@@ -3797,7 +4082,11 @@ static void set_trace_globals(pubprogfuncs_t *prinst, /*struct globalvars_s *pr_
 	if (trace->ent)
 		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, trace->ent);
 	else
-		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+#else
+		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 
 	if (trace->startsolid)
 		if (!sv_gameplayfix_honest_tracelines.ival)
@@ -3843,8 +4132,11 @@ void QCBUILTIN PF_svtraceline (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 		mins = vec3_origin;
 		maxs = vec3_origin;
 	}
-
+#ifdef TEMPORALCORTEX
+	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, ent->bspnum);
+#else
 	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
+#endif
 
 	set_trace_globals(prinst, &trace);
 }
@@ -3858,8 +4150,11 @@ static void QCBUILTIN PF_traceboxh2 (pubprogfuncs_t *prinst, struct globalvars_s
 	VM_VECTORARG(maxs, OFS_PARM3);
 	int nomonsters = G_FLOAT(OFS_PARM4);
 	edict_t *ent = G_EDICT(prinst, OFS_PARM5);
-
+#ifdef TEMPORALCORTEX
+	trace_t	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+#else
 	trace_t	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
+#endif
 	set_trace_globals(prinst, &trace);
 }
 #endif
@@ -3874,8 +4169,11 @@ static void QCBUILTIN PF_traceboxdp (pubprogfuncs_t *prinst, struct globalvars_s
 	edict_t	*ent = G_EDICT(prinst, OFS_PARM5);
 
 //	PR_StackTrace(prinst, 2);
-
+#ifdef TEMPORALCORTEX
+	trace_t trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+#else
 	trace_t trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
+#endif
 	set_trace_globals(prinst, &trace);
 }
 
@@ -3886,7 +4184,11 @@ static void QCBUILTIN PF_TraceToss (pubprogfuncs_t *prinst, struct globalvars_s 
 	edict_t	*ignore;
 
 	ent = G_EDICT(prinst, OFS_PARM0);
-	if (ent == (edict_t*)sv.world.edicts)
+#ifdef TEMPORALCORTEX
+	if (ent < (edict_t*)&sv.world.edicts[tc_sv_loaded_bsps])
+#else
+	if (ent < (edict_t*)&sv.world.edicts)
+#endif
 		Con_DPrintf("tracetoss: can not use world entity\n");
 	ignore = G_EDICT(prinst, OFS_PARM1);
 
@@ -3909,22 +4211,35 @@ void PF_newcheckclient (pubprogfuncs_t *prinst, world_t *w)
 	int		cluster;
 
 // cycle to the next one
+#ifdef TEMPORALCORTEX
+	if (w->lastcheck < tc_sv_loaded_bsps)
+		w->lastcheck = tc_sv_loaded_bsps;
+	if (w->lastcheck >= sv.allocated_client_slots+tc_sv_loaded_bsps)
+		w->lastcheck = sv.allocated_client_slots+tc_sv_loaded_bsps-1;
 
-	if (w->lastcheck < MAX_TIME_PERIODS)
-		w->lastcheck = MAX_TIME_PERIODS;
-	if (w->lastcheck > sv.allocated_client_slots+FINAL_TIME_PERIOD)
-		w->lastcheck = sv.allocated_client_slots+FINAL_TIME_PERIOD;
+	if (w->lastcheck == sv.allocated_client_slots+tc_sv_loaded_bsps)
+		i = tc_sv_loaded_bsps;
+#else
+	if (w->lastcheck < 1)
+		w->lastcheck = 1;
+	if (w->lastcheck > sv.allocated_client_slots)
+		w->lastcheck = sv.allocated_client_slots;
 
-	if (w->lastcheck == sv.allocated_client_slots+FINAL_TIME_PERIOD)
-		i = MAX_TIME_PERIODS;
+	if (w->lastcheck == sv.allocated_client_slots)
+		i = 1;
+#endif
 	else
 		i = w->lastcheck + 1;
 
 	for ( ;  ; i++)
 	{
-		if (i >= sv.allocated_client_slots+FINAL_TIME_PERIOD)
-			i = MAX_TIME_PERIODS;
-
+#ifdef TEMPORALCORTEX
+		if (i >= sv.allocated_client_slots+tc_sv_loaded_bsps)	// Missi: tc_sv_loaded_bsps used instead because of the >= operator (2025.12.18)
+			i = tc_sv_loaded_bsps;
+#else
+		if (i >= sv.allocated_client_slots)
+			i = 1;
+#endif
 		ent = EDICT_NUM_UB(prinst, i);
 
 		if (i == w->lastcheck)
@@ -3943,12 +4258,21 @@ void PF_newcheckclient (pubprogfuncs_t *prinst, world_t *w)
 
 // get the PVS for the entity
 	VectorAdd (ent->v->origin, ent->v->view_ofs, checkorg);
-	if (sv.world.worldmodel[sv_current_time_period]->type == mod_heightmap || sv_nopvs.ival)
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index]->type == mod_heightmap || sv_nopvs.ival)
+#else
+	if (sv.world.worldmodel->type == mod_heightmap || sv_nopvs.ival)
+#endif
 		w->lastcheckpvs = NULL;
 	else
 	{
-		cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], checkorg, NULL);
-		w->lastcheckpvs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_time_period], cluster, &checkpvsbuffer, PVM_FAST);
+#ifdef TEMPORALCORTEX
+		cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], checkorg, NULL);
+		w->lastcheckpvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_bsp_index], cluster, &checkpvsbuffer, PVM_FAST);
+#else
+		cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, checkorg, NULL);
+		w->lastcheckpvs = sv.world.worldmodel->funcs.ClusterPVS (sv.world.worldmodel, cluster, &checkpvsbuffer, PVM_FAST);
+#endif
 	}
 
 	w->lastcheck = i;
@@ -3987,7 +4311,7 @@ int PF_checkclient_Internal (pubprogfuncs_t *prinst)
 
 // return check if it might be visible
 	ent = EDICT_NUM_PB(prinst, w->lastcheck);
-	if (ED_ISFREE(ent) || ent->v->health <= 0)
+	if (ED_ISFREE(ent) || ent->v->health <= 0 )
 	{
 		return 0;
 	}
@@ -3996,13 +4320,22 @@ int PF_checkclient_Internal (pubprogfuncs_t *prinst)
 	self = PROG_TO_EDICT(prinst, pr_global_struct->self);
 	VectorAdd (self->v->origin, self->v->view_ofs, view);
 
+#ifdef TEMPORALCORTEX
+	if ( ent->bspnum != self->bspnum )
+		return 0; // Missi: Not in the time period (2025.9.22)
+#endif
+
 	VectorSubtract(view, checkorg, dist);
 	if (DotProduct(dist, dist) > 2048*2048)
 		return 0;
 
 	if (w->lastcheckpvs)
 	{
-		clust = w->worldmodel[sv_current_time_period]->funcs.ClusterForPoint(w->worldmodel[sv_current_time_period], view, NULL);
+#ifdef TEMPORALCORTEX
+		clust = w->worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(w->worldmodel[sv_current_bsp_index], view, NULL);
+#else
+		clust = w->worldmodel->funcs.ClusterForPoint(w->worldmodel, view, NULL);
+#endif
 		if ( (clust<0) || !(w->lastcheckpvs[clust>>3] & (1<<(clust&7)) ) )
 		{
 			return 0;
@@ -4048,12 +4381,17 @@ void PF_stuffcmd_Internal(int entnum, const char *str, unsigned int flags)
 #endif
 		return;
 	}
-
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 		return;
-
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
-
+#ifdef TEMPORALCORTEX
+	cl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	cl = &svs.clients[entnum-1];
+#endif
 	if (strcmp(str, "disconnect\n") == 0)
 	{
 		// so long and thanks for all the fish
@@ -4127,11 +4465,17 @@ static void QCBUILTIN PF_dropclient (pubprogfuncs_t *prinst, struct globalvars_s
 	client_t	*cl;
 
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 		return;
-
-	cl = &svs.clients[entnum-MAX_TIME_PERIODS];
-
+#ifdef TEMPORALCORTEX
+	cl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	cl = &svs.clients[entnum-1];
+#endif
 	// so long and thanks for all the fish
 	if (cl->netchan.remote_address.type == NA_LOOPBACK)
 	{
@@ -4164,16 +4508,22 @@ static void QCBUILTIN PF_spawnclient (pubprogfuncs_t *prinst, struct globalvars_
 			svs.clients[i].netchan.message.maxsize = 0;
 			svs.clients[i].datagram.allowoverflow = true;
 			svs.clients[i].datagram.maxsize = 0;
-
-			svs.clients[i].edict = EDICT_NUM_PB(prinst, i+MAX_TIME_PERIODS);
-
+#ifdef TEMPORALCORTEX
+			svs.clients[i].edict = EDICT_NUM_PB(prinst, i+tc_sv_loaded_bsps);
+#else
+			svs.clients[i].edict = EDICT_NUM_PB(prinst, i+1);
+#endif
 			SV_SetUpClientEdict (&svs.clients[i], svs.clients[i].edict);
 
 			RETURN_EDICT(prinst, svs.clients[i].edict);
 			return;
 		}
 	}
-	RETURN_EDICT(prinst, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+	RETURN_EDICT(prinst, &sv.world.edicts[sv_current_bsp_index]);
+#else
+	RETURN_EDICT(prinst, &sv.world.edicts);
+#endif
 }
 
 //DP_SV_BOTCLIENT
@@ -4181,7 +4531,11 @@ static void QCBUILTIN PF_spawnclient (pubprogfuncs_t *prinst, struct globalvars_
 static void QCBUILTIN PF_clienttype (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	int entnum = G_EDICTNUM(prinst, OFS_PARM0);
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		G_FLOAT(OFS_RETURN) = CLIENTTYPE_NOTACLIENT;	//not a client slot
 		return;
@@ -4224,7 +4578,11 @@ static void QCBUILTIN PF_cvar (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 	else if (!strcmp(str, "pr_map_builtin"))
 		G_FLOAT(OFS_RETURN) = PR_EnableEBFSBuiltin("map_builtin", 0);
 	else if (!strcmp(str, "halflifebsp"))
-		G_FLOAT(OFS_RETURN) = sv.world.worldmodel[sv_current_time_period]->fromgame == fg_halflife;
+#ifdef TEMPORALCORTEX
+		G_FLOAT(OFS_RETURN) = sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_halflife;
+#else
+		G_FLOAT(OFS_RETURN) = sv.world.worldmodel->fromgame == fg_halflife;
+#endif
 	else
 	{
 		cvar_t *cv = PF_Cvar_FindOrGet(str);
@@ -4241,8 +4599,11 @@ static void QCBUILTIN PF_sv_getlight (pubprogfuncs_t *prinst, struct globalvars_
 	/*not shared with client - clients get more lights*/
 	float *point = G_VECTOR(OFS_PARM0);
 	vec3_t diffuse, ambient, dir;
-	model_t *wm = sv.world.worldmodel[sv_current_time_period];
-
+#ifdef TEMPORALCORTEX
+	model_t *wm = sv.world.worldmodel[sv_current_bsp_index];
+#else
+	model_t *wm = sv.world.worldmodel;
+#endif
 	if (wm && wm->loadstate == MLS_LOADED && wm->funcs.LightPointValues && wm->lightmaps.maxstyle<cl_max_lightstyles)
 	{
 		wm->funcs.LightPointValues(wm, point, diffuse, ambient, dir);
@@ -4451,7 +4812,41 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			PR_BIError (prinst, "PF_precache_sound: Bad string");
 		return 0;
 	}
+#ifdef TEMPORALCORTEX
+	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
+	{
+		if (!sv.strings.sound_precache[sv_current_bsp_index][i])
+		{
+			if (queryonly)
+				return 0;
+#ifdef VM_Q1
+			if (svs.gametype == GT_Q1QVM)
+				sv.strings.sound_precache[sv_current_bsp_index][i] = s;
+			else
+#endif
+				sv.strings.sound_precache[sv_current_bsp_index][i] = PR_AddString(prinst, s, 0, false);
 
+			/*touch the file, so any packs will be referenced*/
+			FS_FLocateFile(s, FSLF_IFFOUND, NULL);
+
+			if (sv.state != ss_loading)
+			{
+				Con_DPrintf("Delayed sound precache: %s\n", s);
+				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
+				MSG_WriteShort(&sv.reliable_datagram, i+PC_SOUND);
+				MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef NQPROT
+				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
+				MSG_WriteShort(&sv.nqreliable_datagram, i+PC_SOUND);
+				MSG_WriteString(&sv.nqreliable_datagram, s);
+#endif
+			}
+			return i;
+		}
+		if (!strcmp(sv.strings.sound_precache[sv_current_bsp_index][i], s))
+			return i;
+	}
+#else
 	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
 	{
 		if (!sv.strings.sound_precache[i])
@@ -4482,9 +4877,14 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			}
 			return i;
 		}
-		if (!strcmp(sv.strings.sound_precache[i], s))
-			return i;
 	}
+#endif
+#ifdef TEMPORALCORTEX
+		if (!strcmp(sv.strings.sound_precache[sv_current_bsp_index][i], s))
+#else
+		if (!strcmp(sv.strings.sound_precache[i], s))
+#endif
+			return i;
 	if (!queryonly)
 		PR_BIError (prinst, "PF_precache_sound: overflow");
 	return 0;
@@ -4513,8 +4913,13 @@ static void QCBUILTIN PF_getsoundindex (pubprogfuncs_t *prinst, struct globalvar
 static void QCBUILTIN PF_soundnameforindex (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	int idx = G_FLOAT(OFS_PARM0);
+#ifdef TEMPORALCORTEX
+	if (idx >= 0 && idx < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[sv_current_bsp_index][idx])
+		RETURN_TSTRING(sv.strings.sound_precache[sv_current_bsp_index][idx]);
+#else
 	if (idx >= 0 && idx < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[idx])
 		RETURN_TSTRING(sv.strings.sound_precache[idx]);
+#endif
 	else
 		G_INT(OFS_RETURN) = 0;
 }
@@ -4528,7 +4933,54 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		Con_DPrintf ("precache_model: empty string\n");
 		return 0;
 	}
+#ifdef TEMPORALCORTEX
+	for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
+	{
+		if (!sv.strings.model_precache[sv_current_bsp_index][i])
+		{
+			if (strlen(s)>=MAX_QPATH-1)	//probably safest to keep this.
+			{
+				PR_BIError (prinst, "Precache name too long");
+				return 0;
+			}
+			if (queryonly)
+				return 0;
+#ifdef VM_Q1
+			if (svs.gametype == GT_Q1QVM)
+				sv.strings.model_precache[sv_current_bsp_index][i] = s;
+			else
+#endif
+				sv.strings.model_precache[sv_current_bsp_index][i] = PR_AddString(prinst, s, 0, false);
+			s = sv.strings.model_precache[sv_current_bsp_index][i];
+			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
+				sv.models[sv_current_bsp_index][i] = Mod_ForName(Mod_FixName(s, sv.modelname[sv_current_bsp_index]), MLV_WARNSYNC);
+			else
+			{
+				/*touch the file, so any packs will be referenced*/
+				FS_FLocateFile(s, FSLF_IFFOUND, NULL);
+			}
 
+			if (sv.state != ss_loading)
+			{
+				Con_DPrintf("Delayed model precache: %s\n", s);
+				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
+				MSG_WriteShort(&sv.reliable_datagram, i);
+				MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef NQPROT
+				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
+				MSG_WriteShort(&sv.nqreliable_datagram, i);
+				MSG_WriteString(&sv.nqreliable_datagram, s);
+#endif
+			}
+
+			return i;
+		}
+		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i], s))
+		{
+			return i;
+		}
+	}
+#else
 	for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 	{
 		if (!sv.strings.model_precache[i])
@@ -4548,7 +5000,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				sv.strings.model_precache[i] = PR_AddString(prinst, s, 0, false);
 			s = sv.strings.model_precache[i];
 			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
-				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[sv_current_time_period]), MLV_WARNSYNC);
+				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname), MLV_WARNSYNC);
 			else
 			{
 				/*touch the file, so any packs will be referenced*/
@@ -4575,6 +5027,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			return i;
 		}
 	}
+#endif
 	if (!queryonly)
 		PR_BIError (prinst, "PF_precache_model: overflow");
 	return 0;
@@ -4612,8 +5065,13 @@ static void QCBUILTIN PF_getmodelindex (pubprogfuncs_t *prinst, struct globalvar
 static void QCBUILTIN PF_modelnameforindex (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	int idx = G_FLOAT(OFS_PARM0);
+#ifdef TEMPORALCORTEX
+	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && sv.strings.model_precache[sv_current_bsp_index][idx])
+		RETURN_TSTRING(sv.strings.model_precache[sv_current_bsp_index][idx]);
+#else
 	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && sv.strings.model_precache[idx])
 		RETURN_TSTRING(sv.strings.model_precache[idx]);
+#endif
 	else
 		G_INT(OFS_RETURN) = 0;
 }
@@ -4745,6 +5203,21 @@ static void QCBUILTIN PF_walkmovedist (pubprogfuncs_t *prinst, struct globalvars
 	VectorSubtract(ent->v->origin, start, start);
 	G_FLOAT(OFS_RETURN) = VectorLength(start);
 }
+
+#ifdef TEMPORALCORTEX
+static void QCBUILTIN PF_timescale (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float val = G_FLOAT(OFS_PARM0);
+
+	// Missi: Sanity check (2026.1.1)
+	if ( val < 0.1 || val > 8.0 )
+		return;
+
+	MSG_WriteByte( &sv.reliable_datagram, svctc_gamespeed );
+	MSG_WriteFloat( &sv.reliable_datagram, val );
+	Cvar_SetValue( Cvar_Get( "sv_gamespeed", "1", 0, "slowmo" ), val );
+}
+#endif
 
 void QCBUILTIN PF_applylightstyle(int style, const char *val, vec3_t rgb)
 {
@@ -4995,8 +5468,13 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 
 	//figure out the angle we're allowed to aim at
 	i = NUM_FOR_EDICT(prinst, ent);
-	if (i>FINAL_TIME_PERIOD && i<sv.allocated_client_slots+FINAL_TIME_PERIOD)
-		bestdist = svs.clients[i-MAX_TIME_PERIODS].autoaimdot;
+#ifdef TEMPORALCORTEX
+	if (i>tc_sv_loaded_bsps-1 && i<sv.allocated_client_slots+tc_sv_loaded_bsps)
+		bestdist = svs.clients[i-tc_sv_loaded_bsps].autoaimdot;
+#else
+	if (i>0 && i<sv.allocated_client_slots)
+		bestdist = svs.clients[i-1].autoaimdot;
+#endif
 	else
 		bestdist = sv_aim.value;
 	if (bestdist >= 1)
@@ -5014,7 +5492,11 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 // try sending a trace straight
 	VectorCopy (P_VEC(v_forward), dir);
 	VectorMA (start, 2048, dir, end);
+#ifdef TEMPORALCORTEX
+	tr = World_Move (&sv.world, start, vec3_origin, vec3_origin, end, false, (wedict_t*)ent, ent->bspnum);
+#else
 	tr = World_Move (&sv.world, start, vec3_origin, vec3_origin, end, false, (wedict_t*)ent);
+#endif
 	if (tr.ent && ((edict_t *)tr.ent)->v->takedamage == DAMAGE_AIM
 	&& (!teamplay.value || ent->v->team <=0 || ent->v->team != ((edict_t *)tr.ent)->v->team) )
 	{
@@ -5027,8 +5509,11 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 	VectorCopy (dir, bestdir);
 	bestdist = sv_aim.value;
 	bestent = NULL;
-
-	for (i=MAX_TIME_PERIODS ; i<sv.world.num_edicts ; i++ )
+#ifdef TEMPORALCORTEX
+	for (i=tc_sv_loaded_bsps ; i<sv.world.num_edicts ; i++ )
+#else
+	for (i=1 ; i<sv.world.num_edicts ; i++ )
+#endif
 	{
 		check = EDICT_NUM_PB(prinst, i);
 		if (check->v->takedamage != DAMAGE_AIM)
@@ -5045,7 +5530,11 @@ void QCBUILTIN PF_aim (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 		dist = DotProduct (dir, P_VEC(v_forward));
 		if (dist < bestdist)
 			continue;	// to far to turn
+#ifdef TEMPORALCORTEX
+		tr = World_Move (&sv.world, start, vec3_origin, vec3_origin, end, false, (wedict_t*)ent, ent->bspnum);
+#else
 		tr = World_Move (&sv.world, start, vec3_origin, vec3_origin, end, false, (wedict_t*)ent);
+#endif
 		if (tr.ent == check)
 		{	// can shoot at this one
 			bestdist = dist;
@@ -5090,7 +5579,11 @@ sizebuf_t *QWWriteDest (int		dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
+#ifdef TEMPORALCORTEX
+		return &svs.clients[entnum-tc_sv_loaded_bsps].netchan.message;
+#else
+		return &svs.clients[entnum-1].netchan.message;
+#endif
 		}
 	case MSG_BROADCAST:
 		return &sv.datagram;
@@ -5100,7 +5593,7 @@ sizebuf_t *QWWriteDest (int		dest)
 #if 0
 		ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 		entnum = NUM_FOR_EDICT(ent);
-		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
 		{
 			PR_BIError ("WriteDest: not a client");
 			return &sv.reliable_datagram;
@@ -5138,7 +5631,11 @@ sizebuf_t *NQWriteDest (int dest)
 		{
 		int entnum;
 		entnum = PR_globals(svprogfuncs, PR_CURRENT)->param[0].i;
-		return &svs.clients[entnum-MAX_TIME_PERIODS].netchan.message;
+#ifdef TEMPORALCORTEX
+		return &svs.clients[entnum-tc_sv_loaded_bsps].netchan.message;
+#else
+		return &svs.clients[entnum-1].netchan.message;
+#endif
 		}
 
 	case MSG_BROADCAST:
@@ -5149,7 +5646,7 @@ sizebuf_t *NQWriteDest (int dest)
 #if 0
 		ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 		entnum = NUM_FOR_EDICT(ent);
-		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+		if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
 		{
 			PR_BIError (prinst, "WriteDest: not a client");
 			return &sv.nqreliable_datagram;
@@ -5192,11 +5689,19 @@ client_t *Write_GetClient(void)
 
 	ent = PROG_TO_EDICT(svprogfuncs, pr_global_struct->msg_entity);
 	entnum = NUM_FOR_EDICT(svprogfuncs, ent);
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
 		return NULL;//PR_RunError ("WriteDest: not a client");
-	if (svs.clients[entnum-MAX_TIME_PERIODS].protocol == SCP_BAD)
+	if (svs.clients[entnum-tc_sv_loaded_bsps].protocol == SCP_BAD)
 		return NULL;	//don't try writing to bots... we don't want the overflows.
-	return &svs.clients[entnum-MAX_TIME_PERIODS];
+	return &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+		return NULL;//PR_RunError ("WriteDest: not a client");
+	if (svs.clients[entnum-1].protocol == SCP_BAD)
+		return NULL;	//don't try writing to bots... we don't want the overflows.
+	return &svs.clients[entnum-1];
+#endif
 }
 
 static int PF_Write_BoundForNetwork(pubprogfuncs_t *prinst, int minv, int v, int maxv)
@@ -6227,14 +6732,22 @@ void QCBUILTIN PF_setspawnparms (pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	ent = G_EDICT(prinst, OFS_PARM0);
 	i = NUM_FOR_EDICT(prinst, ent);
-	if (i < MAX_TIME_PERIODS || i > sv.allocated_client_slots + FINAL_TIME_PERIOD )
+#ifdef TEMPORALCORTEX
+	if (i < tc_sv_loaded_bsps || i >= sv.allocated_client_slots + tc_sv_loaded_bsps )
+#else
+	if (i < 1 || i > sv.allocated_client_slots )
+#endif
 	{
 		PR_BIError (prinst, "Entity is not a client");
 		return;
 	}
 
 	// copy spawn parms out of the client_t
-	client = svs.clients + (i-MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+	client = svs.clients + (i-tc_sv_loaded_bsps);
+#else
+	client = svs.clients + (i-1);
+#endif
 
 	SV_SpawnParmsToQC(client);
 }
@@ -6309,13 +6822,21 @@ void QCBUILTIN PF_logfrag (pubprogfuncs_t *prinst, struct globalvars_s *pr_globa
 
 	ent1 = G_EDICT(prinst, OFS_PARM0);
 	ent2 = G_EDICT(prinst, OFS_PARM1);
+#ifdef TEMPORALCORTEX
+	e1 = NUM_FOR_EDICT(prinst, ent1)-tc_sv_loaded_bsps;
+	e2 = NUM_FOR_EDICT(prinst, ent2)-tc_sv_loaded_bsps;
 
-	e1 = NUM_FOR_EDICT(prinst, ent1)-MAX_TIME_PERIODS;
-	e2 = NUM_FOR_EDICT(prinst, ent2)-MAX_TIME_PERIODS;
+	if (e1 < 0 || e1 >= sv.allocated_client_slots + tc_sv_loaded_bsps
+	|| e2 < 0 || e2 >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+		return;
+#else
+	e1 = NUM_FOR_EDICT(prinst, ent1)-1;
+	e2 = NUM_FOR_EDICT(prinst, ent2)-1;
 
 	if (e1 < 0 || e1 >= sv.allocated_client_slots
 	|| e2 < 0 || e2 >= sv.allocated_client_slots)
 		return;
+#endif
 
 #ifdef SVRANKING
 	if (e1 != e2)	//don't get a point for suicide.
@@ -6394,22 +6915,37 @@ char *PF_infokey_Internal (int entnum, const char *key)
 {
 	char	*value;
 	static char ov[256];
-
-	if (entnum < MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps)
+#else
+	if (entnum == 0)
+#endif
 	{
 		if (pr_imitatemvdsv.value && !strcmp(key, "*version"))
 			value = "2.40";
 		else if (!strcmp(key, "modelname"))	//for compat with mvdsv.
-			value = sv.modelname[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+			value = sv.modelname[sv_current_bsp_index];
+#else
+			value = sv.modelname;
+#endif
 		else
 		{
 			if ((value = InfoBuf_ValueForKey(&svs.info, key)) == NULL || !*value)
 				value = InfoBuf_ValueForKey(&svs.localinfo, key);
 		}
 	}
+#ifdef TEMPORALCORTEX
+	else if (entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	else if (entnum <= sv.allocated_client_slots)
+#endif
 	{
-		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		client_t *pl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+		client_t *pl = &svs.clients[entnum-1];
+#endif
 		client_t *controller = pl->controller?pl->controller:pl;
 		value = ov;
 		if (!strcmp(key, "ip"))
@@ -6435,9 +6971,17 @@ char *PF_infokey_Internal (int entnum, const char *key)
 		else if (!strcmp(key, "csqcactive") || !strcmp(key, "*csqcactive"))
 			sprintf(ov, "%d", controller->csqcactive);
 		else if (!strcmp(key, "ping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS], false));
+#ifdef TEMPORALCORTEX
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-tc_sv_loaded_bsps], false));
+#else
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-1], false));
+#endif
 		else if (!strcmp(key, "svping"))
-			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-MAX_TIME_PERIODS], true));
+#ifdef TEMPORALCORTEX
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-tc_sv_loaded_bsps], true));
+#else
+			sprintf(ov, "%d", SV_CalcPing (&svs.clients[entnum-1], true));
+#endif
 		else if (!strcmp(key, "guid"))
 			sprintf(ov, "%s", pl->guid);
 		else if (!strcmp(key, "*cert_dn"))
@@ -6601,7 +7145,11 @@ static void QCBUILTIN PF_infokey_blob (pubprogfuncs_t *prinst, struct globalvars
 			value = InfoBuf_BlobForKey(&svs.localinfo, key, &blobsize, NULL);
 	}
 	else if (e1 <= (unsigned)sv.allocated_client_slots)
-		value = InfoBuf_BlobForKey (&svs.clients[e1-MAX_TIME_PERIODS].userinfo, key, &blobsize, NULL);
+#ifdef TEMPORALCORTEX
+		value = InfoBuf_BlobForKey (&svs.clients[e1-tc_sv_loaded_bsps].userinfo, key, &blobsize, NULL);
+#else
+		value = InfoBuf_BlobForKey (&svs.clients[e1-1].userinfo, key, &blobsize, NULL);
+#endif
 	else
 		value = NULL;
 
@@ -7343,7 +7891,11 @@ static void QCBUILTIN PF_checkextension (pubprogfuncs_t *prinst, struct globalva
 
 			if (ext->extensioncheck && clnum > 0 && clnum <= sv.allocated_client_slots)
 			{
-				client_t *cl = &svs.clients[clnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+				client_t *cl = &svs.clients[clnum-tc_sv_loaded_bsps];
+#else
+				client_t *cl = &svs.clients[clnum-1];
+#endif
 				extcheck_t check = {prinst->parms->user, cl->fteprotocolextensions, cl->fteprotocolextensions2};
 				if (!ext->extensioncheck(&check))
 					return;	//blocked by some setting somewhere, somehow.
@@ -7775,13 +8327,21 @@ static void QCBUILTIN PF_redirectcmd (pubprogfuncs_t *prinst, struct globalvars_
 	struct frameendtasks_s *task, **link;
 	int entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	const char *s = PR_GetStringOfs(prinst, OFS_PARM1);
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 		PR_RunError (prinst, "Parm 0 not a client");
 
 	task = Z_Malloc(sizeof(*task)+strlen(s));
 	task->callback = PF_Redirectcmdcallback;
 	strcpy(task->data, s);
+#ifdef TEMPORALCORTEX
+	task->ctxint = entnum-tc_sv_loaded_bsps;
+#else
 	task->ctxint = entnum-1;
+#endif
 	for(link = &svs.frameendtasks; *link; link = &(*link)->next)
 		;	//add them on the end, so they're execed in order
 	*link = task;
@@ -7816,8 +8376,13 @@ static void QCBUILTIN PF_OpenPortal	(pubprogfuncs_t *prinst, struct globalvars_s
 			}
 		}
 	}
-	if (sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState)
-		sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_time_period], portal, area1, area2, state);
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_bsp_index], portal, area1, area2, state);
+#else
+	if (sv.world.worldmodel->funcs.SetAreaPortalState)
+		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, portal, area1, area2, state);
+#endif
 }
 
 //EXTENSION: KRIMZON_SV_PARSECLIENTCOMMAND
@@ -7832,16 +8397,22 @@ static void QCBUILTIN PF_clientcommand (pubprogfuncs_t *prinst, struct globalvar
 
 	//find client for this entity
 	i = NUM_FOR_EDICT(prinst, G_EDICT(prinst, OFS_PARM0));
-	if (i <= 0 || i > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+#ifdef TEMPORALCORTEX
+	if (i < tc_sv_loaded_bsps || i >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (i <= 0 || i > sv.allocated_client_slots)
+#endif
 		PR_BIError(prinst, "PF_clientcommand: entity is not a client");
 	else
 	{
-		host_client = &svs.clients[i-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		host_client = &svs.clients[i-tc_sv_loaded_bsps];
+#else
+		host_client = &svs.clients[i-1];
+#endif
 		sv_player = host_client->edict;
 		if (host_client->state == cs_connected || host_client->state == cs_spawned)
-		{
-			SV_ExecuteUserCommand (PF_VarString(prinst, MAX_TIME_PERIODS, pr_globals), true);
-		}
+			SV_ExecuteUserCommand (PF_VarString(prinst, 1, pr_globals), true);
 		else
 			Con_Printf("PF_clientcommand: client is not active\n");
 	}
@@ -7961,8 +8532,11 @@ const char *SV_CheckRejectConnection(netadr_t *adr, const char *uinfo, unsigned 
 			Info_SetValueForKey(clfeatures, "EZPEXT1_FLOATENTCOORDS", "1", sizeof(clfeatures));
 		if (ezpext1 & EZPEXT1_SETANGLEREASON)
 			Info_SetValueForKey(clfeatures, "EZPEXT1_SETANGLEREASON", "1", sizeof(clfeatures));
-
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+#else
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 		G_INT(OFS_PARM0) = (int)PR_TempString(svprogfuncs, addrstr);
 		G_INT(OFS_PARM1) = (int)PR_TempString(svprogfuncs, uinfo);
 		G_INT(OFS_PARM2) = (int)PR_TempString(svprogfuncs, clfeatures);
@@ -7983,7 +8557,11 @@ void SV_AddDebugPolygons(void)
 		extern qboolean csqc_dp_lastwas3d;
 		csqc_dp_lastwas3d = true;
 #endif
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, sv.world.edicts);
+#ifdef TEMPORALCORTEX
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+#else
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
+#endif
 		for (i = 0; i < sv.allocated_client_slots; i++)
 			if (svs.clients[i].netchan.remote_address.type == NA_LOOPBACK)
 				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, svs.clients[i].edict);
@@ -8174,14 +8752,20 @@ static void QCBUILTIN PF_h2setclass (pubprogfuncs_t *prinst, struct globalvars_s
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	e = G_EDICT(prinst, OFS_PARM0);
 	NewClass = G_FLOAT(OFS_PARM1);
-
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		Con_Printf ("tried to change class of a non-client\n");
 		return;
 	}
-
-	client = &svs.clients[entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+	client = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	client = &svs.clients[entnum-1];
+#endif
 
 	e->xv->playerclass = NewClass;
 	client->playerclass = NewClass;
@@ -9803,7 +10387,11 @@ int PF_ForceInfoKey_Internal(unsigned int entnum, const char *key, const char *v
 {
 	const char *oldval;
 	size_t oldsize;
-	if (entnum < MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps)
+#else
+	if (entnum < 1)
+#endif
 	{	//serverinfo
 		oldval = InfoBuf_BlobForKey(&svs.info, key, &oldsize, NULL);
 		if (oldsize == valsize && !memcmp(oldval, value, valsize))
@@ -9811,44 +10399,81 @@ int PF_ForceInfoKey_Internal(unsigned int entnum, const char *key, const char *v
 		InfoBuf_SetStarBlobKey(&svs.info, key, value, valsize);
 		return 2;
 	}
+#ifdef TEMPORALCORTEX
+	else if (entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+	{	//woo. we found a client.
+		if (svs.clients[entnum-tc_sv_loaded_bsps].state == cs_free)
+		{
+#else
 	else if (entnum <= sv.allocated_client_slots)
 	{	//woo. we found a client.
-		if (svs.clients[entnum-MAX_TIME_PERIODS].state == cs_free)
+		if (svs.clients[entnum-1].state == cs_free)
 		{
+#endif
 			Con_DPrintf("PF_ForceInfoKey: inactive client\n");
 			return 0;
 		}
-		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key, &oldsize, NULL);
+#ifdef TEMPORALCORTEX
+		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-tc_sv_loaded_bsps].userinfo, key, &oldsize, NULL);
+#else
+		oldval = InfoBuf_BlobForKey(&svs.clients[entnum-1].userinfo, key, &oldsize, NULL);
+#endif
 		if (oldsize == valsize && !memcmp(oldval, value, valsize))
 			return 1;	//unchanged
-
-		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key, value, valsize))
+#ifdef TEMPORALCORTEX
+		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-tc_sv_loaded_bsps].userinfo, key, value, valsize))
 		{
-			SV_ExtractFromUserinfo (&svs.clients[entnum-MAX_TIME_PERIODS], false);
+			SV_ExtractFromUserinfo (&svs.clients[entnum-tc_sv_loaded_bsps], false);
 
-			value = InfoBuf_ValueForKey(&svs.clients[entnum-MAX_TIME_PERIODS].userinfo, key);
+			value = InfoBuf_ValueForKey(&svs.clients[entnum-tc_sv_loaded_bsps].userinfo, key);
+#else
+		if (InfoBuf_SetStarBlobKey(&svs.clients[entnum-1].userinfo, key, value, valsize))
+		{
+			SV_ExtractFromUserinfo (&svs.clients[entnum-1], false);
+
+			value = InfoBuf_ValueForKey(&svs.clients[entnum-1].userinfo, key);
+#endif
 
 			if (!strcmp(key, "*spectator"))
 			{
 				int ns = !!atoi(value);
-
-				if (svs.clients[entnum-MAX_TIME_PERIODS].spawned && svs.clients[entnum-MAX_TIME_PERIODS].state == cs_spawned)
+#ifdef TEMPORALCORTEX
+				if (svs.clients[entnum-tc_sv_loaded_bsps].spawned && svs.clients[entnum-tc_sv_loaded_bsps].state == cs_spawned)
 				{
-					if (svs.clients[entnum-MAX_TIME_PERIODS].spectator)
+					if (svs.clients[entnum-tc_sv_loaded_bsps].spectator)
 						sv.spawned_observer_slots--;
 					else
 						sv.spawned_client_slots--;
-					svs.clients[entnum-MAX_TIME_PERIODS].spectator = ns;
+					svs.clients[entnum-tc_sv_loaded_bsps].spectator = ns;
 					if (ns)
 						sv.spawned_observer_slots++;
 					else
 						sv.spawned_client_slots++;
 				}
 				else
-					svs.clients[entnum-MAX_TIME_PERIODS].spectator = ns;
+					svs.clients[entnum-tc_sv_loaded_bsps].spectator = ns;
+#else
+				if (svs.clients[entnum-1].spawned && svs.clients[entnum-1].state == cs_spawned)
+				{
+					if (svs.clients[entnum-1].spectator)
+						sv.spawned_observer_slots--;
+					else
+						sv.spawned_client_slots--;
+					svs.clients[entnum-1].spectator = ns;
+					if (ns)
+						sv.spawned_observer_slots++;
+					else
+						sv.spawned_client_slots++;
+				}
+				else
+					svs.clients[entnum-1].spectator = ns;
+#endif
 			}
-
-			SV_BroadcastUserinfoChange(&svs.clients[entnum-MAX_TIME_PERIODS], SV_UserInfoIsBasic(key), key, value);
+#ifdef TEMPORALCORTEX
+			SV_BroadcastUserinfoChange(&svs.clients[entnum-tc_sv_loaded_bsps], SV_UserInfoIsBasic(key), key, value);
+#else
+			SV_BroadcastUserinfoChange(&svs.clients[entnum-1], SV_UserInfoIsBasic(key), key, value);
+#endif
 		}
 
 		return 1;
@@ -9917,14 +10542,20 @@ static void QCBUILTIN PF_setcolors (pubprogfuncs_t *prinst, struct globalvars_s 
 
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	i = G_FLOAT(OFS_PARM1);
-
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		Con_Printf ("tried to setcolor a non-client\n");
 		return;
 	}
-
-	client = &svs.clients[entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+	client = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	client = &svs.clients[entnum-1];
+#endif
 	client->edict->v->team = (i & 15) + 1;
 
 	Q_snprintfz(number, sizeof(number), "%i", i>>4);
@@ -9978,8 +10609,13 @@ static void QCBUILTIN PF_ShowPic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==6)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM5)-MAX_TIME_PERIODS;
-		if (entnum < 0 || entnum >= sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+		entnum = G_EDICTNUM(prinst, OFS_PARM5)-tc_sv_loaded_bsps;
+		if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+		entnum = G_EDICTNUM(prinst, OFS_PARM5)-1;
+		if (entnum < 1 || entnum >= sv.allocated_client_slots)
+#endif
 			PR_RunError (prinst, "PF_ShowPic: not a client");
 
 		if (!(svs.clients[entnum].fteprotocolextensions & PEXT_SHOWPIC))
@@ -9997,7 +10633,11 @@ static void QCBUILTIN PF_ShowPic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 6;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM5) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_PARM5) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+tc_sv_loaded_bsps));
+#else
+			G_INT(OFS_PARM5) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+#endif
 			PF_ShowPic(prinst, pr_globals);
 		}
 	}
@@ -10011,8 +10651,13 @@ static void QCBUILTIN PF_HidePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==2)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM1)-MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		entnum = G_EDICTNUM(prinst, OFS_PARM1)-tc_sv_loaded_bsps;
+		if (entnum < 0 || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+		entnum = G_EDICTNUM(prinst, OFS_PARM1)-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
+#endif
 			PR_RunError (prinst, "PF_HidePic: not a client");
 
 		if (!(svs.clients[entnum].fteprotocolextensions & PEXT_SHOWPIC))
@@ -10026,7 +10671,11 @@ static void QCBUILTIN PF_HidePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 2;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM1) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_PARM1) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+tc_sv_loaded_bsps));
+#else
+			G_INT(OFS_PARM1) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+#endif
 			PF_HidePic(prinst, pr_globals);
 		}
 	}
@@ -10046,8 +10695,13 @@ static void QCBUILTIN PF_MovePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 
 	if (prinst->callargc==5)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM4)-MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		entnum = G_EDICTNUM(prinst, OFS_PARM4)-tc_sv_loaded_bsps;
+		if (entnum < 0 || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+		entnum = G_EDICTNUM(prinst, OFS_PARM4)-1;
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
+#endif
 			PR_RunError (prinst, "PF_MovePic: not a client");
 
 		if (!(svs.clients[entnum].fteprotocolextensions & PEXT_SHOWPIC))
@@ -10064,7 +10718,11 @@ static void QCBUILTIN PF_MovePic(pubprogfuncs_t *prinst, struct globalvars_s *pr
 		prinst->callargc = 5;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM4) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_PARM4) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+tc_sv_loaded_bsps));
+#else
+			G_INT(OFS_PARM4) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+#endif
 			PF_MovePic(prinst, pr_globals);
 		}
 	}
@@ -10079,7 +10737,11 @@ static void QCBUILTIN PF_ChangePic(pubprogfuncs_t *prinst, struct globalvars_s *
 
 	if (prinst->callargc==3)
 	{	//to a single client
-		entnum = G_EDICTNUM(prinst, OFS_PARM2)-MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		entnum = G_EDICTNUM(prinst, OFS_PARM2)-tc_sv_loaded_bsps;
+#else
+		entnum = G_EDICTNUM(prinst, OFS_PARM2)-1;
+#endif
 		if (entnum < 0 || entnum >= sv.allocated_client_slots)
 			PR_RunError (prinst, "PF_ChangePic: not a client");
 
@@ -10095,7 +10757,11 @@ static void QCBUILTIN PF_ChangePic(pubprogfuncs_t *prinst, struct globalvars_s *
 		prinst->callargc = 3;
 		for (entnum = 0; entnum < sv.allocated_client_slots; entnum++)
 		{
-			G_INT(OFS_PARM2) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+MAX_TIME_PERIODS));
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_PARM2) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+tc_sv_loaded_bsps));
+#else
+			G_INT(OFS_PARM2) = EDICT_TO_PROG(prinst, EDICT_NUM_PB(prinst, entnum+1));
+#endif
 			PF_ChangePic(prinst, pr_globals);
 		}
 	}
@@ -10148,14 +10814,22 @@ static void QCBUILTIN PF_setsendneeded(pubprogfuncs_t *prinst, struct globalvars
 	unsigned int to = G_EDICTNUM(svprogfuncs, OFS_PARM2);
 	if (!to)
 	{	//broadcast
+#ifdef TEMPORALCORTEX
+		for (to = 0; to < sv.allocated_client_slots + tc_sv_loaded_bsps; to++)
+#else
 		for (to = 0; to < sv.allocated_client_slots; to++)
+#endif
 			if (svs.clients[to].pendingcsqcbits && subject < svs.clients[to].max_net_ents)
 				svs.clients[to].pendingcsqcbits[subject] |= fl;
 	}
 	else
 	{
 		to--;
+#ifdef TEMPORALCORTEX
+		if (to >= sv.allocated_client_slots + tc_sv_loaded_bsps || !svs.clients[to].pendingcsqcbits || subject >= svs.clients[to].max_net_ents)
+#else
 		if (to >= sv.allocated_client_slots || !svs.clients[to].pendingcsqcbits || subject >= svs.clients[to].max_net_ents)
+#endif
 			return;	//some kind of error.
 		else
 			svs.clients[to].pendingcsqcbits[subject] |= fl;
@@ -10181,9 +10855,13 @@ static void QCBUILTIN PF_runclientphys(pubprogfuncs_t *prinst, struct globalvars
 	}
 
 	VALGRIND_MAKE_MEM_UNDEFINED(&pmove, sizeof(pmove));
-
-	if (ent->entnum > FINAL_TIME_PERIOD && ent->entnum <= sv.allocated_client_slots)
-		client = &svs.clients[ent->entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+	if (ent->entnum >= tc_sv_loaded_bsps && ent->entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+		client = &svs.clients[ent->entnum-tc_sv_loaded_bsps];
+#else
+	if (ent->entnum >= 1 && ent->entnum <= sv.allocated_client_slots)
+		client = &svs.clients[ent->entnum-1];
+#endif
 	else
 		client = NULL;
 	pmove.pm_type = SV_PMTypeForClient(client, ent);
@@ -10239,7 +10917,11 @@ static void QCBUILTIN PF_runclientphys(pubprogfuncs_t *prinst, struct globalvars
 	pmove.world = &sv.world;
 	pmove.skipent = -1;
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+#else
+	pmove.physents[0].model = sv.world.worldmodel;
+#endif
 
 	pmove.onladder = false;
 	pmove.onground = ((int)ent->v->flags & FL_ONGROUND) != 0;
@@ -10333,6 +11015,7 @@ void SV_SetEntityButtons(edict_t *ent, unsigned int buttonbits)
 	//set vanilla buttons
 	ent->v->button0 = buttonbits & 1;
 	ent->v->button2 = (buttonbits >> 1) & 1;
+
 	if (pr_allowbutton1.ival && progstype == PROG_QW)	//many mods use button1 - it's just a wasted field to many mods. So only work it if the cvar allows.
 		ent->v->button1 = ((buttonbits >> 2) & 1);
 
@@ -10569,7 +11252,11 @@ static void QCBUILTIN PF_matchclient(pubprogfuncs_t *prinst, struct globalvars_s
 		if (!cl)
 			G_INT(OFS_RETURN) = 0;
 		else
-			G_INT(OFS_RETURN) = (cl - svs.clients) + MAX_TIME_PERIODS - 1;
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_RETURN) = (cl - svs.clients) + tc_sv_loaded_bsps - 1;
+#else
+			G_INT(OFS_RETURN) = (cl - svs.clients) + 1;
+#endif
 
 		if ((cl = SV_GetClientForString(name, &clnum)))
 			G_INT(OFS_RETURN) = 0;	//prevent multiple matches.
@@ -10580,7 +11267,11 @@ static void QCBUILTIN PF_matchclient(pubprogfuncs_t *prinst, struct globalvars_s
 	{
 		if (!matchnum)
 		{	//this is the one that matches
-			G_INT(OFS_RETURN) = (cl - svs.clients) + MAX_TIME_PERIODS - 1;
+#ifdef TEMPORALCORTEX
+			G_INT(OFS_RETURN) = (cl - svs.clients) + tc_sv_loaded_bsps - 1;
+#else
+			G_INT(OFS_RETURN) = (cl - svs.clients) + 1;
+#endif
 			return;
 		}
 		matchnum--;
@@ -10616,13 +11307,25 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 	switch(restype)
 	{
 	case RESTYPE_MODEL:
+#ifdef TEMPORALCORTEX
+		for (idx=1 ; idx<MAX_PRECACHE_MODELS && sv.strings.model_precache[sv_current_bsp_index][idx] ; idx++)
+		{
+			if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][idx], resname))
+			{
+				model_t *mod = sv.models[sv_current_bsp_index][idx];
+#else
 		for (idx=1 ; idx<MAX_PRECACHE_MODELS && sv.strings.model_precache[idx] ; idx++)
 		{
 			if (!strcmp(sv.strings.model_precache[idx], resname))
 			{
 				model_t *mod = sv.models[idx];
+#endif
 				if (!mod && doload)
-					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname[sv_current_time_period]));
+#ifdef TEMPORALCORTEX
+					mod = sv.models[sv_current_bsp_index][idx] = Mod_FindName(Mod_FixName(resname, sv.modelname[sv_current_bsp_index]));
+#else
+					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname));
+#endif
 				if (!mod)
 					G_FLOAT(OFS_RETURN) = RESSTATE_NOTLOADED;
 				else
@@ -10651,9 +11354,15 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		}
 		break;
 	case RESTYPE_SOUND:
+#ifdef TEMPORALCORTEX
+		for (idx=1 ; idx<MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[sv_current_bsp_index][idx] ; idx++)
+		{
+			if (!strcmp(sv.strings.sound_precache[sv_current_bsp_index][idx], resname))
+#else
 		for (idx=1 ; idx<MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[idx] ; idx++)
 		{
 			if (!strcmp(sv.strings.sound_precache[idx], resname))
+#endif
 			{
 				G_FLOAT(OFS_RETURN) = RESSTATE_NOTLOADED;
 				return;
@@ -10752,12 +11461,20 @@ static void QCBUILTIN PF_localsound_qex(pubprogfuncs_t *prinst, struct globalvar
 	edict_t *ent = G_EDICT(prinst, OFS_PARM0);
 	const char *sample = PR_GetStringOfs(prinst, OFS_PARM1);
 	int entnum = NUM_FOR_EDICT(prinst, ent);
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum >= 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		PR_RunWarning(sv.world.progs, "tried to localsound to a non-client\n");
 		return;
 	}
+#ifdef TEMPORALCORTEX
+	if (svs.clients[entnum-tc_sv_loaded_bsps].state < cs_connected)
+#else
 	if (svs.clients[entnum-1].state < cs_connected)
+#endif
 		return;	//bad caller!
 
 	pr_global_struct->msg_entity = G_INT(OFS_PARM0);	//required for CF_SV_UNICAST
@@ -10769,10 +11486,15 @@ static void QCBUILTIN PF_CheckPlayerEXFlags_qex(pubprogfuncs_t *prinst, struct g
 {
 	int entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	unsigned int flags = 0;
-
-	if (entnum > FINAL_TIME_PERIOD && entnum <= sv.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (entnum >= tc_sv_loaded_bsps && entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
 	{
-		client_t *pl = &svs.clients[entnum-MAX_TIME_PERIODS];
+		client_t *pl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+	if (entnum >= 1 && entnum <= sv.allocated_client_slots)
+	{
+		client_t *pl = &svs.clients[entnum-1];
+#endif
 		int ival;
 		char *value = InfoBuf_ValueForKey (&pl->userinfo, "w_switch");
 		if (!*value)
@@ -10810,9 +11532,13 @@ static void QCBUILTIN PF_centerprint_qex(pubprogfuncs_t *prinst, struct globalva
 	entnum = G_EDICTNUM(prinst, OFS_PARM0);
 	for (args = 0; args+1 < prinst->callargc; args++)
 		arg[args] = PR_GetStringOfs(prinst, OFS_PARM1+args*(OFS_PARM1-OFS_PARM0));
-
-	if (entnum > FINAL_TIME_PERIOD && entnum <= sv.allocated_client_slots + FINAL_TIME_PERIOD)
-		lang = svs.clients[entnum-MAX_TIME_PERIODS].language;
+#ifdef TEMPORALCORTEX
+	if (entnum >= tc_sv_loaded_bsps && entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+		lang = svs.clients[entnum-tc_sv_loaded_bsps].language;
+#else
+	if (entnum >= 1 && entnum <= sv.allocated_client_slots)
+		lang = svs.clients[entnum-1].language;
+#endif
 	TL_Reformat(lang, s, sizeof(s), args, arg);
 
 	PF_centerprint_Internal(entnum, false, s);
@@ -10845,14 +11571,20 @@ static void QCBUILTIN PF_sprint_qex(pubprogfuncs_t *prinst, struct globalvars_s 
 		for (args = 0; args+2 < prinst->callargc; args++)
 			arg[args] = PR_GetStringOfs(prinst, OFS_PARM2+args*(OFS_PARM1-OFS_PARM0));
 	}
-
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+#ifdef TEMPORALCORTEX
+	if (entnum < tc_sv_loaded_bsps || entnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum < 1 || entnum > sv.allocated_client_slots)
+#endif
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return;
 	}
-
+#ifdef TEMPORALCORTEX
+	client = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
 	client = &svs.clients[entnum-1];
+#endif
 
 	TL_Reformat(client->language, s, sizeof(s), args, arg);
 	SV_ClientPrintf (client, level, "%s", s);
@@ -10936,6 +11668,76 @@ void SV_Prompt_Input(client_t *cl, usercmd_t *ucmd)
 		cl->prompt.oldmove[1] = ucmd->sidemove;
 	}
 }
+
+#ifdef TEMPORALCORTEX
+
+void SV_ChangeTimePeriod( int bspindex );
+void SV_ChangeTimePeriod_SaveGame( int bspindex );
+
+static int current_sv_entity_count;
+
+//void(entity player) timeperiod_queue;
+void QCBUILTIN PF_TimePeriod_Queue(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	edict_t* ent;
+	int entnum, i;
+	qboolean exists = false;
+
+	if ( svs.allocated_client_slots == 1 )
+		return;
+
+	ent = (edict_t*)G_EDICT( prinst, OFS_PARM0 );
+	entnum = NUM_FOR_EDICT( svprogfuncs, ent );
+
+	current_sv_entity_count = sv.world.num_edicts;
+
+	for ( i = 0; i < current_sv_entity_count; i++ )
+	{
+		if ( tc_edictnums[i] == entnum )
+		{
+			// Con_DPrintf( "Entity %s already exists in the time period trigger list!\n", PR_GetString( svprogfuncs, ent->v->classname ) );
+			exists = true;
+			break;
+		}
+
+		if ( !ent || ent->freetime > 0.0f || ent->v->deadflag == 2 )
+		{
+			// Con_DPrintf( "Entity %s already exists in the time period trigger list, but has been removed!\n", PR_GetString( svprogfuncs, ent->v->classname ) );
+			tc_edictnums[i] = 0;
+		}
+	}
+
+	if ( !exists )
+		tc_edictnums[i] = entnum;
+}
+
+// void(float timeperiod) timeperiod_change
+void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	int bspnum = G_INT(OFS_PARM0);
+	int i;
+	edict_t* ent;
+
+	for ( i = 0; i < current_sv_entity_count; i++ )
+	{
+		if ( tc_edictnums[i] != 0 )
+		{
+			ent = (edict_t*)EDICT_NUM_PB( svprogfuncs, tc_edictnums[i] );
+			ent->bspnum = bspnum;
+		}
+	}
+
+	memset( tc_edictnums, 0, sizeof(tc_edictnums) );
+
+	SV_ChangeTimePeriod( bspnum );
+}
+
+void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	G_FLOAT(OFS_RETURN) = tc_sv_loaded_bsps;
+}
+#endif
+
 void SV_Prompt_Resend(client_t *client)
 {
 	Z_Free(client->centerprintstring);
@@ -12248,7 +13050,11 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"fexists",			PF_fexists,			0,		0,		0,		653,	D("float(string fname)",	"Returns true if it exists inside the default writable path. Use whichpack for greater portability.")},
 	{"rmtree",			PF_rmtree,			0,		0,		0,		654,	D("float(string path)",		"Dangerous, but sandboxed to data/")},
 	{"walkmovedist",	PF_walkmovedist,	0,		0,		0,		655,	D("DEP float(float yaw, float dist, optional float settraceglobals)", "Attempt to walk the entity at a given angle for a given distance.\nif settraceglobals is set, the trace_* globals will be set, showing the results of the movement.\nThis function will trigger touch events."), true},
+#ifdef TEMPORALCORTEX
+	{"timescale",		PF_timescale,			0,		0,		0,		656,	"void(float f)", "Changes the speed on the server."},
+#else
 	{"timescale",		PF_Fixme,			0,		0,		0,		656,	"DEP void(float f)" STUB},
+#endif
 	{"nodegraph_graphset_clear",							PF_Fixme,0,0,0,700,	"DEP float()" STUB},	//Wrath's EXT_NODEGRAPH
 	{"nodegraph_graphset_load",								PF_Fixme,0,0,0,701,	"DEP float()" STUB},
 	{"nodegraph_graphset_save",								PF_Fixme,0,0,0,702,	"DEP float()" STUB},
@@ -12286,7 +13092,13 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"controller_rumble",									PF_Fixme,0,0,0,741,	"DEP void(float index, float lowmult, float highmult, float )" STUB},		//(csqc) EXT_CONTROLLER_REKI
 	{"controller_rumbletriggers",							PF_Fixme,0,0,0,742,	"DEP void(float index, float leftmult, float rightmult, float msec)" STUB},	//(csqc) EXT_CONTROLLER_REKI
 	//end wrath extras
-
+#ifdef TEMPORALCORTEX
+	// Missi: Temporal Cortex extras (2025.12.17)
+	{"timeperiod_queue",									PF_TimePeriod_Queue,0,0,0,743,	"void(entity player)", "Adds into a static list of entities touching this entity."},
+	{"timeperiod_change",									PF_TimePeriod_Change,0,0,0,744,	"void(float timeperiod)", "Changes the time period on the server and relays it to all clients."},
+	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
+	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
+#endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin
 	
@@ -12776,12 +13588,30 @@ svextqcfields
 #define ID1		(1u<<8)	//symbol conflicts with vanilla defs.qc (so stripped, with exceptions)
 #define DPX		(1u<<9)	//symbol conflicts with dpextensions.qc
 
+#ifdef TEMPORALCORTEX
+#define TC		(1u<<10)
+#define TC_CS	(1u<<11)
+#endif
+
+#ifdef TEMPORALCORTEX
+#define CS		(QSS_CS|FTE_CS|DP_CS|TC_CS)		//exists in csqc
+#define GAME	(QW|NQ|CS|H2|TC)	//all but menu
+#else
 #define CS		(QSS_CS|FTE_CS|DP_CS)		//exists in csqc
 #define GAME	(QW|NQ|CS|H2)	//all but menu
+#endif
 #ifdef HEXEN2
+#ifdef TEMPORALCORTEX
+#define ALL (TC|QW|NQ|H2|CS|TC_CS|MENU)
+#else
 #define ALL (QW|NQ|H2|CS|MENU)
+#endif
+#else
+#ifdef TEMPORALCORTEX
+#define ALL (QW|NQ|TC|CS|MENU)
 #else
 #define ALL (QW|NQ|CS|MENU)
+#endif
 #endif
 #define CORE
 typedef struct
@@ -12913,6 +13743,44 @@ static qboolean PR_DumpPlatform_GenIfdef(vfsfile_t *f, unsigned int filetarg, un
 			case H2|NQ|CS|MENU:
 				VFS_PRINTF(f, "#if defined(H2) || defined(CSQC) || defined(NQSSQC) || defined(MENU)\n");
 				break;
+#ifdef TEMPORALCORTEX
+			case QW|NQ|CS|MENU:
+				VFS_PRINTF(f, "#if defined(CSQC) || defined(QWSSQC) || defined(NQSSQC) || defined(MENU)\n");
+				break;
+			case H2|QW|NQ|CS|MENU:
+				VFS_PRINTF(f, "#if defined(H2) || defined(CSQC) || defined(QWSSQC) || defined(NQSSQC) || defined(MENU)\n");
+				break;
+			case TC|H2|QW|TC_CS|CS|MENU:
+				VFS_PRINTF(f, "#if defined(TC) || #if defined(H2) || defined(TC_CS) || defined(CSQC) || defined(QWSSQC) || defined(MENU)\n");
+				break;
+			case TC|NQ|TC_CS|CS|MENU:
+				VFS_PRINTF(f, "#if defined(TC) || defined(TC_CS) || defined(CSQC) || defined(NQSSQC) || defined(MENU)\n");
+				break;
+			case TC|TC_CS|CS|MENU:
+				VFS_PRINTF(f, "#if defined(TC) || defined(TC_CS) || defined(CSQC) || defined(MENU)\n");
+				break;
+			case TC|TC_CS|MENU:
+				VFS_PRINTF(f, "#if defined(TC) || defined(TC_CS) || defined(MENU)\n");
+				break;
+			case TC_CS|MENU:
+				VFS_PRINTF(f, "#if defined(TC_CS) || defined(MENU)\n");
+				break;
+			case TC|MENU:
+				VFS_PRINTF(f, "#if defined(TC) || defined(MENU)\n");
+				break;
+			case TC|TC_CS|CS:
+				VFS_PRINTF(f, "#if defined(TC) || defined(TC_CS) || defined(CSQC)\n");
+				break;
+			case TC|TC_CS:
+				VFS_PRINTF(f, "#if defined(TC) || defined(TC_CS)\n");
+				break;
+			case TC:
+				VFS_PRINTF(f, "#ifdef TC\n");
+				break;
+			case TC_CS:
+				VFS_PRINTF(f, "#ifdef TC_CS\n");
+				break;
+#endif
 			case ALL:
 				VFS_PRINTF(f, "#if 1\n");
 				break;
@@ -13054,6 +13922,10 @@ void PR_DumpPlatform_f(void)
 		{CS,	"dp_cs.sym",		"NOT_DP",	"#ifndef NOT_DP\n#define NOT_DP __deprecated(\"Not supported by Darkplaces\")\n#endif\n"},
 		{MENU,	"qss_menu.sym",		"NOT_QSS",	"#ifndef NOT_QSS\n#define NOT_QSS __deprecated(\"Not supported by QSS\")\n#endif\n"},
 		{MENU,	"dp_menu.sym",		"NOT_DP",	"#ifndef NOT_DP\n#define NOT_DP __deprecated(\"Not supported by Darkplaces\")\n#endif\n"},
+#ifdef TEMPORALCORTEX
+		{TC,	"tc_ss.sym",		"NOT_DP",	"#ifndef NOT_DP\n#define NOT_DP __deprecated(\"Not supported by Darkplaces\")\n#endif\n"},
+		{TC_CS,	"tc_cs.sym",		"NOT_DP",	"#ifndef NOT_DP\n#define NOT_DP __deprecated(\"Not supported by Darkplaces\")\n#endif\n"},
+#endif
 		{0,		NULL,			NULL}
 	};
 
@@ -13308,6 +14180,11 @@ void PR_DumpPlatform_f(void)
 		{"cursor_impact",		".vector", NQ,		D("For DP compat only.")},
 		{"cursor_entitynumber",	".entity", NQ,		D("For DP compat only.")},
 
+#ifdef TEMPORALCORTEX
+		{ "grappling",			".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
+		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
+#endif
+
 #undef comfieldfloatdep
 #undef comfieldintdep
 #undef comfieldvectordep
@@ -13338,6 +14215,14 @@ void PR_DumpPlatform_f(void)
 #define FL CS
 		csqcextfields
 #undef FL
+#ifdef TEMPORALCORTEX
+#define FL TC
+		svextqcfieldstemporalcortex
+#undef FL
+#define FL TC_CS
+		csextqcfieldstemporalcortex
+#undef FL
+#endif
 #undef comfieldfloat
 #undef comfieldint
 #undef comfieldvector
@@ -13649,6 +14534,26 @@ void PR_DumpPlatform_f(void)
 		{"TE_EXPLOSION2",		"const float", NQ|QSS_CS|DP_CS, NULL, TENQ_EXPLOSION2},
 		{"TE_LIGHTNINGBLOOD",	"const float", QW|FTE_CS, NULL, TEQW_LIGHTNINGBLOOD},
 		{"TE_BEAM",				"const float", NQ|QSS_CS|DP_CS, NULL, TENQ_BEAM},
+#ifdef TEMPORALCORTEX
+		{"TE_TC_BULLET",		"const float", TC|TC_CS, D("Temporal Cortex QPhysics bullet."), TE_TC_BULLET},
+		{"TE_TC_SUPERBULLET",	"const float", TC|TC_CS, D("Temporal Cortex QPhysics bullet (with quad damage)."), TE_TC_SUPERBULLET},
+		{"TE_TC_GRAPPLING_HOOK", "const float", TC|TC_CS, D("Temporal Cortex grappling hook."), TE_TC_GRAPPLING_HOOK},
+
+		{"SENDFLAG_ORIGIN",		"const float", TC|TC_CS, D("Center of entity."), 1},
+		{"SENDFLAG_ANGLES",		"const float", TC|TC_CS, D("Euler angles of entity."), 2},
+		{"SENDFLAG_VELOCITY",	"const float", TC|TC_CS, D("Velocity in relative space."), 3},
+		{"SENDFLAG_AVELOCITY",	"const float", TC|TC_CS, D("Velocity in world space. In most cases, you should never have to set this."), 4},
+		{"SENDFLAG_MODEL",		"const float", TC|TC_CS, D("Model string. Be aware that inline models also use this field. Modders may want to check against setting this to inline models."), 5},
+		{"SENDFLAG_MODELINDEX",	"const float", TC|TC_CS, D("Model precache index. You should never have to set this, and it can generally cause problems if you do. This is only here for brevity."), 6},
+		{"SENDFLAG_MINS",		"const float", TC|TC_CS, D("Minimum bounding box of entity relative to the center."), 7},
+		{"SENDFLAG_MAXS",		"const float", TC|TC_CS, D("Maximum bounding box of entity relative to the center. Note that in vanilla QuakeWorld and NetQuake, this field is calculated in the engine, but ignored for anything it would be useful for. Check self.size instead, which this variable is used as a basis for."), 8},
+		{"SENDFLAG_ABSMINS",	"const float", TC|TC_CS, D("Minimum bounding box of entity relative to the center of the world. This is calculated automatically in the engine, so you rarely ever need to set it."), 9},
+		{"SENDFLAG_ABSMAXS",	"const float", TC|TC_CS, D("Maximum bounding box of entity relative to the center of the world. This is calculated automatically in the engine, so you rarely ever need to set it."), 10},
+
+		{"pi",					"const float", TC|TC_CS, D("The ancient number whose end has never been found as of writing."), M_PI},
+
+		{"timeperiod",			".float", TC|TC_CS, D("Time period of entity. If this does not match the server's time period, then it will be invisible and \"dead\", as in, left in its last position, frame, and angle until the time period from the server matches the value on this entity."), 0.0f},
+#endif
 
 #ifdef HAVE_LEGACY
 		{"MSG_BROADCAST",		"const float", NQ, D("The byte(s) will be unreliably sent to all players. MSG_ constants are valid arguments to the Write* builtin family."), MSG_BROADCAST},
@@ -14144,6 +15049,12 @@ void PR_DumpPlatform_f(void)
 			targ |= ID1;
 		else if (!stricmp(arg, "-Tdp"))
 			targ |= DPX;
+#ifdef TEMPORALCORTEX
+		else if (!stricmp(arg, "-Ttc"))
+			targ |= TC;
+		else if (!stricmp(arg, "-Ttccs"))
+			targ |= TC_CS;
+#endif
 		else if (!stricmp(arg, "-Fdefines"))
 			defines = true;
 		else if (!stricmp(arg, "-Fnodefines"))
@@ -14168,7 +15079,11 @@ void PR_DumpPlatform_f(void)
 		}
 	}
 	if (!(targ & ALL))
+#ifdef TEMPORALCORTEX
+		targ |= (QW|NQ|TC|TC_CS|FTE_CS|MENU);
+#else
 		targ |= (QW|NQ|FTE_CS|MENU);
+#endif
 
 	//our #ifdefs can't cope with targetting more than one csqc type at a time.
 	if ((targ & QSS_CS) && (targ & (FTE_CS|DP_CS)))
@@ -14271,6 +15186,18 @@ void PR_DumpPlatform_f(void)
 							"\t#define SSQC\n"
 						"#endif\n"
 						);
+#ifdef TEMPORALCORTEX
+	else if ((targ&ALL) == TC)
+		VFS_PRINTF(f,	"#ifndef TC\n"
+							"\t#define TC\n"
+						"#endif\n"
+						);
+	else if ((targ&ALL) == TC_CS)
+		VFS_PRINTF(f,	"#ifndef TC_CS\n"
+							"\t#define TC_CS\n"
+						"#endif\n"
+						);
+#endif
 	else if ((targ&ALL) == MENU)
 		VFS_PRINTF(f,	"#ifndef MENU\n"
 							"\t#define MENU\n"
@@ -14287,6 +15214,14 @@ void PR_DumpPlatform_f(void)
 						"#if !defined(SSQC) && (defined(QWSSQC) || defined(NQSSQC))\n"
 							"\t#define SSQC\n"
 						"#endif\n"
+#ifdef TEMPORALCORTEX
+						"#if !defined(TC)\n"
+							"\t#define TC\n"
+						"#endif\n"
+						"#if !defined(TC_CS)\n"
+							"\t#define TC_CS\n"
+						"#endif\n"
+#endif
 						);
 
 
@@ -14478,7 +15413,11 @@ void PR_DumpPlatform_f(void)
 		if (BuiltinList[i].bifunc != PF_Fixme && BuiltinList[i].bifunc != PF_Ignore)
 		{
 			if (!idx)	//no index is a dynamically linked builtin, and can thus be usable in any gamecode mode (so long as its ssqc anyway)
+#ifdef TEMPORALCORTEX
+				nd |= NQ|QW|H2|TC;
+#else
 				nd |= NQ|QW|H2;
+#endif
 			if (BuiltinList[i].ebfsnum == idx)
 				nd |= NQ|QW;
 			if (BuiltinList[i].nqnum == idx)
@@ -14491,7 +15430,11 @@ void PR_DumpPlatform_f(void)
 
 #ifdef CSQC_DAT
 		if (PR_CSQC_BuiltinValid(BuiltinList[i].name, idx))
+#ifdef TEMPORALCORTEX
+			nd |= CS | TC_CS;
+#else
 			nd |= CS;
+#endif
 #endif
 #ifdef MENU_DAT
 		if (MP_BuiltinValid(BuiltinList[i].name, idx))
@@ -14656,4 +15599,5 @@ void PR_DumpPlatform_f(void)
 #endif
 }
 
+#endif
 #endif

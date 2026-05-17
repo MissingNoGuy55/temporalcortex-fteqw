@@ -3818,12 +3818,19 @@ static void QDECL R_ParticleDesc_Callback(struct cvar_s *var, char *oldvalue)
 #endif
 			if (failure)
 			P_LoadParticleSet("high", true, true);
-
+#ifdef TEMPORALCORTEX
+		if (cls.state && cl.model_name[cl_current_bsp_index][1])
+#else
 		if (cls.state && cl.model_name[1])
+#endif
 		{
 			//per-map configs. because we can.
 			memcpy(token, "map_", 4);
+#ifdef TEMPORALCORTEX
+			COM_FileBase(cl.model_name[cl_current_bsp_index][1], token+4, sizeof(token)-4);
+#else
 			COM_FileBase(cl.model_name[1], token+4, sizeof(token)-4);
+#endif
 			P_LoadParticleSet(token, false, false);
 		}
 	}
@@ -3845,8 +3852,11 @@ static void P_ReadPointFile_f (void)
 	char *s;
 	int pt_pointfile;
 	unsigned int spawned = 0, total = 0;
-
-	COM_StripExtension(cl.worldmodel[cl_current_time_period]->name, name, sizeof(name));
+#ifdef TEMPORALCORTEX
+	COM_StripExtension(cl.worldmodel[cl_current_bsp_index]->name, name, sizeof(name));
+#else
+	COM_StripExtension(cl.worldmodel->name, name, sizeof(name));
+#endif
 	strcat(name, ".pts");
 
 	f = FS_OpenVFS(name, "rb", FS_GAME);
@@ -4124,10 +4134,15 @@ static void P_AddRainParticles(model_t *mod, vec3_t axis[3], vec3_t eorg, float 
 			VectorSubtract(worg, r_refdef.vieworg, vdist);
 			if (VectorLength(vdist) > (1024+512)*frandom())
 				continue;
-
-			if (cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint)
+#ifdef TEMPORALCORTEX
+			if (cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint)
 			{
-				cl.worldmodel[cl_current_time_period]->funcs.InfoForPoint(cl.worldmodel[cl_current_time_period], worg, &area, &cluster, &contentbits);
+				cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint(cl.worldmodel[cl_current_bsp_index], worg, &area, &cluster, &contentbits);
+#else
+			if (cl.worldmodel->funcs.InfoForPoint)
+			{
+				cl.worldmodel->funcs.InfoForPoint(cl.worldmodel, worg, &area, &cluster, &contentbits);
+#endif
 				if (contentbits & FTECONTENTS_SOLID)
 					continue;
 				if (r_refdef.scenevis && !(r_refdef.scenevis[cluster>>3] & (1<<(cluster&7))))
@@ -4687,10 +4702,18 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 		return 1;
 
 	// inwater check, switch only once
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+#else
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+#endif
 	{
 		int cont;
-		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, org);
+#ifdef TEMPORALCORTEX
+		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, org);
+#else
+		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
+#endif
 
 		if (cont & FTECONTENTS_FLUID)
 			ptype = &part_type[ptype->inwater];
@@ -4708,10 +4731,18 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 
 	while(ptype)
 	{
-		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate==MLS_LOADED)
+#ifdef TEMPORALCORTEX
+		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate==MLS_LOADED)
+#else
+		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel && cl.worldmodel->loadstate==MLS_LOADED)
+#endif
 		{
 			int cont;
-			cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, org);
+#ifdef TEMPORALCORTEX
+			cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, org);
+#else
+			cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
+#endif
 
 			if ((ptype->flags & PT_TROVERWATER) && (cont & ptype->fluidmask))
 				goto skip;
@@ -4742,7 +4773,11 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 				return 0;
 
 			ctx.entity = 0;
-			ctx.model = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+			ctx.model = cl.worldmodel[cl_current_bsp_index];
+#else
+			ctx.model = cl.worldmodel;
+#endif
 			if (!ctx.model)
 				return 0;
 
@@ -4798,7 +4833,11 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 				if (ctx.entity>0 && (unsigned)ctx.entity < (unsigned)cl.maxlerpents)
 				{
 					lerpents_t *le = cl.lerpents+ctx.entity;
+#ifdef TEMPORALCORTEX
+					ctx.model = cl.model_precache[cl_current_bsp_index][le->entstate->modelindex];
+#else
 					ctx.model = cl.model_precache[le->entstate->modelindex];
+#endif
 					if (le->entstate)
 						VectorSubtract(ctx.center, le->origin, ctx.center);
 					else
@@ -5633,11 +5672,18 @@ static void P_ParticleTrailSpawn (vec3_t startpos, vec3_t end, part_type_t *ptyp
 		else
 			P_ParticleTrail(start, end, ptype->assoc, timeinterval, dlkey, NULL, NULL);
 	}
-
-	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_bsp_index])
+#else
+	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel)
+#endif
 	{
 		int cont;
-		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, startpos);
+#ifdef TEMPORALCORTEX
+		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, startpos);
+#else
+		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
+#endif
 
 		if ((ptype->flags & PT_TROVERWATER) && (cont & ptype->fluidmask))
 			return;
@@ -6150,10 +6196,18 @@ static int PScript_ParticleTrail (vec3_t startpos, vec3_t end, int type, float t
 		return 1;
 
 	// inwater check, switch only once
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+#else
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+#endif
 	{
 		int cont;
-		cont = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, startpos);
+#ifdef TEMPORALCORTEX
+		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, startpos);
+#else
+		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
+#endif
 
 		if (cont & FTECONTENTS_FLUID)
 			ptype = &part_type[ptype->inwater];
@@ -7530,13 +7584,21 @@ static void PScript_DrawParticleTypes (void)
 								ctx.entity = e;
 								if (!ctx.entity)
 								{
-									model = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+									model = cl.worldmodel[cl_current_bsp_index];
+#else
+									model = cl.worldmodel;
+#endif
 									VectorCopy(p->org, ctx.center);
 								}
 								else if ((unsigned)ctx.entity < (unsigned)cl.maxlerpents)
 								{	//this trace hit a door or something.
 									lerpents_t *le = cl.lerpents+ctx.entity;
+#ifdef TEMPORALCORTEX
+									model = cl.model_precache[cl_current_bsp_index][le->entstate->modelindex];
+#else
 									model = cl.model_precache[le->entstate->modelindex];
+#endif
 									VectorSubtract(p->org, le->origin, ctx.center);
 									//FIXME: rotate center+normal around entity.
 								}
@@ -7766,8 +7828,11 @@ static void PScript_DrawParticles (void)
 	{
 		entity_t *ent;
 		int i;
-		
-		P_AddRainParticles(cl.worldmodel[cl_current_time_period], r_worldentity.axis, r_worldentity.origin, pframetime);
+#ifdef TEMPORALCORTEX
+		P_AddRainParticles(cl.worldmodel[cl_current_bsp_index], r_worldentity.axis, r_worldentity.origin, pframetime);
+#else
+		P_AddRainParticles(cl.worldmodel, r_worldentity.axis, r_worldentity.origin, pframetime);
+#endif
 
 		for (i = 0; i < cl_numvisedicts ; i++)
 		{

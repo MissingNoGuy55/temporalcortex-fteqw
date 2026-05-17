@@ -82,6 +82,10 @@ static shader_t *scenepp_antialias;
 static shader_t *scenepp_waterwarp;
 static shader_t *scenepp_gamma;
 
+#ifdef TEMPORALCORTEX
+static shader_t *scenepp_timetravelwarp;
+#endif
+
 // post processing stuff
 static texid_t sceneblur_texture;
 static texid_t scenepp_texture_warp;
@@ -122,6 +126,32 @@ static void GL_InitSceneProcessingShaders_WaterWarp (void)
 	}
 }
 
+#ifdef TEMPORALCORTEX
+static void GL_InitSceneProcessingShaders_TimeTravel (void)
+{
+	scenepp_timetravelwarp = NULL;
+	if (gl_config.arb_shader_objects)
+	{
+		scenepp_timetravelwarp = R_RegisterShader("timetravelwarp", SUF_NONE,
+			"{\n"
+				"program temporalcortex_timetravelwarp\n"
+				"{\n"
+					"map $sourcecolour\n"
+				"}\n"
+				"{\n"
+					"map $upperoverlay\n"
+				"}\n"
+				"{\n"
+					"map $loweroverlay\n"
+				"}\n"
+			"}\n"
+			);
+		scenepp_timetravelwarp->defaulttextures->upperoverlay = scenepp_texture_warp;
+		scenepp_timetravelwarp->defaulttextures->loweroverlay = scenepp_texture_edge;
+	}
+}
+#endif
+
 void GL_ShutdownPostProcessing(void)
 {
 	GLBE_FBO_Destroy(&fbo_vr);
@@ -136,6 +166,9 @@ void GL_InitSceneProcessingShaders (void)
 	if (gl_config.arb_shader_objects)
 	{
 		GL_InitSceneProcessingShaders_WaterWarp();
+#ifdef TEMPORALCORTEX
+		GL_InitSceneProcessingShaders_TimeTravel();
+#endif
 	}
 
 	scenepp_gamma = R_RegisterShader("fte_scenegamma", 0, 
@@ -596,6 +629,16 @@ static void R_SetupGL (const float eyematrix[12]/*can be null*/, const vec4_t fo
 					fovv_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * r_waterwarp.value);
 					fovv_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * r_waterwarp.value);
 				}
+#ifdef TEMPORALCORTEX
+				// Missi: Intentionally does not work with water warp (2026.1.8)
+				if ((r_refdef.flags & TCRDF_TIMETRAVEL) && !(r_refdef.flags & TCRDF_TIMETRAVELWARP))
+				{
+					fov_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+					fov_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+					fovv_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+					fovv_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+				}
+#endif
 				fov_l = -fov_x / 2;
 				fov_r = fov_x / 2;
 				fov_d = -fov_y / 2;
@@ -1208,15 +1251,22 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 
 		//use the player's origin for r_viewleaf, because there's not much we can do anyway*/
 		VectorCopy(r_origin, r_refdef.pvsorigin);
-
-		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS && !r_novis.ival)
+#ifdef TEMPORALCORTEX
+		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
+#else
+		if (cl.worldmodel && cl.worldmodel->funcs.ClusterPVS && !r_novis.ival)
+#endif
 		{
 			int clust, i, j;
 			float d;
 			vec3_t point;
 			r_refdef.forcevis = false;
 			r_refdef.forcedvis = NULL;
-			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_time_period]->pvsbytes);
+#ifdef TEMPORALCORTEX
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_bsp_index]->pvsbytes);
+#else
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel->pvsbytes);
+#endif
 			for (i = batch->firstmesh; i < batch->meshes; i++)
 			{
 				mesh = batch->mesh[i];
@@ -1230,12 +1280,23 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 				d = DotProduct(point, plane.normal) - plane.dist;
 				d += 0.1;	//an epsilon on the far side
 				VectorMA(point, d, plane.normal, point);
-
-				clust = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], point, NULL);
+#ifdef TEMPORALCORTEX
+				clust = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], point, NULL);
+#else
+				clust = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, point, NULL);
+#endif
 				if (i == batch->firstmesh)
-					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_REPLACE);
+#ifdef TEMPORALCORTEX
+					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
+#else
+					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_REPLACE);
+#endif
 				else
-					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_MERGE);
+#ifdef TEMPORALCORTEX
+					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_MERGE);
+#else
+					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_MERGE);
+#endif
 			}
 //			memset(newvis, 0xff, pvsbytes);
 		}
@@ -2048,9 +2109,17 @@ void GLR_RenderView (void)
 	if (!(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
 		//FIXME: fbo stuff
-		if (!r_worldentity.model || !cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+		if (!r_worldentity.model || !cl.worldmodel[cl_current_bsp_index])
+#else
+		if (!r_worldentity.model || !cl.worldmodel)
+#endif
 			r_refdef.flags |= RDF_NOWORLDMODEL;
-		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_bsp_index])
+#else
+		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel)
+#endif
 		{
 			GL_Set2D (false);
 			R2D_ImageColours(0, 0, 0, 1);
@@ -2081,6 +2150,10 @@ void GLR_RenderView (void)
 			r_refdef.flags |= RDF_UNDERWATER;
 		else
 			r_refdef.flags &= ~RDF_UNDERWATER;
+#ifdef TEMPORALCORTEX
+		if ( tc_r_timetravel_warp_intensity.value > 0.0f )
+			r_refdef.flags |= TCRDF_TIMETRAVEL;
+#endif
 	}
 	if (r_refdef.flags & RDF_UNDERWATER)
 	{
@@ -2090,6 +2163,16 @@ void GLR_RenderView (void)
 		else if (r_waterwarp.value > 0 && scenepp_waterwarp)
 			r_refdef.flags |= RDF_WATERWARP;	//try fullscreen warp instead if we can
 	}
+#ifdef TEMPORALCORTEX
+	if (r_refdef.flags & TCRDF_TIMETRAVEL)
+	{
+		extern cvar_t r_projection;
+		if (!tc_r_timetravel_warp_intensity.value || r_projection.ival)
+			r_refdef.flags &= ~TCRDF_TIMETRAVEL;	//no warp at all
+		else if (tc_r_timetravel_warp_intensity.value > 0 && scenepp_waterwarp)
+			r_refdef.flags |= TCRDF_TIMETRAVELWARP;	//try fullscreen warp instead if we can
+	}
+#endif
 
 	if (!r_refdef.globalfog.density)
 	{
@@ -2377,6 +2460,9 @@ void GLR_RenderView (void)
 			sourcetex = R_RenderPostProcess (sourcetex, sourcedepth, RDF_SCENEGAMMA, scenepp_gamma, "rt/$gammaed");
 			R2D_ImageColours (1, 1, 1, 1);
 		}
+#ifdef TEMPORALCORTEX
+		sourcetex = R_RenderPostProcess (sourcetex, sourcedepth, TCRDF_TIMETRAVELWARP, scenepp_timetravelwarp, "rt/$timewarped");
+#endif
 		sourcetex = R_RenderPostProcess (sourcetex, sourcedepth, RDF_WATERWARP, scenepp_waterwarp, "rt/$waterwarped");
 		sourcetex = R_RenderPostProcess (sourcetex, sourcedepth, RDF_CUSTOMPOSTPROC, custompostproc, "rt/$postproced");
 		sourcetex = R_RenderPostProcess (sourcetex, sourcedepth, RDF_ANTIALIAS, scenepp_antialias, "rt/$antialiased");

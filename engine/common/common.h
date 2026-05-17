@@ -1122,3 +1122,7 @@ double JSON_GetFloat(json_t *t, const char *child, double fallback);				//grabs 
 double JSON_GetIndexedFloat(json_t *t, unsigned int idx, double fallback);			//grabs a numeric value from an array
 const char *JSON_GetString(json_t *t, const char *child, char *buffer, size_t buffersize, const char *fallback); //grabs a child node's string value. do your own damn indexing for an array.
 //there's no write logic. Its probably easier to just snprintf it or something anyway.
+
+#ifdef TEMPORALCORTEX
+	extern qboolean rewinding;
+#endif

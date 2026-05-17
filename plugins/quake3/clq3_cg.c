@@ -1,4 +1,5 @@
 #include "q3common.h"
+
 #if defined(VM_CG) && defined(HAVE_CLIENT)
 #include "clq3defs.h"
 #include "com_mesh.h"
@@ -615,6 +616,9 @@ int VM_LerpTag(float *out, model_t *model, int f1, int f2, float l2, char *tagna
 static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, const qintptr_t *arg)
 {
 	int ret=0;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 
 	//Remember to range check pointers.
 	//The QVM must not be allowed to write to anything outside it's memory.
@@ -890,7 +894,14 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 
 	case CG_R_LOADWORLDMAP:
 		{	//rendering
+#ifdef TEMPORALCORTEX
+			for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+			{
+				scenefuncs->NewMap(worldfuncs->LoadModel(VM_POINTER(arg[0]), MLV_SILENTSYNC), t);
+			}
+#else
 			scenefuncs->NewMap(worldfuncs->LoadModel(VM_POINTER(arg[0]), MLV_SILENTSYNC));
+#endif
 		}
 		break;
 

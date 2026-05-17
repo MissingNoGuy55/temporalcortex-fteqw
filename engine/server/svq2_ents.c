@@ -978,8 +978,11 @@ void SVQ2_BuildClientFrame (client_t *client)
 		return;
 
 	SVQ2_Ents_Init();
-
-	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel[sv_current_time_period]->pvsbytes);
+#ifdef TEMPORALCORTEX
+	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel[sv_current_bsp_index]->pvsbytes);
+#else
+	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel->pvsbytes);
+#endif
 
 #if 0
 	numprojs = 0; // no projectiles yet
@@ -1013,16 +1016,27 @@ void SVQ2_BuildClientFrame (client_t *client)
 		// find the client's PVS
 		for (i=0 ; i<3 ; i++)
 			org[seat][i] = clent[seat]->client->ps.pmove.origin[i]*0.125 + clent[seat]->client->ps.viewoffset[i];
-
-		clientcluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], org[seat], &clientarea[seat]);
+#ifdef TEMPORALCORTEX
+		clientcluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], org[seat], &clientarea[seat]);
 
 		// calculate the visible areas
-		frame->areabytes = sv.world.worldmodel[sv_current_time_period]->funcs.WriteAreaBits (sv.world.worldmodel[sv_current_time_period], frame->areabits, sizeof(frame->areabits), clientarea[seat], seat != 0);
+		frame->areabytes = sv.world.worldmodel[sv_current_bsp_index]->funcs.WriteAreaBits (sv.world.worldmodel[sv_current_bsp_index], frame->areabits, sizeof(frame->areabits), clientarea[seat], seat != 0);
 
-		sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org[seat], &clientpvs, seat!=0);
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org[seat], &clientpvs, seat!=0);
+
 		if (seat==0)	//FIXME
-			clientphs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_time_period], clientcluster, NULL);
+			clientphs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_bsp_index], clientcluster, NULL);
+#else
+		clientcluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, org[seat], &clientarea[seat]);
 
+		// calculate the visible areas
+		frame->areabytes = sv.world.worldmodel->funcs.WriteAreaBits (sv.world.worldmodel, frame->areabits, sizeof(frame->areabits), clientarea[seat], seat != 0);
+
+		sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org[seat], &clientpvs, seat!=0);
+
+		if (seat==0)	//FIXME
+			clientphs = sv.world.worldmodel->funcs.ClusterPHS (sv.world.worldmodel, clientcluster, NULL);
+#endif
 		frame->ps[seat] = clent[seat]->client->ps;
 		if (sv.paused)
 			frame->ps[seat].pmove.pm_type = Q2PM_FREEZE;
@@ -1059,11 +1073,20 @@ void SVQ2_BuildClientFrame (client_t *client)
 			if (ent != clent[seat])
 			{
 				// check area
-				if (!sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], clientarea[seat], ent->areanum))
+#ifdef TEMPORALCORTEX
+				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], clientarea[seat], ent->areanum))
+#else
+				if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, clientarea[seat], ent->areanum))
+#endif
 				{	// doors can legally straddle two areas, so
 					// we may need to check another one
+#ifdef TEMPORALCORTEX
 					if (!ent->areanum2
-						|| !sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], clientarea[seat], ent->areanum2))
+						|| !sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], clientarea[seat], ent->areanum2))
+#else
+					if (!ent->areanum2
+						|| !sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, clientarea[seat], ent->areanum2))
+#endif
 						continue;		// blocked by a door
 				}
 
@@ -1084,7 +1107,11 @@ void SVQ2_BuildClientFrame (client_t *client)
 						pvscache_t cache;
 						cache.num_leafs = -1;
 						cache.headnode = ent->headnode;
-						if (!sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &cache, clientpvs.buffer, NULL))
+#ifdef TEMPORALCORTEX
+						if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &cache, clientpvs.buffer, NULL))
+#else
+						if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &cache, clientpvs.buffer, NULL))
+#endif
 							continue;
 						c_fullsend++;
 					}

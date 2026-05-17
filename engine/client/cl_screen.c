@@ -450,6 +450,14 @@ void SCR_CenterPrint (int pnum, const char *str, qboolean skipgamecode)
 #endif
 	}
 
+#ifdef TEMPORALCORTEX
+	if ( pnum < 0 || pnum >= cl.allocated_client_slots + tc_cl_loaded_bsps )	// Missi: Second case is a bot (2026.1.8)
+	{
+		Con_Printf( "CL_ChangeTimePeriod_f: Attempted to centerprint for invalid player #%d\n", pnum );
+		return;
+	}
+#endif
+
 	if (Cmd_AliasExist("f_centerprint", RESTRICT_LOCAL))
 	{
 		cvar_t *var;
@@ -1776,8 +1784,11 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 
 	vrect_t rect;
 	rect = r_refdef.vrect;
-
-	if (cl.worldmodel[cl_current_time_period] && crosshaircorrect.ival)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index] && crosshaircorrect.ival)
+#else
+	if (cl.worldmodel && crosshaircorrect.ival)
+#endif
 	{
 		float adj;
 		trace_t tr;
@@ -1793,7 +1804,12 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 
 		memset(&tr, 0, sizeof(tr));
 		tr.fraction = 1;
-		cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
+#ifdef TEMPORALCORTEX
+		cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false,
+#else
+		cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false,
+#endif
+		MASK_WORLDSOLID, &tr);
 		start[2]-=16;
 		if (tr.fraction != 1)
 		{
@@ -1929,7 +1945,11 @@ void SCR_DrawNet (void)
 {
 	if (realtime - cls.netchan.last_received < scr_neticontimeout.value)
 		return;
+#ifdef TEMPORALCORTEX
+	if (cls.demoplayback || rewinding || !scr_net)
+#else
 	if (cls.demoplayback || !scr_net)
+#endif
 		return;
 
 	R2D_ScalePic (scr_vrect.x+64, scr_vrect.y, 64, 64, scr_net);
@@ -2507,7 +2527,11 @@ void SCR_SetUpToDrawConsole (void)
 	//android has an onscreen imm that we don't want to obscure
 	fullscreenpercent = scr_consize.value;
 #endif
-	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED))
+#ifdef TEMPORALCORTEX
+	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED))
+#else
+	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel && cl.worldmodel->loadstate != MLS_LOADED))
+#endif
 	{
 		//force console to fullscreen if we're loading stuff (but don't necessarily force focus)
 //		Key_Dest_Add(kdm_console);
@@ -3102,9 +3126,14 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	};
 	const char *ext;
 	unsigned int bb, bw, bh, bd;
+
 	refdef_t oldrefdef;
 
-	if (!cls.state || !cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (!cls.state || !cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+	if (!cls.state || !cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 	{
 		Con_Printf("Please start a map first\n");
 		return;
@@ -3145,7 +3174,7 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	{	//generate a default filename if none exists yet.
 		char base[MAX_QPATH];
 #ifdef TEMPORALCORTEX
-		COM_FileBase(cl.worldmodel[cl_current_time_period]->name, base, sizeof(base));
+		COM_FileBase(cl.worldmodel[cl_current_bsp_index]->name, base, sizeof(base));
 		fname = va("%s/%i_%i_%i", base, (int)r_refdef.vieworg[0], (int)r_refdef.vieworg[1], (int)r_refdef.vieworg[2]);
 #else
 		COM_FileBase(cl.worldmodel->name, base, sizeof(base));

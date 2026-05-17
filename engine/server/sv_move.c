@@ -66,11 +66,27 @@ qboolean World_CheckBottom (world_t *world, wedict_t *ent, vec3_t up)
 	
 	VectorAdd (ent->v->origin, ent->v->mins, mins);
 #ifdef Q1BSPS
-	if (world->worldmodel[sv_current_time_period]->fromgame == fg_quake || world->worldmodel[sv_current_time_period]->fromgame == fg_halflife)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	if (world->worldmodel[sv_current_bsp_index]->fromgame == fg_quake || world->worldmodel[sv_current_bsp_index]->fromgame == fg_halflife)
+#elif defined(HAVE_CLIENT)
+	if (world->worldmodel[cl_current_bsp_index]->fromgame == fg_quake || world->worldmodel[cl_current_bsp_index]->fromgame == fg_halflife)
+#endif
+#else
+	if (world->worldmodel->fromgame == fg_quake || world->worldmodel->fromgame == fg_halflife)
+#endif
 	{
 		//quake's hulls are weird. sizes are defined as from mins to mins+hullsize. the actual maxs is ignored other than for its size.
 		hull_t *hull;
-		hull = Q1BSP_ChooseHull(world->worldmodel[sv_current_time_period], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		hull = Q1BSP_ChooseHull(world->worldmodel[sv_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+#elif defined(HAVE_CLIENT)
+		hull = Q1BSP_ChooseHull(world->worldmodel[cl_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+#endif
+#else
+		hull = Q1BSP_ChooseHull(world->worldmodel, ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+#endif
 		//ignore the hull's offset. the minpoint is the minpoint. lets fix up the size though, just in case.
 		VectorSubtract (mins, hull->clip_mins, maxs);
 		VectorAdd (maxs, hull->clip_maxs, maxs);
@@ -106,7 +122,11 @@ realcheck:
 	start[a0] = stop[a0] = (mins[a0] + maxs[a0])*0.5;
 	start[a1] = stop[a1] = (mins[a1] + maxs[a1])*0.5;
 	stop[a2] = start[a2] - 2*movevars.stepheight*sign;
+#ifdef TEMPORALCORTEX
+	trace = World_Move (world, start, vec3_origin, vec3_origin, stop, true|MOVE_IGNOREHULL, ent, ent->bspnum);
+#else
 	trace = World_Move (world, start, vec3_origin, vec3_origin, stop, true|MOVE_IGNOREHULL, ent);
+#endif
 
 	if (trace.fraction == 1.0)
 		return false;
@@ -121,9 +141,11 @@ realcheck:
 		{
 			start[a0] = stop[a0] = x ? maxs[a0] : mins[a0];
 			start[a1] = stop[a1] = y ? maxs[a1] : mins[a1];
-			
+#ifdef TEMPORALCORTEX
+			trace = World_Move (world, start, vec3_origin, vec3_origin, stop, true|MOVE_IGNOREHULL, ent, ent->bspnum);
+#else
 			trace = World_Move (world, start, vec3_origin, vec3_origin, stop, true|MOVE_IGNOREHULL, ent);
-	
+#endif
 			if (trace.fraction == 1.0 || trace.fraction > mid)//mid - trace.endpos[2] > movevars.stepheight)
 				return false;
 		}
@@ -189,7 +211,11 @@ qboolean World_movestep (world_t *world, wedict_t *ent, vec3_t move, vec3_t axis
 						VectorMA(neworg, 8, axis[2], neworg);
 				}
 			}
+#ifdef TEMPORALCORTEX
+			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, ent->bspnum);
+#else
 			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent);
+#endif
 			if (set_move_trace)
 				set_move_trace(world->progs, &trace);
 
@@ -214,8 +240,11 @@ qboolean World_movestep (world_t *world, wedict_t *ent, vec3_t move, vec3_t axis
 // push down from a step height above the wished position
 	VectorMA(neworg, movevars.stepheight, axis[2], neworg);
 	VectorMA(neworg, movevars.stepheight*-2, axis[2], end);
-
+#ifdef TEMPORALCORTEX
+	trace = World_Move (world, neworg, ent->v->mins, ent->v->maxs, end, false, ent, ent->bspnum);
+#else
 	trace = World_Move (world, neworg, ent->v->mins, ent->v->maxs, end, false, ent);
+#endif
 	if (set_move_trace)
 		set_move_trace(world->progs, &trace);
 
@@ -226,7 +255,11 @@ qboolean World_movestep (world_t *world, wedict_t *ent, vec3_t move, vec3_t axis
 	{
 		//move up by an extra step, if needed
 		VectorMA(neworg, -movevars.stepheight, axis[2], neworg);
+#ifdef TEMPORALCORTEX
+		trace = World_Move (world, neworg, ent->v->mins, ent->v->maxs, end, false, ent, ent->bspnum);
+#else
 		trace = World_Move (world, neworg, ent->v->mins, ent->v->maxs, end, false, ent);
+#endif
 		if (set_move_trace)
 			set_move_trace(world->progs, &trace);
 		if (trace.allsolid || trace.startsolid)
@@ -1291,8 +1324,15 @@ void QCBUILTIN PF_route_calculate (pubprogfuncs_t *prinst, struct globalvars_s *
 
 	VectorCopy(route->ed->v->origin, route->start);
 	VectorCopy(end, route->end);
-
-	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[sv_current_bsp_index]);
+#elif defined(HAVE_CLIENT)
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[cl_current_bsp_index]);
+#endif
+#else
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel);
+#endif
 	if (!route->waynet)
 	{
 		Z_Free(route);
@@ -1320,8 +1360,15 @@ static void Route_Visualise_f(void)
 //	route->spawnid = route->ed->xv->uniquespawnid;
 	VectorCopy(r_refdef.vieworg, route->start);
 	VectorCopy(targ, route->end);
-
-	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	route->waynet = WayNet_Begin(&route->world->waypoints, sv.world.worldmodel[sv_current_bsp_index]);
+#else
+	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel[cl_current_bsp_index]);
+#endif
+#else
+	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel);
+#endif
 	if (!route->waynet)
 	{
 		Z_Free(route);
@@ -1345,8 +1392,11 @@ void PR_Route_Visualise (void)
 	world_t *w = &csqc_world;
 	struct waypointnetwork_s *wn;
 	size_t u;
-
-	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel[sv_current_time_period]):NULL;
+#ifdef TEMPORALCORTEX
+	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel[cl_current_bsp_index]):NULL;
+#else
+	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel):NULL;
+#endif
 	if (wn)
 	{
 		if (route_shownodes.ival)

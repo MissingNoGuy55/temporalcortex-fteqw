@@ -16,6 +16,9 @@ struct wedict_s
 	int				entnum;
 	unsigned int	fieldsize;
 	pbool			readonly;	//world
+#ifdef TEMPORALCORTEX
+	int				bspnum;
+#endif
 #ifdef VM_Q1
 	comentvars_t	*v;
 	comextentvars_t	*xv;
@@ -458,6 +461,10 @@ void QCBUILTIN PF_CL_drawrawstring (pubprogfuncs_t *prinst, struct globalvars_s 
 void QCBUILTIN PF_CL_drawcolouredstring (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_CL_drawpic (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_CL_drawline (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+#ifdef TEMPORALCORTEX
+void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+void QCBUILTIN PF_CL_NumLoadedBSPs (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+#endif
 void QCBUILTIN PF_CL_drawfill (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_CL_drawsetcliparea (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_CL_drawresetcliparea (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
@@ -623,6 +630,13 @@ void QCBUILTIN PF_gettimef (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 void QCBUILTIN PF_gettimed (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 
 void QCBUILTIN PF_whichpack (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+void QCBUILTIN PF_TimePeriod_Queue(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+#endif
+#endif
 
 int QDECL QCEditor (pubprogfuncs_t *prinst, const char *filename, int *line, int *statement, int firststatement, char *reason, pbool fatal);
 void PR_Common_Shutdown(pubprogfuncs_t *progs, qboolean errored);

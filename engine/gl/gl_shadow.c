@@ -379,8 +379,13 @@ static void SHM_Shadow_Cache_Surface(msurface_t *surf)
 static void SHM_Shadow_Cache_Leaf(mleaf_t *leaf)
 {
 	int i;
-
-	i = (leaf - cl.worldmodel[cl_current_time_period]->leafs)-1;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_CLIENT
+	i = (leaf - cl.worldmodel[cl_current_bsp_index]->leafs)-1;
+#endif
+#else
+	i = (leaf - cl.worldmodel->leafs)-1;
+#endif
 	sh_shmesh->litleaves[i>>3] |= 1<<(i&7);
 }
 
@@ -497,8 +502,11 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 	unsigned int i;
 	unsigned int lb;
 	sh_vertnum = 0;
-
-	lb = (cl.worldmodel[cl_current_time_period]->numclusters+7)/8;
+#ifdef TEMPORALCORTEX
+	lb = (cl.worldmodel[cl_current_bsp_index]->numclusters+7)/8;
+#else
+	lb = (cl.worldmodel->numclusters+7)/8;
+#endif
 	if (!dl->die || !dl->key || (dl->flags&LFLAG_FORCECACHE))
 	{
 		sh_shmesh = dl->worldshadowmesh;
@@ -541,13 +549,22 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 	sh_shmesh->type = type;
 	VectorCopy(dl->origin, sh_shmesh->origin);
 	sh_shmesh->radius = dl->radius;
-
-	if (!cl.worldmodel[cl_current_time_period]->numshadowbatches)
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[cl_current_bsp_index]->numshadowbatches)
 	{
-		SH_CalcShadowBatches(cl.worldmodel[cl_current_time_period]);
+		SH_CalcShadowBatches(cl.worldmodel[cl_current_bsp_index]);
 	}
-
-	if (sh_shmesh->numbatches != cl.worldmodel[cl_current_time_period]->numshadowbatches)
+#else
+	if (!cl.worldmodel->numshadowbatches)
+	{
+		SH_CalcShadowBatches(cl.worldmodel);
+	}
+#endif
+#ifdef TEMPORALCORTEX
+	if (sh_shmesh->numbatches != cl.worldmodel[cl_current_bsp_index]->numshadowbatches)
+#else
+	if (sh_shmesh->numbatches != cl.worldmodel->numshadowbatches)
+#endif
 	{
 		if (sh_shmesh->batches)
 		{
@@ -555,8 +572,13 @@ static void SHM_BeginShadowMesh(dlight_t *dl, int type)
 				Z_Free(sh_shmesh->batches[i].s);
 			Z_Free(sh_shmesh->batches);
 		}
-		sh_shmesh->batches = Z_Malloc(sizeof(shadowmeshbatch_t)*cl.worldmodel[cl_current_time_period]->numshadowbatches);
-		sh_shmesh->numbatches=cl.worldmodel[cl_current_time_period]->numshadowbatches;
+#ifdef TEMPORALCORTEX
+		sh_shmesh->batches = Z_Malloc(sizeof(shadowmeshbatch_t)*cl.worldmodel[cl_current_bsp_index]->numshadowbatches);
+		sh_shmesh->numbatches=cl.worldmodel[cl_current_bsp_index]->numshadowbatches;
+#else
+		sh_shmesh->batches = Z_Malloc(sizeof(shadowmeshbatch_t)*cl.worldmodel->numshadowbatches);
+		sh_shmesh->numbatches=cl.worldmodel->numshadowbatches;
+#endif
 	}
 
 	for (i = 0; i < sh_shmesh->numbatches; i++)
@@ -780,8 +802,11 @@ static void SHM_RecursiveWorldNodeQ1_r (dlight_t *dl, mnode_t *node)
 
 	if (c)
 	{
-		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
-
+#ifdef TEMPORALCORTEX
+		surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+#else
+		surf = cl.worldmodel->surfaces + node->firstsurface;
+#endif
 		{
 
 			maxdist = dl->radius*dl->radius;
@@ -860,8 +885,11 @@ static void SHM_OrthoWorldLeafsQ1 (dlight_t *dl)
 		orthoplanes[i].dist = DotProduct(dl->origin, orthoplanes[i].normal) - dl->radius;
 		CategorizePlane(&orthoplanes[i]);
 	}
-
-	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->submodels[0].visleafs; pleaf <= plastleaf; pleaf++)
+#ifdef TEMPORALCORTEX
+	for (pleaf = cl.worldmodel[cl_current_bsp_index]->leafs+1, plastleaf = cl.worldmodel[cl_current_bsp_index]->leafs+cl.worldmodel[cl_current_bsp_index]->submodels[0].visleafs; pleaf <= plastleaf; pleaf++)
+#else
+	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->submodels[0].visleafs; pleaf <= plastleaf; pleaf++)
+#endif
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -909,11 +937,19 @@ static void SHM_MarkLeavesQ1(dlight_t *dl, const qbyte *lvis)
 		return;
 
 	//variation on mark leaves
-	for (i=0 ; i<cl.worldmodel[cl_current_time_period]->numclusters ; i++)
+#ifdef TEMPORALCORTEX
+	for (i=0 ; i<cl.worldmodel[cl_current_bsp_index]->numclusters ; i++)
+#else
+	for (i=0 ; i<cl.worldmodel->numclusters ; i++)
+#endif
 	{
 		if (lvis[i>>3] & (1<<(i&7)))
 		{
-			node = (mnode_t *)&cl.worldmodel[cl_current_time_period]->leafs[i+1];
+#ifdef TEMPORALCORTEX
+			node = (mnode_t *)&cl.worldmodel[cl_current_bsp_index]->leafs[i+1];
+#else
+			node = (mnode_t *)&cl.worldmodel->leafs[i+1];
+#endif
 			do
 			{
 				if (node->shadowframe == sh_shadowframe)
@@ -933,7 +969,11 @@ void Q1BSP_GenerateShadowMesh(model_t *model, dlight_t *dl, const qbyte *lightvi
 	else
 	{
 		SHM_MarkLeavesQ1(dl, lightvis);
-		SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_time_period]->nodes);
+#ifdef TEMPORALCORTEX
+		SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_bsp_index]->nodes);
+#else
+		SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel->nodes);
+#endif
 	}
 }
 #endif
@@ -960,8 +1000,11 @@ static void SHM_OrthoWorldLeafsQ3 (dlight_t *dl)
 		orthoplanes[i].dist = DotProduct(dl->origin, orthoplanes[i].normal) - dl->radius;
 		CategorizePlane(&orthoplanes[i]);
 	}
-
-	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->numleafs; pleaf <= plastleaf; pleaf++)
+#ifdef TEMPORALCORTEX
+	for (pleaf = cl.worldmodel[cl_current_bsp_index]->leafs+1, plastleaf = cl.worldmodel[cl_current_bsp_index]->leafs+cl.worldmodel[cl_current_bsp_index]->numleafs; pleaf <= plastleaf; pleaf++)
+#else
+	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->numleafs; pleaf <= plastleaf; pleaf++)
+#endif
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -1021,8 +1064,11 @@ static void SHM_OrthoWorldLeafsQ2 (dlight_t *dl)
 		orthoplanes[i].dist = DotProduct(dl->origin, orthoplanes[i].normal) - dl->radius;
 		CategorizePlane(&orthoplanes[i]);
 	}
-
-	for (pleaf = cl.worldmodel[cl_current_time_period]->leafs+1, plastleaf = cl.worldmodel[cl_current_time_period]->leafs+cl.worldmodel[cl_current_time_period]->numleafs; pleaf <= plastleaf; pleaf++)
+#ifdef TEMPORALCORTEX
+	for (pleaf = cl.worldmodel[cl_current_bsp_index]->leafs+1, plastleaf = cl.worldmodel[cl_current_bsp_index]->leafs+cl.worldmodel[cl_current_bsp_index]->numleafs; pleaf <= plastleaf; pleaf++)
+#else
+	for (pleaf = cl.worldmodel->leafs+1, plastleaf = cl.worldmodel->leafs+cl.worldmodel->numleafs; pleaf <= plastleaf; pleaf++)
+#endif
 	{
 		for (i = 0; i < countof(orthoplanes); i++)
 			if (BOX_ON_PLANE_SIDE (pleaf->minmaxs, pleaf->minmaxs+3, &orthoplanes[i]) == 2)
@@ -1144,8 +1190,11 @@ static void SHM_RecursiveWorldNodeQ2_r (dlight_t *dl, mnode_t *node)
 
 	if (c)
 	{
-		surf = cl.worldmodel[cl_current_time_period]->surfaces + node->firstsurface;
-
+#ifdef TEMPORALCORTEX
+		surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+#else
+		surf = cl.worldmodel->surfaces + node->firstsurface;
+#endif
 		{
 
 			maxdist = dl->radius*dl->radius;
@@ -1209,7 +1258,11 @@ static void SHM_RecursiveWorldNodeQ2_r (dlight_t *dl, mnode_t *node)
 					for (v = 0; v < surf->numedges; v++)
 					{
 						int e, delta;
-						e = cl.worldmodel[cl_current_time_period]->surfedges[surf->firstedge+v];
+#ifdef TEMPORALCORTEX
+						e = cl.worldmodel[cl_current_bsp_index]->surfedges[surf->firstedge+v];
+#else
+						e = cl.worldmodel->surfedges[surf->firstedge+v];
+#endif
 						//negative edge means backwards edge.
 						if (e < 0)
 						{
@@ -1270,7 +1323,11 @@ static void SHM_MarkLeavesQ2(dlight_t *dl, const unsigned char *lvis)
 	{
 		//static
 		//variation on mark leaves
-		for (i=0,leaf=cl.worldmodel[cl_current_time_period]->leafs ; i<cl.worldmodel[cl_current_time_period]->numleafs ; i++, leaf++)
+#ifdef TEMPORALCORTEX
+		for (i=0,leaf=cl.worldmodel[cl_current_bsp_index]->leafs ; i<cl.worldmodel[cl_current_bsp_index]->numleafs ; i++, leaf++)
+#else
+		for (i=0,leaf=cl.worldmodel->leafs ; i<cl.worldmodel->numleafs ; i++, leaf++)
+#endif
 		{
 			cluster = leaf->cluster;
 			if (cluster == -1)
@@ -1292,7 +1349,11 @@ static void SHM_MarkLeavesQ2(dlight_t *dl, const unsigned char *lvis)
 	{
 		//dynamic lights will be discarded after this frame anyway, so only include leafs that are visible
 		//variation on mark leaves
-		for (i=0,leaf=cl.worldmodel[cl_current_time_period]->leafs ; i<cl.worldmodel[cl_current_time_period]->numleafs ; i++, leaf++)
+#ifdef TEMPORALCORTEX
+		for (i=0,leaf=cl.worldmodel[cl_current_bsp_index]->leafs ; i<cl.worldmodel[cl_current_bsp_index]->numleafs ; i++, leaf++)
+#else
+		for (i=0,leaf=cl.worldmodel->leafs ; i<cl.worldmodel->numleafs ; i++, leaf++)
+#endif
 		{
 			cluster = leaf->cluster;
 			if (cluster == -1)
@@ -1558,7 +1619,11 @@ static void SHM_ComposeVolume_BruteForce(dlight_t *dl)
 		sms = &sh_shmesh->batches[tno];
 		if (!sms->count)
 			continue;
-		if ((cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex->shader->flags & (SHADER_BLEND|SHADER_NODRAW|SHADER_NOSHADOWS)))
+#ifdef TEMPORALCORTEX
+		if ((cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].tex->shader->flags & (SHADER_BLEND|SHADER_NODRAW|SHADER_NOSHADOWS)))
+#else
+		if ((cl.worldmodel->shadowbatches[tno].tex->shader->flags & (SHADER_BLEND|SHADER_NODRAW|SHADER_NOSHADOWS)))
+#endif
 			continue;
 
 		for (sno = 0; sno < sms->count; sno++)
@@ -1702,7 +1767,11 @@ static void SHM_Shadow_Surface_StencilVolume (msurface_t *surf)
 	for (v = 0; v < surf->numedges; v++)
 	{
 		int e, delta;
-		e = cl.worldmodel[cl_current_time_period]->surfedges[surf->firstedge+v];
+#ifdef TEMPORALCORTEX
+		e = cl.worldmodel[cl_current_bsp_index]->surfedges[surf->firstedge+v];
+#else
+		e = cl.worldmodel->surfedges[surf->firstedge+v];
+#endif
 		//negative edge means backwards edge.
 		if (e < 0)
 		{
@@ -1757,47 +1826,91 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 		int clus;
 		if (type == SMT_ORTHO)
 			;
-		else if ((type == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
+#ifdef TEMPORALCORTEX
+		else if ((type == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
 			//shadowless lights don't cast shadows, so they're seen through everything - their vis must reflect that.
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb, NULL);
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb, NULL);
 		else
 		{
-			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);	//FIXME: track the lights area
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);	//FIXME: track the lights area
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
 
-			if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-				lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
+			if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+				lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, lvis);
 		}
+#else
+		else if ((type == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel->funcs.ClustersInSphere)
+			//shadowless lights don't cast shadows, so they're seen through everything - their vis must reflect that.
+			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb, NULL);
+		else
+		{
+			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);	//FIXME: track the lights area
+			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+
+			if (cl.worldmodel->funcs.ClustersInSphere)
+				lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+		}
+#endif
 	}
 
 	firstedge=0;
-	if (maxedge < cl.worldmodel[cl_current_time_period]->numedges)
+#ifdef TEMPORALCORTEX
+	if (maxedge < cl.worldmodel[cl_current_bsp_index]->numedges)
 	{
-		maxedge = cl.worldmodel[cl_current_time_period]->numedges;
+		maxedge = cl.worldmodel[cl_current_bsp_index]->numedges;
+#else
+	if (maxedge < cl.worldmodel->numedges)
+	{
+		maxedge = cl.worldmodel->numedges;
+#endif
 		Z_Free(edge);
 		edge = Z_Malloc(sizeof(*edge) * maxedge);
 	}
 
+#endif
+
 	SHM_BeginShadowMesh(dl, type);
-	if (cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index]->funcs.GenerateShadowMesh)
 	{
 		switch(type)
 		{
 		case SMT_SHADOWMAP:
-			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_Shadowmap);
+			cl.worldmodel[cl_current_bsp_index]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_bsp_index], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_Shadowmap);
 			break;
 		case SMT_STENCILVOLUME:
-			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_StencilVolume);
+			cl.worldmodel[cl_current_bsp_index]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_bsp_index], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_StencilVolume);
 			break;
 		default:
-			cl.worldmodel[cl_current_time_period]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_time_period], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Cache_Surface);
+			cl.worldmodel[cl_current_bsp_index]->funcs.GenerateShadowMesh(cl.worldmodel[cl_current_bsp_index], dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Cache_Surface);
 			break;
 		}
 	}
-	else if (cl.worldmodel[cl_current_time_period]->type == mod_brush)
+	else if (cl.worldmodel[cl_current_bsp_index]->type == mod_brush)
 	{
-		switch(cl.worldmodel[cl_current_time_period]->fromgame)
+		switch(cl.worldmodel[cl_current_bsp_index]->fromgame)
 		{
+#else
+	if (cl.worldmodel->funcs.GenerateShadowMesh)
+	{
+		switch(type)
+		{
+		case SMT_SHADOWMAP:
+			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_Shadowmap);
+			break;
+		case SMT_STENCILVOLUME:
+			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Surface_StencilVolume);
+			break;
+		default:
+			cl.worldmodel->funcs.GenerateShadowMesh(cl.worldmodel, dl, lvis, sh_shmesh->litleaves, SHM_Shadow_Cache_Surface);
+			break;
+		}
+	}
+	else if (cl.worldmodel->type == mod_brush)
+	{
+		switch(cl.worldmodel->fromgame)
+		{
+#endif
 #ifdef Q1BSPS
 		case fg_quake:
 		case fg_halflife:
@@ -1806,7 +1919,11 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 			else
 			{
 				SHM_MarkLeavesQ1(dl, lvis);
-				SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_time_period]->nodes);
+#ifdef TEMPORALCORTEX
+				SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel[cl_current_bsp_index]->nodes);
+#else
+				SHM_RecursiveWorldNodeQ1_r(dl, cl.worldmodel->nodes);
+#endif
 			}
 			break;
 #endif
@@ -1814,7 +1931,11 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 			sh_shadowframe++;
 
 			{
-				int cluster = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
+#ifdef TEMPORALCORTEX
+				int cluster = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);
+#else
+				int cluster = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
+#endif
 				if (cluster >= 0)
 					sh_shmesh->litleaves[cluster>>3] |= 1<<(cluster&7);
 			}
@@ -1835,9 +1956,13 @@ static struct shadowmesh_s *SHM_BuildShadowMesh(dlight_t *dl, unsigned char *lvi
 		while(firstedge)
 		{
 			//border
-			v1 = cl.worldmodel[cl_current_time_period]->vertexes[cl.worldmodel[cl_current_time_period]->edges[firstedge].v[0]].position;
-			v2 = cl.worldmodel[cl_current_time_period]->vertexes[cl.worldmodel[cl_current_time_period]->edges[firstedge].v[1]].position;
-
+#ifdef TEMPORALCORTEX
+			v1 = cl.worldmodel[cl_current_bsp_index]->vertexes[cl.worldmodel[cl_current_bsp_index]->edges[firstedge].v[0]].position;
+			v2 = cl.worldmodel[cl_current_bsp_index]->vertexes[cl.worldmodel[cl_current_bsp_index]->edges[firstedge].v[1]].position;
+#else
+			v1 = cl.worldmodel->vertexes[cl.worldmodel->edges[firstedge].v[0]].position;
+			v2 = cl.worldmodel->vertexes[cl.worldmodel->edges[firstedge].v[1]].position;
+#endif
 			//get positions of v3 and v4 based on the light position
 			v3[0] = v1[0] + ( v1[0]-dl->origin[0] )*PROJECTION_DISTANCE;
 			v3[1] = v1[1] + ( v1[1]-dl->origin[1] )*PROJECTION_DISTANCE;
@@ -1889,7 +2014,11 @@ static qboolean Sh_VisOverlaps(qbyte *v1, qbyte *v2)
 	int i, m;
 	if (!v2 || !v1)
 		return true;
-	m = (cl.worldmodel[cl_current_time_period]->numclusters+7)>>3;
+#ifdef TEMPORALCORTEX
+	m = (cl.worldmodel[cl_current_bsp_index]->numclusters+7)>>3;
+#else
+	m = (cl.worldmodel->numclusters+7)>>3;
+#endif
 
 	for (i=(m&~3) ; i<m ; i++)
 	{
@@ -2507,10 +2636,18 @@ static void Sh_GenShadowFace(dlight_t *l, vec3_t axis[3], int lighttype, shadowm
 		{
 			if (!smesh->batches[tno].count)
 				continue;
-			tex = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex;
+#ifdef TEMPORALCORTEX
+			tex = cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].tex;
+#else
+			tex = cl.worldmodel->shadowbatches[tno].tex;
+#endif
 			if (tex->shader->flags & (SHADER_NOSHADOWS|SHADER_NODRAW))	//FIXME: shadows not lights
 				continue;
-			BE_DrawMesh_List(tex->shader, smesh->batches[tno].count, smesh->batches[tno].s, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
+#ifdef TEMPORALCORTEX
+			BE_DrawMesh_List(tex->shader, smesh->batches[tno].count, smesh->batches[tno].s, cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo, NULL, 0);
+#else
+			BE_DrawMesh_List(tex->shader, smesh->batches[tno].count, smesh->batches[tno].s, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
+#endif
 		}
 		break;
 	}
@@ -2786,8 +2923,13 @@ qboolean Sh_GenerateShadowMap(dlight_t *l, int lighttype)
 		else
 		{
 			int clus;
-			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], l->origin, NULL);
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+#ifdef TEMPORALCORTEX
+			clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], l->origin, NULL);
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
+#else
+			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, l->origin, NULL);
+			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+#endif
 			//FIXME: surely we can use the phs for this?
 
 			if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
@@ -3005,11 +3147,19 @@ static void Sh_DrawShadowMapLight(dlight_t *l, vec3_t colour, vec3_t axis[3], qb
 		else
 		{
 			int clus;
-			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], l->origin, NULL);
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+#ifdef TEMPORALCORTEX
+			clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], l->origin, NULL);
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
 			//FIXME: surely we can use the phs for this?
-			if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-				lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], l->origin, l->radius, &lvisb2, lvis);
+			if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+				lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], l->origin, l->radius, &lvisb2, lvis);
+#else
+			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, l->origin, NULL);
+			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+			//FIXME: surely we can use the phs for this?
+			if (cl.worldmodel->funcs.ClustersInSphere)
+				lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, l->origin, l->radius, &lvisb2, lvis);
+#endif
 			//FIXME: check areas
 			if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
 			{
@@ -3111,8 +3261,13 @@ static void Sh_DrawEntLighting(dlight_t *light, vec3_t colour, qbyte *pvs)
 		{
 			if (!sm->batches[tno].count)
 				continue;
-			tex = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].tex;
-			if (cl.worldmodel[cl_current_time_period]->fromgame == fg_quake2)
+#ifdef TEMPORALCORTEX
+			tex = cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].tex;
+			if (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake2)
+#else
+			tex = cl.worldmodel->shadowbatches[tno].tex;
+			if (cl.worldmodel->fromgame == fg_quake2)
+#endif
 				shader = R_TextureAnimation_Q2(tex)->shader;
 			else
 				shader = R_TextureAnimation(false, tex)->shader;
@@ -3124,19 +3279,39 @@ static void Sh_DrawEntLighting(dlight_t *light, vec3_t colour, qbyte *pvs)
 			{
 				mesh_t unimesh = {0};
 				mesh_t *unimeshptr = &unimesh;
-				vboarray_t oldidx = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies;
+#ifdef TEMPORALCORTEX
+				vboarray_t oldidx = cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo->indicies;
+#else
+				vboarray_t oldidx = cl.worldmodel->shadowbatches[tno].vbo->indicies;
+#endif
 				unimesh.numindexes = sm->batches[tno].faceidxcount;
-				unimesh.numvertexes = cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->vertcount;
+#ifdef TEMPORALCORTEX
+				unimesh.numvertexes = cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo->vertcount;
+#else
+				unimesh.numvertexes = cl.worldmodel->shadowbatches[tno].vbo->vertcount;
+#endif
 				unimesh.vbofirstelement = sm->batches[tno].faceidxfirst;
-				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies.gl.vbo = sm->vefbo[2];
-				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies.gl.addr = NULL;
+#ifdef TEMPORALCORTEX
+				cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo->indicies.gl.vbo = sm->vefbo[2];
+				cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo->indicies.gl.addr = NULL;
 
-				BE_DrawMesh_List(shader, 1, &unimeshptr, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
-				cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo->indicies = oldidx;
+				BE_DrawMesh_List(shader, 1, &unimeshptr, cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo, NULL, 0);
+				cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo->indicies = oldidx;
+#else
+				cl.worldmodel->shadowbatches[tno].vbo->indicies.gl.vbo = sm->vefbo[2];
+				cl.worldmodel->shadowbatches[tno].vbo->indicies.gl.addr = NULL;
+
+				BE_DrawMesh_List(shader, 1, &unimeshptr, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
+				cl.worldmodel->shadowbatches[tno].vbo->indicies = oldidx;
+#endif
 			}
 			else
 #endif
-				BE_DrawMesh_List(shader, sm->batches[tno].count, sm->batches[tno].s, cl.worldmodel[cl_current_time_period]->shadowbatches[tno].vbo, NULL, 0);
+#ifdef TEMPORALCORTEX
+				BE_DrawMesh_List(shader, sm->batches[tno].count, sm->batches[tno].s, cl.worldmodel[cl_current_bsp_index]->shadowbatches[tno].vbo, NULL, 0);
+#else
+				BE_DrawMesh_List(shader, sm->batches[tno].count, sm->batches[tno].s, cl.worldmodel->shadowbatches[tno].vbo, NULL, 0);
+#endif
 			RQuantAdd(RQUANT_LITFACES, sm->batches[tno].count);
 		}
 
@@ -3449,10 +3624,15 @@ static qboolean Sh_DrawStencilLight(dlight_t *dl, vec3_t colour, vec3_t axis[3],
 	}
 	else
 	{
-		clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);	//FIXME: check areas
-		lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
-//		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-//			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
+#ifdef TEMPORALCORTEX
+		clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);	//FIXME: check areas
+		lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
+#else
+		clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);	//FIXME: check areas
+		lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+#endif
+//		if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+//			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, lvis);
 
 		if (!Sh_VisOverlaps(lvis, vvis))	//The two viewing areas do not intersect.
 		{
@@ -3677,11 +3857,15 @@ qboolean Sh_CullLight(dlight_t *dl, qbyte *vvis)
 	{
 		int clus;
 		qbyte *lvis;
-
-		clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
-		lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
-//		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-//			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
+#ifdef TEMPORALCORTEX
+		clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);
+		lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
+#else
+		clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
+		lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+#endif
+//		if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+//			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, lvis);
 
 		SHM_BuildShadowMesh(dl, lvis, SMT_DEFERRED);
 
@@ -3719,13 +3903,23 @@ static void Sh_DrawShadowlessLight(dlight_t *dl, vec3_t colour, vec3_t axis[3], 
 		int clus;
 		qbyte *lvis;
 
-		if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, NULL);
+#ifdef TEMPORALCORTEX
+		if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, NULL);
 		else
 		{
-			clus = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
-			lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clus, &lvisb, PVM_FAST);
+			clus = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);
+			lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clus, &lvisb, PVM_FAST);
 		}
+#else
+		if (cl.worldmodel->funcs.ClustersInSphere)
+			lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, NULL);
+		else
+		{
+			clus = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
+			lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clus, &lvisb, PVM_FAST);
+		}
+#endif
 
 		SHM_BuildShadowMesh(dl, lvis, SMT_SHADOWLESS);
 		//FIXME: check areas
@@ -3839,7 +4033,11 @@ void Sh_DrawCrepuscularLight(dlight_t *dl, float *colours)
 
 	BE_SelectMode(BEM_CREPUSCULAR);
 	BE_SelectDLight(dl, colours, dl->axis, LSHADER_STANDARD);
-	GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_PORTAL, SHADER_SORT_BLEND);
+#ifdef TEMPORALCORTEX
+	GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_PORTAL, SHADER_SORT_BLEND);
+#else
+	GLBE_SubmitMeshes(cl.worldmodel->batches, SHADER_SORT_PORTAL, SHADER_SORT_BLEND);
+#endif
 
 	GLBE_FBO_Pop(oldfbo);
 
@@ -3892,7 +4090,11 @@ void Sh_PreGenerateLights(void)
 
 	r_shadow_realtime_world_importlightentitiesfrommap.modified = false;
 	r_shadow_realtime_world_lightmaps.value = atof(r_shadow_realtime_world_lightmaps.string);
-	if (!cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[cl_current_bsp_index])
+#else
+	if (!cl.worldmodel)
+#endif
 		return;
 	if ((r_shadow_realtime_dlight.ival || r_shadow_realtime_world.ival) && rtlights_max == RTL_FIRST)
 	{
@@ -3907,7 +4109,11 @@ void Sh_PreGenerateLights(void)
 			okay |= rtlights_max != RTL_FIRST;
 		}
 		if (!okay)
-			okay |= R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_time_period]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+#ifdef TEMPORALCORTEX
+			okay |= R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_bsp_index]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+#else
+			okay |= R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+#endif
 		if (!okay && r_shadow_realtime_world.ival && r_shadow_realtime_world_lightmaps.value < 0.5)
 		{
 			r_shadow_realtime_world_lightmaps.value = 1;
@@ -3949,16 +4155,29 @@ void Sh_PreGenerateLights(void)
 				else
 					shadowtype = SMT_STENCILVOLUME;
 
+#ifdef TEMPORALCORTEX
 				//shadowless and lights with an ambient term pass through walls, so need to affect EVERY leaf withing the sphere.
-				if ((shadowtype == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-					lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, NULL);
+				if ((shadowtype == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+					lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, NULL);
 				else
 				{	//other lights only want to use the source leaf's pvs (clamped by the sphere)
-					leaf = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], dl->origin, NULL);
-					lvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], leaf, &lvisb, PVM_FAST);
-					if (cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere)
-						lvis = cl.worldmodel[cl_current_time_period]->funcs.ClustersInSphere(cl.worldmodel[cl_current_time_period], dl->origin, dl->radius, &lvisb2, lvis);
+					leaf = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], dl->origin, NULL);
+					lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], leaf, &lvisb, PVM_FAST);
+					if (cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere)
+						lvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClustersInSphere(cl.worldmodel[cl_current_bsp_index], dl->origin, dl->radius, &lvisb2, lvis);
 				}
+#else
+				//shadowless and lights with an ambient term pass through walls, so need to affect EVERY leaf withing the sphere.
+				if ((shadowtype == SMT_SHADOWLESS || dl->lightcolourscales[0]) && cl.worldmodel->funcs.ClustersInSphere)
+					lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, NULL);
+				else
+				{	//other lights only want to use the source leaf's pvs (clamped by the sphere)
+					leaf = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, dl->origin, NULL);
+					lvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, leaf, &lvisb, PVM_FAST);
+					if (cl.worldmodel->funcs.ClustersInSphere)
+						lvis = cl.worldmodel->funcs.ClustersInSphere(cl.worldmodel, dl->origin, dl->radius, &lvisb2, lvis);
+				}
+#endif
 
 				SHM_BuildShadowMesh(dl, lvis, shadowtype);
 				continue;
@@ -4348,7 +4567,11 @@ void Sh_DrawLights(qbyte *vis)
 		{
 			//only do this if we can see some sky surfaces. pointless otherwise
 			batch_t *b;
-			for (b = cl.worldmodel[cl_current_time_period]->batches[SHADER_SORT_SKY]; b; b = b->next)
+#ifdef TEMPORALCORTEX
+			for (b = cl.worldmodel[cl_current_bsp_index]->batches[SHADER_SORT_SKY]; b; b = b->next)
+#else
+			for (b = cl.worldmodel->batches[SHADER_SORT_SKY]; b; b = b->next)
+#endif
 			{
 				if (b->meshes)
 					break;
@@ -4371,7 +4594,6 @@ void Sh_DrawLights(qbyte *vis)
 //	Con_Printf("%i lights drawn, %i frustum culled, %i pvs culled, %i scissor culled\n", bench.numlights, bench.numfrustumculled, bench.numpvsculled, bench.numscissorculled);
 //	memset(&bench, 0, sizeof(bench));
 }
-#endif
 
 //stencil shadows generally require that the farclip distance is really really far away
 //so this little function is used to check if its needed or not.

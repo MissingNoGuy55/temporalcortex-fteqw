@@ -1,6 +1,11 @@
 #include "q3common.h"
 #define net_message asrgsaerge
 
+#ifdef TEMPORALCORTEX
+int tc_sv3_current_time_period;
+int tc_sv3_loaded_bsps;
+#endif
+
 //An implementation of a Q3 server...
 //requires qvm implementation and existing q3 client stuff (or at least the overlapping stuff in q3common.c).
 
@@ -45,8 +50,6 @@ static botlib_export_t *FTE_GetBotLibAPI(int apiVersion, botlib_import_t *import
 
 botlib_export_t *botlib;
 #endif
-
-
 
 #include "clq3defs.h"
 #include "q3g_public.h"
@@ -204,14 +207,27 @@ static model_t *Q3G_GetCModel(unsigned int modelindex)
 	//1 == *1
 	//this is not how quake's precaches normally work.
 	modelindex++;
+
 	if ((unsigned int)modelindex < countof(sv3.models))
 	{
 		if (!sv3.models[modelindex])
 		{
+#ifdef TEMPORALCORTEX
+			if (modelindex > 0 && modelindex < tc_sv3_loaded_bsps + 1)
+			{
+				sv3.models[modelindex] = sv3.world->worldmodel[modelindex-1];
+				tc_sv3_loaded_bsps++;
+			}
+			else
+			{
+				sv3.models[modelindex] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", modelindex-1), sv.modelname[tc_sv3_current_time_period]), MLV_WARNSYNC);
+			}
+#else
 			if (modelindex == 1)
 				sv3.models[modelindex] = sv3.world->worldmodel;
 			else
 				sv3.models[modelindex] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", modelindex-1), sv.modelname), MLV_WARNSYNC);
+#endif
 		}
 
 		if (sv3.models[modelindex]->loadstate == MLS_LOADED)
@@ -303,7 +319,11 @@ static void Q3G_LinkEntity(q3sharedEntity_t *ent)
 	ent->r.absmax[2] += 1;
 
 // link to PVS leafs
-	sv3.world->worldmodel[sv_current_time_period]->funcs.FindTouchedLeafs(sv3.world->worldmodel[sv_current_time_period], &sent->pvscache, ent->r.absmin, ent->r.absmax);
+#ifdef TEMPORALCORTEX
+	sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.FindTouchedLeafs(sv3.world->worldmodel[tc_sv3_current_time_period], &sent->pvscache, ent->r.absmin, ent->r.absmax);
+#else
+	sv3.world->worldmodel->funcs.FindTouchedLeafs(sv3.world->worldmodel, &sent->pvscache, ent->r.absmin, ent->r.absmax);
+#endif
 	//FIXME: return if no leafs
 
 	ent->r.linkcount++;
@@ -332,17 +352,33 @@ static void SVQ3_ClearWorld(void)
 {
 	int numareas = 1;
 	int i;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 	vec3_t mins, maxs, size;
-	if (sv3.world->worldmodel)
+#ifdef TEMPORALCORTEX
+	for ( t = 0; t < tc_sv3_loaded_bsps; t++ )
 	{
-		VectorCopy(sv3.world->worldmodel[sv_current_time_period]->mins, mins);
-		VectorCopy(sv3.world->worldmodel[sv_current_time_period]->maxs, maxs);
+		if (sv3.world->worldmodel[t])
+		{
+			VectorCopy(sv3.world->worldmodel[t]->mins, mins);
+			VectorCopy(sv3.world->worldmodel[t]->maxs, maxs);
+		}
+#else
+		if (sv3.world->worldmodel)
+		{
+			VectorCopy(sv3.world->worldmodel->mins, mins);
+			VectorCopy(sv3.world->worldmodel->maxs, maxs);
+		}
+#endif
+		else
+		{
+			VectorSet(mins, -4096, -4096, -4096);
+			VectorSet(maxs, 4096, 4096, 4096);
+		}
+#ifdef TEMPORALCORTEX
 	}
-	else
-	{
-		VectorSet(mins, -4096, -4096, -4096);
-		VectorSet(maxs, 4096, 4096, 4096);
-	}
+#endif
 	Vector2Set(sv3.gridsize, 128, 128);
 	for (i = 0; i < 2; i++)
 	{
@@ -429,8 +465,11 @@ static void SVQ3_Trace(q3trace_t *result, vec3_t start, vec3_t mins, vec3_t maxs
 		mins = vec3_origin;
 	if (!maxs)
 		maxs = vec3_origin;
-
-	sv3.world->worldmodel[sv_current_time_period]->funcs.NativeTrace(sv3.world->worldmodel[sv_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, capsule, contentmask, &tr);
+#ifdef TEMPORALCORTEX
+	sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.NativeTrace(sv3.world->worldmodel[tc_sv3_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, capsule, contentmask, &tr);
+#else
+	sv3.world->worldmodel->funcs.NativeTrace(sv3.world->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, capsule, contentmask, &tr);
+#endif
 	result->allsolid = tr.allsolid;
 	result->contents = tr.contents;
 	VectorCopy(tr.endpos, result->endpos);
@@ -563,9 +602,11 @@ static int SVQ3_PointContents(vec3_t pos, int entnum)
 	int ourowner;
 
 	int cont;
-
-	cont = sv3.world->worldmodel[sv_current_time_period]->funcs.NativeContents (sv3.world->worldmodel[sv_current_time_period], 0, 0, NULL, pos, vec3_origin, vec3_origin);
-
+#ifdef TEMPORALCORTEX
+	cont = sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.NativeContents (sv3.world->worldmodel[tc_sv3_current_time_period], 0, 0, NULL, pos, vec3_origin, vec3_origin);
+#else
+	cont = sv3.world->worldmodel->funcs.NativeContents (sv3.world->worldmodel, 0, 0, NULL, pos, vec3_origin, vec3_origin);
+#endif
 	if ((unsigned)entnum >= MAX_GENTITIES)
 		ourowner = -1;
 	else if ( entnum != ENTITYNUM_WORLD )
@@ -673,8 +714,11 @@ static qboolean BoundsIntersect (vec3_t mins1, vec3_t maxs1, vec3_t mins2, vec3_
 static qboolean SVQ3_GetUserCmd(int clientnumber, q3usercmd_t *ucmd)
 {
 	usercmd_t *cmd;
-
+#ifdef TEMPORALCORTEX
+	if (clientnumber < 0 || clientnumber >= sv.allocated_client_slots + tc_sv3_loaded_bsps)
+#else
 	if (clientnumber < 0 || clientnumber >= sv.allocated_client_slots)
+#endif
 		plugfuncs->EndGame("SVQ3_GetUserCmd: Client out of range");
 
 	cmd = &svs.clients[clientnumber].lastcmd;
@@ -777,8 +821,11 @@ static int SVQ3_BotGetConsoleMessage( int client, char *buf, int size )
 	//retrieves server->client commands that were sent to a bot
 	client_t	*cl;
 	int			index;
-
+#ifdef TEMPORALCORTEX
+	if ((unsigned)client >= sv.allocated_client_slots + tc_sv3_loaded_bsps)
+#else
 	if ((unsigned)client >= sv.allocated_client_slots)
+#endif
 		return false;
 
 	cl = &svs.clients[client];
@@ -807,12 +854,20 @@ static void SVQ3_Adjust_Area_Portal_State(q3sharedEntity_t *ge, qboolean open)
 	q3serverEntity_t *se = SENTITY_FOR_GENTITY(ge);
 	if (se->pvscache.areanum == -1 || se->pvscache.areanum2 == -1) //not linked properly.
 		return;
-	sv3.world->worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv3.world->worldmodel[sv_current_time_period], -1, se->pvscache.areanum, se->pvscache.areanum2, open);
+#ifdef TEMPORALCORTEX
+	sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.SetAreaPortalState(sv3.world->worldmodel[tc_sv3_current_time_period], -1, se->pvscache.areanum, se->pvscache.areanum2, open);
+#else
+	sv3.world->worldmodel->funcs.SetAreaPortalState(sv3.world->worldmodel, -1, se->pvscache.areanum, se->pvscache.areanum2, open);
+#endif
 }
 
 static qboolean SV_InPVS(vec3_t p1, vec3_t p2)
 {
-	model_t *worldmodel = sv3.world->worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+	model_t *worldmodel = sv3.world->worldmodel[tc_sv3_current_time_period];
+#else
+	model_t *worldmodel = sv3.world->worldmodel;
+#endif
 
 	if (!worldmodel || worldmodel->loadstate != MLS_LOADED)
 		return false;	//still loading, don't give bad results.
@@ -958,7 +1013,11 @@ static qintptr_t Q3G_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, co
 		else
 		{
 			int i = VM_LONG(arg[0]);
+#ifdef TEMPORALCORTEX
+			if (i < 0 || i >= sv.allocated_client_slots + tc_sv3_loaded_bsps)
+#else
 			if (i < 0 || i >= sv.allocated_client_slots)
+#endif
 				return false;
 			SVQ3_SendServerCommand(&svs.clients[i], VM_POINTER(arg[1]));
 		}
@@ -989,7 +1048,11 @@ static qintptr_t Q3G_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, co
 	case G_GET_USERINFO://int num, char *buffer, int bufferSize										20
 		if (VM_OOB(arg[1], arg[2]))
 			return 0;
+#ifdef TEMPORALCORTEX
+		if ((unsigned)VM_LONG(arg[0]) >= sv.allocated_client_slots + tc_sv3_loaded_bsps)
+#else
 		if ((unsigned)VM_LONG(arg[0]) >= sv.allocated_client_slots)
+#endif
 			return 0;
 		worldfuncs->IBufToInfo(&svs.clients[VM_LONG(arg[0])].userinfo, VM_POINTER(arg[1]), VM_LONG(arg[2]), NULL, NULL, NULL, NULL, NULL);
 		break;
@@ -1133,7 +1196,11 @@ static qintptr_t Q3G_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, co
 		{
 			q3usercmd_t *uc = VM_POINTER(arg[1]);
 			int i = VM_LONG(arg[0]);
+#ifdef TEMPORALCORTEX
+			if ((unsigned)i >= sv.allocated_client_slots + tc_sv3_loaded_bsps)
+#else
 			if ((unsigned)i >= sv.allocated_client_slots)
+#endif
 				return 1;
 			svs.clients[i].lastcmd.angles[0] = uc->angles[0];
 			svs.clients[i].lastcmd.angles[1] = uc->angles[1];
@@ -1710,7 +1777,11 @@ static int QDECL BL_Seek(fileHandle_t f, long offset, int seektype)
 }
 static char *QDECL BL_BSPEntityData(void)
 {
+#ifdef TEMPORALCORTEX
+	return (char*)worldfuncs->GetEntitiesString(sv3.world->worldmodel[tc_sv3_current_time_period]);
+#else
 	return (char*)worldfuncs->GetEntitiesString(sv3.world->worldmodel);
+#endif
 }
 static void QDECL BL_Trace(bsp_trace_t *trace, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
@@ -1822,9 +1893,13 @@ void SV_InitBotLib(void)
 	botlib_import_t import;
 	if (!bot_enable)
 		return;	//o.O
-
-	if (sv3.world && sv3.world->worldmodel[sv_current_time_period])
-		cvarfuncs->SetString("sv_mapChecksum", va("%i", sv3.world->worldmodel[sv_current_time_period]->checksum));
+#ifdef TEMPORALCORTEX
+	if (sv3.world && sv3.world->worldmodel[tc_sv3_current_time_period])
+		cvarfuncs->SetString("sv_mapChecksum", va("%i", sv3.world->worldmodel[tc_sv3_current_time_period]->checksum));
+#else
+	if (sv3.world && sv3.world->worldmodel)
+		cvarfuncs->SetString("sv_mapChecksum", va("%i", sv3.world->worldmodel->checksum));
+#endif
 
 	memset(&import, 0, sizeof(import));
 	import.Print = BL_Print;
@@ -1897,14 +1972,25 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 	sv3.server_state_static = server_state_static;
 	sv3.server_state = server_state;
 	sv3.world = &server_state->world;
-	if (sv3.world->worldmodel[sv_current_time_period]->type == mod_heightmap)
+#ifdef TEMPORALCORTEX
+	if (sv3.world->worldmodel[tc_sv3_current_time_period]->type == mod_heightmap)
 	{
 	}
 	else
 	{
-		if (sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_quake || sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_halflife || sv3.world->worldmodel[sv_current_time_period]->fromgame == fg_quake2)
+		if (sv3.world->worldmodel[tc_sv3_current_time_period]->fromgame == fg_quake || sv3.world->worldmodel[tc_sv3_current_time_period]->fromgame == fg_halflife || sv3.world->worldmodel[tc_sv3_current_time_period]->fromgame == fg_quake2)
 			return false;	//always fail on q1bsp
 	}
+#else
+	if (sv3.world->worldmodel->type == mod_heightmap)
+	{
+	}
+	else
+	{
+		if (sv3.world->worldmodel->fromgame == fg_quake || sv3.world->worldmodel->fromgame == fg_halflife || sv3.world->worldmodel->fromgame == fg_quake2)
+			return false;	//always fail on q1bsp
+	}
+#endif
 
 	cvarfuncs->GetString("pr_ssqc_progs", ssqcprogs, sizeof(ssqcprogs));
 	if (*ssqcprogs)	//don't load q3 gamecode if we're explicitally told to load a progs.
@@ -1950,8 +2036,11 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 		SVQ3_SetConfigString(1, sysinfo);
 		q3_serverinfo_dirty = true;
 	}
-
+#ifdef TEMPORALCORTEX
+	mapentspointer = worldfuncs->GetEntitiesString(sv3.world->worldmodel[tc_sv3_current_time_period]);
+#else
 	mapentspointer = worldfuncs->GetEntitiesString(sv3.world->worldmodel);
+#endif
 	vmfuncs->Call(q3gamevm, GAME_INIT, (intptr_t)(sv3.world->physicstime*1000), (int)rand(), restart);
 
 	if (!restart)
@@ -2307,8 +2396,11 @@ static qboolean SVQ3_EntityIsVisible(q3client_frame_t *snap, q3sharedEntity_t *e
 			return false;		// blocked by a door
 		}
 	}
-
-	return sv3.world->worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv3.world->worldmodel[sv_current_time_period], &sent->pvscache, bitvector, NULL/*using the snapshots areabits rather than the bsp's*/);
+#ifdef TEMPORALCORTEX
+	return sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.EdictInFatPVS(sv3.world->worldmodel[tc_sv3_current_time_period], &sent->pvscache, bitvector, NULL/*using the snapshots areabits rather than the bsp's*/);
+#else
+	return sv3.world->worldmodel->funcs.EdictInFatPVS(sv3.world->worldmodel, &sent->pvscache, bitvector, NULL/*using the snapshots areabits rather than the bsp's*/);
+#endif
 }
 
 #ifdef Q3OVERQW
@@ -2422,11 +2514,17 @@ void SVQ3_BuildClientSnapshot( client_t *client )
 	// find the client's PVS
 	VectorCopy( ps->origin, org );
 	org[2] += ps->viewheight;
-
-	bitvector = sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[sv_current_time_period], sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], org, &clientarea), &pvsbuffer, PVM_REPLACE);
+#ifdef TEMPORALCORTEX
+	bitvector = sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[tc_sv3_current_time_period], sv.world.worldmodel[tc_sv3_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv3_current_time_period], org, &clientarea), &pvsbuffer, PVM_REPLACE);
 
 	// calculate the visible areas
-	snap->areabytes = sv3.world->worldmodel[sv_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[sv_current_time_period], snap->areabits, sizeof(snap->areabits), clientarea, false);
+	snap->areabytes = sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[tc_sv3_current_time_period], snap->areabits, sizeof(snap->areabits), clientarea, false);
+#else
+	bitvector = sv3.world->worldmodel->funcs.ClusterPVS(sv3.world->worldmodel, sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, org, &clientarea), &pvsbuffer, PVM_REPLACE);
+
+	// calculate the visible areas
+	snap->areabytes = sv3.world->worldmodel->funcs.WriteAreaBits(sv3.world->worldmodel, snap->areabits, sizeof(snap->areabits), clientarea, false);
+#endif
 
 	// grab the current playerState_t
 	memcpy(&snap->ps, ps, sizeof(snap->ps));
@@ -2450,9 +2548,15 @@ void SVQ3_BuildClientSnapshot( client_t *client )
 				continue;
 
 			//merge pvs bits so we can see other ents through it
-			sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[sv_current_time_period], sv3.world->worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv3.world->worldmodel[sv_current_time_period], ent->s.origin2, &portalarea), &pvsbuffer, PVM_MERGE);
+#ifdef TEMPORALCORTEX
+			sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.ClusterPVS(sv3.world->worldmodel[tc_sv3_current_time_period], sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.ClusterForPoint(sv3.world->worldmodel[tc_sv3_current_time_period], ent->s.origin2, &portalarea), &pvsbuffer, PVM_MERGE);
 			//and areabits too
-			sv3.world->worldmodel[sv_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[sv_current_time_period], snap->areabits, snap->areabytes, portalarea, true);
+			sv3.world->worldmodel[tc_sv3_current_time_period]->funcs.WriteAreaBits(sv3.world->worldmodel[tc_sv3_current_time_period], snap->areabits, snap->areabytes, portalarea, true);
+#else
+			sv3.world->worldmodel->funcs.ClusterPVS(sv3.world->worldmodel, sv3.world->worldmodel->funcs.ClusterForPoint(sv3.world->worldmodel, ent->s.origin2, &portalarea), &pvsbuffer, PVM_MERGE);
+			//and areabits too
+			sv3.world->worldmodel->funcs.WriteAreaBits(sv3.world->worldmodel, snap->areabits, snap->areabytes, portalarea, true);
+#endif
 		}
 
 		// add all visible entities

@@ -46,9 +46,14 @@ qboolean	noclip_anglehack;		// remnant from old quake
 int startuppending;
 extern int	r_blockvidrestart;
 
-void Host_FinishLoading(void);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_CLIENT
+int tc_cl_loaded_bsps;
+int cl_current_bsp_index;
+#endif
+#endif
 
-timeperiod_t cl_current_time_period;
+void Host_FinishLoading(void);
 
 cvar_t	cl_crypt_rcon = CVARFD("cl_crypt_rcon", "1", CVAR_ARCHIVE|CVAR_NOTFROMSERVER, "Controls whether to send a hash instead of sending your rcon password as plain-text. Set to 1 for security, or 0 for backwards compatibility.\nYour command and any responses will still be sent as plain text.\nInstead, it is recommended to use rcon ONLY via dtls/tls/wss connections.");	//CVAR_NOTFROMSERVER prevents evil servers from degrading it to send plain-text passwords.
 cvar_t	rcon_password = CVARF("rcon_password", "", CVAR_NOUNSAFEEXPAND);
@@ -1742,6 +1747,10 @@ static void CL_BeginServerConnect(char *chain, int port, qboolean noproxy, enum 
 		}
 	}
 
+#ifdef TEMPORALCORTEX
+	tc_cl_loaded_bsps = 0;
+#endif
+
 	SCR_SetLoadingStage(LS_CONNECTION);
 	CL_CheckForResend();
 }
@@ -1778,6 +1787,10 @@ void CL_BeginServerReconnect(void)
 	connectinfo.tries = 0;	//re-ensure routes.
 	connectinfo.nextadr = 0; //should at least be consistent, other than packetloss. yay.
 	connectinfo.clchallenge = rand()^(rand()<<16);
+
+#ifdef TEMPORALCORTEX
+	tc_cl_loaded_bsps = 0;
+#endif
 
 	NET_InitClient(false);
 }
@@ -2255,6 +2268,9 @@ void CL_ClearState (qboolean gamestart)
 {
 	extern cvar_t cfg_save_auto;
 	int			i, j;
+#ifdef TEMPORALCORTEX
+	int			t;
+#endif
 	downloadlist_t *pendingdownloads, *faileddownloads;
 #ifdef HAVE_SERVER
 #define serverrunning (sv.state != ss_dead)
@@ -2327,17 +2343,31 @@ void CL_ClearState (qboolean gamestart)
 			if (cl.particle_csname[i])
 				free(cl.particle_csname[i]);
 	}
+#ifdef TEMPORALCORTEX
+	for (t = 0; t < tc_cl_loaded_bsps; t++)
+		for (i = 0; i < countof(cl.model_name[t]); i++)
+			if (cl.model_name[t][i])
+				BZ_Free(cl.model_name[t][i]);
+#else
 	for (i = 0; i < countof(cl.model_name); i++)
 		if (cl.model_name[i])
 			BZ_Free(cl.model_name[i]);
+#endif
 #ifdef HAVE_LEGACY
 	for (i = 0; i < countof(cl.model_name_vwep); i++)
 		if (cl.model_name_vwep[i])
 			BZ_Free(cl.model_name_vwep[i]);
 #endif
+#ifdef TEMPORALCORTEX
+	for (t = 0; t < tc_cl_loaded_bsps; t++)
+		for (i = 0; i < countof(cl.sound_name[t]); i++)
+			if (cl.sound_name[t][i])
+				BZ_Free(cl.sound_name[t][i]);
+#else
 	for (i = 0; i < countof(cl.sound_name); i++)
 		if (cl.sound_name[i])
 			BZ_Free(cl.sound_name[i]);
+#endif
 #ifdef Q2CLIENT
 	for (i = 0; i < Q2MAX_IMAGES; i++)
 		if (cl.image_name[i])
@@ -2555,19 +2585,24 @@ void CL_Disconnect (const char *reason)
 #endif
 	}
 	Cam_Reset();
-
-	if ( cl.worldmodel[0] )
-		Mod_ClearAll();
-
+#ifdef TEMPORALCORTEX
+	for ( int t = 0; t < tc_cl_loaded_bsps; t++ )
+		if ( cl.worldmodel[t] )
+#else
+		if ( cl.worldmodel )
+#endif
+			Mod_ClearAll();
+#ifdef TEMPORALCORTEX
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
 	{
-		if (cl.worldmodel[i])
-		{
-			cl.worldmodel[i] = NULL;
-		}
+		cl.worldmodel[i] = NULL;
 	}
 
+	tc_cl_loaded_bsps = 0;
+#else
+		cl.worldmodel = NULL;
+#endif
 	CL_Parse_Disconnected();
 
 	COM_FlushTempoaryPacks();
@@ -2619,9 +2654,20 @@ void CL_Disconnect (const char *reason)
 	FS_PureMode(NULL, 0, NULL, NULL, NULL, NULL, 0);
 
 	Alias_WipeStuffedAliases();
-
+#ifdef TEMPORALCORTEX
 	tc_cl_loaded_bsps = 0; // Missi (2025.9.19)
 
+	if ( cls.temporalcacheoutfile )
+	{
+		VFS_CLOSE( cls.temporalcacheoutfile );
+		cls.temporalcacheoutfile = NULL;
+	}
+	if ( cls.temporalcacheinfile )
+	{
+		VFS_CLOSE( cls.temporalcacheinfile );
+		cls.temporalcacheinfile = NULL;
+	}
+#endif
 	//now start up the csqc/menu module again.
 //	(void)CSQC_UnconnectedInit();
 }
@@ -3139,7 +3185,11 @@ void CL_CheckServerInfo(void)
 	if (!*s)
 		s = InfoBuf_ValueForKey(&cl.serverinfo, "allow_skyboxes");
 	if (!*s)
-		cls.allow_unmaskedskyboxes = (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->fromgame != fg_quake);
+#ifdef TEMPORALCORTEX
+		cls.allow_unmaskedskyboxes = (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->fromgame != fg_quake);
+#else
+		cls.allow_unmaskedskyboxes = (cl.worldmodel && cl.worldmodel->fromgame != fg_quake);
+#endif
 	else cls.allow_unmaskedskyboxes = !!atoi(s);
 
 	s = InfoBuf_ValueForKey(&cl.serverinfo, "fbskins");
@@ -3837,6 +3887,10 @@ User command, or NQ protocol command (messy).
 */
 void CL_Reconnect_f (void)
 {
+#ifdef TEMPORALCORTEX
+	tc_cl_loaded_bsps = 0;
+#endif
+
 	if (cls.download && cls.download->method <= DL_QWPENDING)  // don't change when downloading
 		return;
 #ifdef NQPROT
@@ -3847,8 +3901,6 @@ void CL_Reconnect_f (void)
 	}
 #endif
 	S_StopAllSounds (true);
-
-	tc_cl_loaded_bsps = 0;	// Missi (2025.9.19)
 
 	if (cls.state == ca_connected)
 	{
@@ -4828,6 +4880,10 @@ void CL_WriteDemoMessage (sizebuf_t *msg, int payloadoffset);
 
 void CL_ReadPacket(void)
 {
+#ifdef TEMPORALCORTEX
+	int readcount;
+#endif
+
 	if (!qrenderer)
 		return;
 
@@ -4893,7 +4949,11 @@ void CL_ReadPacket(void)
 	//
 	// packet from server
 	//
+#ifdef TEMPORALCORTEX
+	if (!cls.demoplayback && !rewinding &&
+#else
 	if (!cls.demoplayback &&
+#endif
 		!NET_CompareAdr (&net_from, &cls.netchan.remote_address))
 	{
 		char adr[MAX_ADR_SIZE];
@@ -4958,7 +5018,14 @@ void CL_ReadPacket(void)
 		else if (!Netchan_Process(&cls.netchan))
 			return;		// wasn't accepted for some reason
 
+#ifdef TEMPORALCORTEX
+		readcount = MSG_GetReadCount();
+
+		CL_WriteDemoMessage (&net_message, readcount);
+		//CL_WriteTemporalCache( &net_message, readcount);
+#else
 		CL_WriteDemoMessage (&net_message, MSG_GetReadCount());
+#endif
 
 		if (cls.netchan.incoming_sequence > cls.netchan.outgoing_sequence)
 		{	//server should not be responding to packets we have not sent yet
@@ -4984,6 +5051,25 @@ void CL_ReadPackets (void)
 		while(CL_GetDemoMessage())
 			CL_ReadPacket();
 	}
+
+// Missi: FIXME: Come back to this later. Currently buggy and I don't feel like fixing it.
+// This would have created a "rewind" effect when the player dies. (2026.2.1)
+#if 0
+	else if ( rewinding )
+	{
+		if ( cls.temporalcacheoutfile )
+		{
+			VFS_CLOSE( cls.temporalcacheoutfile );
+			cls.temporalcacheoutfile = NULL;
+		}
+		if ( !cls.temporalcacheinfile )
+		{
+			cls.temporalcacheinfile = FS_OpenVFS( "temporalcache.tcache", "rb", FS_GAMEONLY );
+		}
+		while(CL_GetTemporalCacheMessage())
+			CL_ReadPacket();
+	}
+#endif
 	else
 		NET_ReadPackets(cls.sockets);
 
@@ -4991,7 +5077,11 @@ void CL_ReadPackets (void)
 	// check timeout
 	//
 	if (cls.state >= ca_connected
+#ifdef TEMPORALCORTEX
+	 && realtime - cls.netchan.last_received > cl_timeout.value && !cls.demoplayback && !rewinding)
+#else
 	 && realtime - cls.netchan.last_received > cl_timeout.value && !cls.demoplayback)
+#endif
 	{
 #ifdef HAVE_SERVER
 		/*don't timeout when we're the actual server*/
@@ -5676,12 +5766,20 @@ void CL_Status_f(void)
 		if (cls.fteprotocolextensions2 & PEXT2_INFOBLOBS)
 			Con_Printf("\tinfoblobs\n");
 	}
-
-	if (cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index])
+#else
+	if (cl.worldmodel)
+#endif
 	{
 		Con_Printf("map uptime       : %s\n", ShowTime(cl.time));
-		COM_FileBase(cl.worldmodel[cl_current_time_period]->name, adr, sizeof(adr));
+#ifdef TEMPORALCORTEX
+		COM_FileBase(cl.worldmodel[cl_current_bsp_index]->name, adr, sizeof(adr));
 		Con_Printf ("current map      : %s (%s)\n", adr, cl.levelname);
+#else
+		COM_FileBase(cl.worldmodel->name, adr, sizeof(adr));
+		Con_Printf ("current map      : %s (%s)\n", adr, cl.levelname);
+#endif
 	}
 
 #ifdef CSQC_DAT
@@ -5740,24 +5838,32 @@ static void CL_UserinfoChanged(void *ctx, const char *keyname)
 void CL_Skygroup_f(void);
 void WAD_ImageList_f(void);
 
+#ifdef TEMPORALCORTEX
+
+extern int cl_playerindex;
 
 static void CL_ChangeTimePeriod_f()
 {
 	const char* pszArg = Cmd_Argv(1);
 	const char* pszTime = NULL;
+	char szString[256];
 
-	if ( svs.allocated_client_slots > 1 )
-		return;		// Missi: Don't get cheeky... (2025.9.17)
+	// Missi: Don't get cheeky... (2025.9.17)
+	if ( cl.allocated_client_slots > 1 )
+	{
+		Con_Printf( "Cannot change time period at-will in multiplayer games!\nPlease look for \"time travel zones\".\n");
+		return;
+	}
 
 	if ( !pszArg )
 	{
-		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
+		Con_Printf( "cl_changetimeperiod usage: \"cl_changetimeperiod [time period index]\"\n");
 		return;
 	}
 
 	if ( !cl.worldmodel[atoi(pszArg)] )
 	{
-		switch( cl_current_time_period )
+		switch( cl_current_bsp_index )
 		{
 			case TIME_PERIOD_PRESENT:
 				pszTime = "present";
@@ -5773,15 +5879,17 @@ static void CL_ChangeTimePeriod_f()
 				break;
 		}
 
-		Con_Printf( "This map can only be played in the %s time period.\n", pszTime );
+		snprintf( szString, sizeof( szString ), "This map can only be played in the %s time period.\n", pszTime );
+		SCR_CenterPrint( cl_playerindex, szString, true );
+
 		return;		// Missi: No worldmodel for this time period (2025.9.20)
 	}
 
 	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
-	//cl_current_time_period = (timeperiod_t)atoi(pszArg);
+	//cl_current_bsp_index = (timeperiod_t)atoi(pszArg);
 
 	char cmd[64];
-	snprintf( cmd, sizeof(cmd), "%s %s", Cmd_Argv(0), Cmd_Argv(1) );
+	snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
 
 	r_worldentity.model = cl.worldmodel[atoi(pszArg)];
 
@@ -5790,7 +5898,7 @@ static void CL_ChangeTimePeriod_f()
 
 	//Cmd_ForwardToServer();
 }
-
+#endif
 /*
 =================
 CL_Init
@@ -6150,7 +6258,11 @@ void CL_Init (void)
 	Cmd_AddCommand ("spiderpig", NULL);
 	Cmd_AddCommand ("fly", NULL);
 	Cmd_AddCommand ("setpos", NULL);
-	Cmd_AddCommand ("changetimeperiod", CL_ChangeTimePeriod_f);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_CLIENT
+	Cmd_AddCommand ("cl_changetimeperiod", CL_ChangeTimePeriod_f);
+#endif
+#endif
 	Cmd_AddCommand ("notarget", NULL);
 
 	Cmd_AddCommand ("topten", NULL);
@@ -7137,6 +7249,129 @@ qboolean Host_RunFile(const char *fname, int nlen, vfsfile_t *file)
 	return true;
 }
 
+#ifdef TEMPORALCORTEX
+const char *Get_Q2ConfigString(int i);
+
+void CLTC_RecordServerData( sizebuf_t *buf, int *seq )
+{
+	extern	char gamedirfile[];
+	unsigned int i;
+	infosync_t sync;
+	char serverinfostring[1024];
+
+// send the serverdata
+	MSG_WriteByte (buf, svc_serverdata);
+	if (cls.fteprotocolextensions&~PEXT1_HIDEPROTOCOLS)	//maintain demo compatability
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_FTE1);
+		MSG_WriteLong (buf, cls.fteprotocolextensions&~PEXT1_HIDEPROTOCOLS);
+	}
+	if (cls.fteprotocolextensions2)	//maintain demo compatability
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_FTE2);
+		MSG_WriteLong (buf, cls.fteprotocolextensions2);
+	}
+	if (cls.ezprotocolextensions1)
+	{
+		MSG_WriteLong (buf, PROTOCOL_VERSION_EZQUAKE1);
+		MSG_WriteLong (buf, cls.ezprotocolextensions1);
+	}
+	MSG_WriteLong (buf, PROTOCOL_VERSION_QW);
+	MSG_WriteLong (buf, cl.servercount);
+	MSG_WriteString (buf, gamedirfile);
+
+	if (cls.fteprotocolextensions2 & PEXT2_MAXPLAYERS)
+	{
+		MSG_WriteByte (buf, cl.allocated_client_slots);
+		MSG_WriteByte (buf, cl.splitclients);
+		for (i = 0; i < cl.splitclients; i++)
+			MSG_WriteByte (buf, cl.playerview[i].playernum);
+	}
+	else
+	{
+		for (i = 0; i < cl.splitclients; i++)
+		{
+			if (cl.playerview[i].spectator)
+				MSG_WriteByte (buf, cl.playerview[i].playernum | 128);
+			else
+				MSG_WriteByte (buf, cl.playerview[i].playernum);
+		}
+		if (cls.fteprotocolextensions & PEXT_SPLITSCREEN)
+			MSG_WriteByte (buf, 128);
+	}
+
+	// send full levelname
+	MSG_WriteString (buf, cl.levelname);
+
+	// Missi: Send full map name
+	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+
+	// send the movevars
+	MSG_WriteFloat(buf, movevars.gravity);
+	MSG_WriteFloat(buf, movevars.stopspeed);
+	MSG_WriteFloat(buf, movevars.maxspeed);
+	MSG_WriteFloat(buf, movevars.spectatormaxspeed);
+	MSG_WriteFloat(buf, movevars.accelerate);
+	MSG_WriteFloat(buf, movevars.airaccelerate);
+	MSG_WriteFloat(buf, movevars.wateraccelerate);
+	MSG_WriteFloat(buf, movevars.friction);
+	MSG_WriteFloat(buf, movevars.waterfriction);
+	MSG_WriteFloat(buf, movevars.entgravity);
+
+	// send server info string
+	memset(&sync, 0, sizeof(sync));
+	InfoBuf_ToString(&cl.serverinfo, serverinfostring, sizeof(serverinfostring), NULL, NULL, NULL, &sync, NULL);
+	MSG_WriteByte (buf, svc_stufftext);
+	MSG_WriteString (buf, va("fullserverinfo \"%s\"\n", serverinfostring));
+	while(sync.numkeys)
+	{
+		char *keyname = sync.keys[0].name;
+		char enckey[2048], encdata[2048];
+		if (InfoBuf_EncodeString(keyname,strlen(keyname), enckey, sizeof(enckey)))
+		{
+			size_t k;
+			if (InfoBuf_FindKey(&cl.serverinfo, keyname, &k))
+			{
+				size_t offset, chunk;
+				qboolean final;
+				for (offset = 0 ; offset < cl.serverinfo.keys[k].size; offset += chunk)
+				{
+					chunk = cl.serverinfo.keys[k].size - offset;
+					if (chunk > 1024)
+						chunk = 1024;
+
+					if (!InfoBuf_EncodeString(cl.serverinfo.keys[k].value, chunk, encdata, sizeof(encdata)))
+						break;	//shouldn't happen.
+
+					if (buf->cursize > 512)
+						CL_WriteRecordTemporalCacheMessage (buf, (*seq)++);
+
+					final = (offset+chunk == cl.serverinfo.keys[k].size) && !cl.serverinfo.keys[k].partial;
+					if (!offset && final)
+					{	//vanilla compat. we must just have a lot of data.
+						MSG_WriteByte(buf, svc_serverinfo);
+						MSG_WriteString(buf, enckey);
+						MSG_WriteString(buf, encdata);
+					}
+					else
+					{	//awkward stuff.
+						MSG_WriteByte(buf, svc_setinfo);
+						MSG_WriteByte(buf, 255); //special meaning to say that this is a partial update
+						MSG_WriteByte(buf, 255);	//the serverinfo
+						MSG_WriteLong(buf, (final?0x80000000:0)|offset);
+						MSG_WriteString(buf, enckey);
+						MSG_WriteString(buf, encdata);
+					}
+					offset += chunk;
+				}
+			}
+		}
+		InfoSync_Remove(&sync, 0);
+	}
+	InfoSync_Clear(&sync);
+}
+#endif
+
 /*
 ==================
 Host_Frame
@@ -7216,6 +7451,275 @@ double Host_Frame (double time)
 	//should smooth out a few things, and increase download speeds.
 	if (!cls.timedemo)
 		CL_ReadPackets ();
+
+	// Missi: FIXME: Come back to this later. Currently buggy and I don't feel like fixing it.
+	// This would have created a "rewind" effect when the player dies. (2026.2.1)
+#if 0
+	if ( cls.state == ca_connected )
+	{
+		if ( !rewinding )
+		{
+			if ( cls.temporalcacheinfile )
+			{
+				VFS_CLOSE( cls.temporalcacheinfile );
+				cls.temporalcacheinfile = NULL;
+			}
+			if ( !cls.temporalcacheoutfile )
+			{
+				cls.temporalcacheoutfile = FS_OpenVFS( "temporalcache.tcache", "wb", FS_GAMEONLY );
+			/*-------------------------------------------------*/
+
+			memset(&buf, 0, sizeof(buf));
+			buf.data = buf_data;
+			buf.maxsize = sizeof(buf_data);
+			buf.prim = cls.netchan.netprim;
+			switch(cls.protocol)
+			{
+			case CP_QUAKEWORLD:
+				if (!cls.fteprotocolextensions && !cls.fteprotocolextensions2)
+					buf.maxsize = MAX_QWMSGLEN;	//poo compatibility... :P
+
+				CLTC_RecordServerData(&buf, &seq);
+
+				// send music
+				Media_WriteCurrentTrack(&buf);
+
+				//paknames
+				{
+					char buffer[1024];
+					FS_GetPackNames(buffer, sizeof(buffer), 2, true); /*retain extensions, or we'd have to assume pk3*/
+					if (*buffer)
+					{
+						MSG_WriteByte(&buf, svc_stufftext);
+						SZ_Write(&buf, "//paknames ", 11);
+						SZ_Write(&buf, buffer, strlen(buffer));
+						MSG_WriteString(&buf, "\n");
+					}
+				}
+				//Paks
+				{
+					char buffer[1024];
+					FS_GetPackHashes(buffer, sizeof(buffer), false);
+					if (*buffer)
+					{
+						MSG_WriteByte(&buf, svc_stufftext);
+						SZ_Write(&buf, "//paks ", 7);
+						SZ_Write(&buf, buffer, strlen(buffer));
+						MSG_WriteString(&buf, "\n");
+					}
+				}
+
+				//FIXME: //at
+				//FIXME: //wps
+				//FIXME: //it
+
+
+				MSG_WriteByte (&buf, svc_setpause);
+				MSG_WriteByte (&buf, !!cl.paused);
+
+#ifdef PEXT_SETVIEW
+#ifdef TEMPORALCORTEX
+				if (cl.playerview[0].viewentity != cl.playerview[0].playernum+tc_cl_loaded_bsps)	//tell the player if we have a different view entity
+#else
+				if (cl.playerview[0].viewentity != cl.playerview[0].playernum+1)	//tell the player if we have a different view entity
+#endif
+				{
+					MSG_WriteByte (&buf, svc_setview);
+					MSG_WriteEntity (&buf, cl.playerview[0].viewentity);
+				}
+#endif
+				// flush packet
+				CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+
+			// soundlist
+				MSG_WriteByte (&buf, svc_soundlist);
+				MSG_WriteByte (&buf, 0);
+
+				n = 0;
+				s = cl.sound_name[n+1];
+				while (s && *s)
+				{
+					MSG_WriteString (&buf, s);
+					if (buf.cursize > buf.maxsize/2 && (n&0xff))
+					{
+						MSG_WriteByte (&buf, 0);
+						MSG_WriteByte (&buf, n);
+						CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+
+						if (n + 1 > 0xff)
+						{
+							MSG_WriteByte (&buf, svcfte_soundlistshort);
+							MSG_WriteShort (&buf, n + 1);
+						}
+						else
+						{
+							MSG_WriteByte (&buf, svc_soundlist);
+							MSG_WriteByte (&buf, n + 1);
+						}
+					}
+					n++;
+					s = cl.sound_name[n+1];
+				}
+				if (buf.cursize)
+				{
+					MSG_WriteByte (&buf, 0);
+					MSG_WriteByte (&buf, 0);
+					CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+				}
+
+				//FIXME: vweps
+
+			// modellist
+				MSG_WriteByte (&buf, svc_modellist);
+				MSG_WriteByte (&buf, 0);
+
+				n = 0;
+				s = cl.model_name[n+1];
+				while (s && *s)
+				{
+					MSG_WriteString (&buf, s);
+					if (buf.cursize > buf.maxsize/2 && (n&0xff))
+					{
+						MSG_WriteByte (&buf, 0);
+						MSG_WriteByte (&buf, n);
+						CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+
+						if (n + 1 > 0xff)
+						{
+							MSG_WriteByte (&buf, svcfte_modellistshort);
+							MSG_WriteShort (&buf, n + 1);
+						}
+						else
+						{
+							MSG_WriteByte (&buf, svc_modellist);
+							MSG_WriteByte (&buf, n + 1);
+						}
+					}
+					n++;
+					s = cl.model_name[n+1];
+				}
+				if (buf.cursize)
+				{
+					MSG_WriteByte (&buf, 0);
+					MSG_WriteByte (&buf, 0);
+					CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+				}
+
+				seq = CLTC_Record_ParticlesStaticsBaselines(&buf, seq);
+
+				MSG_WriteByte (&buf, svc_stufftext);
+				MSG_WriteString (&buf, va("cmd spawn %i\n", cl.servercount) );
+
+				if (buf.cursize)
+					CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+				seq = CLTC_RecordInitialPlayers(&buf, seq, false);
+				seq = CLTC_Record_Lightstyles(&buf, seq);
+				seq = CLTC_RecordInitialStats(&buf, seq, false);
+
+				// get the client to check and download skins
+				// when that is completed, a begin command will be issued
+				MSG_WriteByte (&buf, svc_stufftext);
+				MSG_WriteString (&buf, "skins\n");
+
+				CL_WriteRecordTemporalCacheMessage (&buf, seq++);
+
+				CLTC_WriteSetTemporalCacheMessage();
+
+				//FIXME: make sure the deltas are reset
+
+				// done
+				break;
+		#if defined(Q2CLIENT) && defined(Q2SERVER)
+			case CP_QUAKE2:
+
+				MSG_WriteByte (&buf, svcq2_serverdata);
+				if (cls.fteprotocolextensions)	//maintain demo compatability
+				{
+					MSG_WriteLong (&buf, PROTOCOL_VERSION_FTE1);
+					MSG_WriteLong (&buf, cls.fteprotocolextensions);
+				}
+				if (cls.fteprotocolextensions2)	//maintain demo compatability
+				{
+					MSG_WriteLong (&buf, PROTOCOL_VERSION_FTE2);
+					MSG_WriteLong (&buf, cls.fteprotocolextensions2);
+				}
+				MSG_WriteLong (&buf, cls.protocol_q2);
+				MSG_WriteLong (&buf, 0x80000000 + cl.servercount);
+				MSG_WriteByte (&buf, 1);	//attract loop
+				if (cls.protocol_q2 == PROTOCOL_VERSION_Q2EX)
+					MSG_WriteByte (&buf, cl.q2svnetrate);	//tick rate
+				MSG_WriteString (&buf, FS_GetGamedir( true ));
+				if (cls.protocol_q2 == PROTOCOL_VERSION_Q2EX && cl.playerview[0].playernum != -1 && cl.splitclients!=1)
+				{
+					MSG_WriteShort (&buf, -2);
+					MSG_WriteShort (&buf, cl.splitclients);
+					for (i = 0; i < cl.splitclients; i++)
+						MSG_WriteShort (&buf, cl.playerview[i].playernum);
+				}
+				else
+					MSG_WriteShort (&buf, cl.playerview[0].playernum);
+
+				MSG_WriteString (&buf, cl.levelname);
+
+				for (i = 0; i < Q2MAX_CONFIGSTRINGS; i++)
+				{
+					const char *cs = Get_Q2ConfigString(i);
+					if (buf.cursize + 4 + strlen(cs) > buf.maxsize)
+					{
+						CL_WriteRecordQ2DemoMessage (&buf);
+						SZ_Clear (&buf);
+					}
+
+					MSG_WriteByte (&buf, svcq2_configstring);
+					MSG_WriteShort (&buf, i);
+					MSG_WriteString (&buf, cs);
+				}
+
+				CLQ2_WriteDemoBaselines(&buf);
+
+				MSG_WriteByte (&buf, svcq2_stufftext);
+				MSG_WriteString (&buf, "precache\n");
+				CL_WriteRecordQ2DemoMessage (&buf);
+				break;
+		#endif
+#if 0 // #ifdef NQPROT
+			case CP_NETQUAKE:
+				//csqc stuff
+				VFS_WRITE(cls.demooutfile, "-1\n", 3);	//stupid lame header thing.
+
+				CLNQ_WriteServerData(&buf);
+				MSG_WriteByte (&buf, svc_setpause);
+				MSG_WriteByte (&buf, !!cl.paused);
+				MSG_WriteByte (&buf, svc_setview);
+				MSG_WriteEntity (&buf, cl.playerview[0].viewentity);
+
+				MSG_WriteByte (&buf, svcnq_signonnum);
+				MSG_WriteByte (&buf, 1);
+				CL_WriteRecordDemoMessage (&buf, seq++);
+
+				seq = CL_Record_ParticlesStaticsBaselines(&buf, seq);
+				//fixme: brushes...
+				MSG_WriteByte (&buf, svcnq_signonnum);
+				MSG_WriteByte (&buf, 2);
+				CL_WriteRecordDemoMessage (&buf, seq++);
+				seq = CL_RecordInitialPlayers(&buf, seq, true);
+				seq = CL_Record_Lightstyles(&buf, seq);
+				seq = CL_RecordInitialStats(&buf, seq, true);
+				MSG_WriteByte (&buf, svcnq_signonnum);
+				MSG_WriteByte (&buf, 3);
+				CL_WriteRecordDemoMessage (&buf, seq++);
+				break;
+#endif
+			default:
+				//this should have been caught earlier
+				Con_Printf("Unable to begin demo recording with this network protocol\n");
+				CL_Stop_f();
+				break;
+			}
+			}
+		}
+	}
+#endif
 
 	if (idle && cl_idlefps.value > 0 && !(vrflags&VRF_OVERRIDEFRAMETIME))
 	{
@@ -7393,8 +7897,11 @@ double Host_Frame (double time)
 		if (connectinfo.trying)
 			CL_CheckForResend ();
 		CL_SendCmd (cl.gamespeed?host_frametime/cl.gamespeed:host_frametime, true);
-
-		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel[cl_current_time_period])
+#ifdef TEMPORALCORTEX
+		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel[cl_current_bsp_index])
+#else
+		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel)
+#endif
 		{	// first update is the final signon stage
 			if (cls.protocol == CP_NETQUAKE)
 			{
@@ -7466,7 +7973,11 @@ double Host_Frame (double time)
 			VectorClear(cl.playerview[i].audio.velocity);
 		}
 		if (cls.state && r_worldentity.model && r_worldentity.model->loadstate == MLS_NOTLOADED)
-			Mod_LoadModel(cl.worldmodel[cl_current_time_period], MLV_WARNSYNC);
+#ifdef TEMPORALCORTEX
+			Mod_LoadModel(cl.worldmodel[cl_current_bsp_index], MLV_WARNSYNC);
+#else
+			Mod_LoadModel(cl.worldmodel, MLV_WARNSYNC);
+#endif
 
 		if (SCR_UpdateScreen && !vid.isminimized)
 		{

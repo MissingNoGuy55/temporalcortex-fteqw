@@ -503,7 +503,15 @@ trace_t PM_PlayerTrace (vec3_t start, vec3_t end, unsigned int solidmask)
 
 			if (trace.allsolid)
 			{
-				for (j = i+MAX_TIME_PERIODS; j < pmove.numphysent && trace.allsolid; j++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+				for (j = i+tc_sv_loaded_bsps; j < pmove.numphysent && trace.allsolid; j++)
+#elif defined( HAVE_CLIENT )
+				for (j = i+tc_cl_loaded_bsps; j < pmove.numphysent && trace.allsolid; j++)
+#endif
+#else
+				for (j = i+1; j < pmove.numphysent && trace.allsolid; j++)
+#endif
 				{
 					pe = &pmove.physents[j];
 					if (pe->isportal)

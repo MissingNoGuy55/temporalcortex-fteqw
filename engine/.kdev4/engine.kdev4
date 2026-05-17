@@ -1,0 +1,177 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\n\x00m\x00-\x00d\x00b\x00g)
+
+[Cppcheck]
+useSystemIncludes=true
+
+[CustomDefinesAndIncludes][ProjectPath0]
+Path=.
+parseAmbiguousAsCPP=true
+parserArguments=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c++11
+parserArgumentsC=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c99
+parserArgumentsCuda=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c++11
+parserArgumentsOpenCL=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -cl-std=CL1.1
+
+[CustomDefinesAndIncludes][ProjectPath0][Compiler]
+Name=GCC
+
+[CustomDefinesAndIncludes][ProjectPath0][Defines]
+TEMPORALCORTEX=1
+
+[CustomDefinesAndIncludes][ProjectPath0][Includes]
+1=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine
+10=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/http
+11=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+2=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/server
+3=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
+4=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
+5=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/client
+6=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/common
+7=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
+8=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
+9=/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
+
+[Launch]
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Client
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=-basedir "/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 1
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=false
+Working Directory=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files
+isExecutable=true
+
+[Launch][Launch Configuration 1]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Server
+Type=Native Application
+
+[Launch][Launch Configuration 1][Data]
+Arguments=-game temporalcortex +developer 1 +maxplayers 4 +coop 1 +deathmatch 0
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc-sv
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=true
+Working Directory=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files
+isExecutable=true
+
+[Launch][Launch Configuration 2]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Client (connect to server)
+Type=Native Application
+
+[Launch][Launch Configuration 2][Data]
+Arguments=-basedir "/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 0 +in_windowed_mouse 0 +connect 192.168.254.122:27500
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=false
+Working Directory=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files
+isExecutable=true
+
+[Launch][Launch Configuration 3]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Client (standalone)
+Type=Native Application
+
+[Launch][Launch Configuration 3][Data]
+Arguments=-basedir "/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 1 +in_windowed_mouse 1
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc-cl
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=false
+Working Directory=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files
+isExecutable=true
+
+[Launch][Launch Configuration 4]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Client (standalone - connect to server)
+Type=Native Application
+
+[Launch][Launch Configuration 4][Data]
+Arguments=-basedir "/home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files" -game "temporalcortex" +in_windowed_mouse 0 +connect 127.0.0.1
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc-cl
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=false
+Working Directory=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/game_files
+isExecutable=true
+
+[Launch][Launch Configuration 5]
+Configured Launch Modes=execute
+Configured Launchers=scriptAppLauncher
+Name=makestuff_fteqw_rel.sh
+Type=Script Application
+
+[Launch][Launch Configuration 5][Data]
+Configured from ProjectItem=fteqw,makestuff_fteqw_rel.sh
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/makestuff_fteqw_rel.sh
+Interpreter=bash
+Output Filtering Mode=2
+Run current file=false
+
+[Launch][Launch Configuration 6]
+Configured Launch Modes=execute
+Configured Launchers=scriptAppLauncher
+Name=makestuff_rel.sh
+Type=Script Application
+
+[Launch][Launch Configuration 6][Data]
+Configured from ProjectItem=fteqw,makestuff_rel.sh
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/makestuff_rel.sh
+Interpreter=bash
+Output Filtering Mode=2
+Run current file=false
+
+[Launch][Launch Configuration 7]
+Configured Launch Modes=execute
+Configured Launchers=scriptAppLauncher
+Name=makestuff.sh
+Type=Script Application
+
+[Launch][Launch Configuration 7][Data]
+Configured from ProjectItem=fteqw,makestuff.sh
+Executable=file:///home/stephen/Dropbox/private_stuff/game_projects/quake_engine/temporalcortex_fteqw/engine/makestuff.sh
+Interpreter=bash
+Output Filtering Mode=2
+Run current file=false
+
+[MakeBuilder]
+Abort on First Error=false
+Additional Options=FTE_CONFIG=fteqwtc
+Default Target=m-dbg
+
+[Project]
+VersionControlSupport=kdevgit

@@ -730,7 +730,7 @@ static int my_lua_entity_set(lua_State *L)	//__newindex
 					if (lua_type(L, 3) == LUA_TNIL)
 						eval->function = 0;	//so the engine can distinguish between nil and not.
 					else
-						eval->function = fld->offset | ((entnum+MAX_TIME_PERIODS)<<10);
+						eval->function = fld->offset | ((entnum+tc_sv_loaded_bsps)<<10);
 					lua_pushlightuserdata(L, (void *)(qintptr_t)fld->offset);	//execute only knows a function id, so we need to translate the store to match.
 					lua_replace(L, 2);
 					lua_rawset(L, 1);
@@ -739,7 +739,7 @@ static int my_lua_entity_set(lua_State *L)	//__newindex
 					if (lua_type(L, 3) == LUA_TNIL)
 						eval->string = 0;	//so the engine can distinguish between nil and not.
 					else
-						eval->string = fld->offset | ((entnum+MAX_TIME_PERIODS)<<10);
+						eval->string = fld->offset | ((entnum+tc_sv_loaded_bsps)<<10);
 					lua_pushlightuserdata(L, (void *)(qintptr_t)fld->offset);	//execute only knows a string id, so we need to translate the store to match.
 					lua_replace(L, 2);
 					lua_rawset(L, 1);
@@ -1136,7 +1136,7 @@ static int bi_lua_pointcontents(lua_State *L)
 {
 	vec3_t pos;
 	lua_readvector(L, 1, pos);
-	lua_pushinteger(L, sv.world.worldmodel[sv_current_time_period]->funcs.PointContents(sv.world.worldmodel[sv_current_time_period], NULL, pos));
+	lua_pushinteger(L, sv.world.worldmodel[sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[sv_current_bsp_index], NULL, pos));
 	return 1;
 }
 
@@ -1185,7 +1185,7 @@ static int bi_lua_droptofloor(lua_State *L)
 		VectorMA(end, 256, gravitydir, end);
 
 	VectorCopy (ent->v->origin, start);
-	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent);
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, sv_current_bsp_index);
 
 	if (trace.fraction == 1 || trace.allsolid)
 		lua_pushboolean(L, false);
@@ -1235,12 +1235,16 @@ static int bi_lua_sprint_qw(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+	if (entnum < tc_sv_loaded_bsps || entnum > sv.allocated_client_slots + tc_sv_loaded_bsps)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
 	}
-	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIOD-1], level, "%s", str);
+#ifdef TEMPORALCORTEX
+	SV_ClientPrintf (&svs.clients[entnum-tc_sv_loaded_bsps], level, "%s", str);
+#else
+	SV_ClientPrintf (&svs.clients[entnum-1], level, "%s", str);
+#endif
 	return 0;
 }
 static int bi_lua_sprint_nq(lua_State *L)
@@ -1252,12 +1256,12 @@ static int bi_lua_sprint_nq(lua_State *L)
 	lua_getfield(L, 1, "entnum");
 	entnum = lua_tointegerx(L, -1, NULL);
 
-	if (entnum < MAX_TIME_PERIODS || entnum > sv.allocated_client_slots + FINAL_TIME_PERIOD)
+	if (entnum < tc_sv_loaded_bsps || entnum > sv.allocated_client_slots + tc_sv_loaded_bsps)
 	{
 		Con_TPrintf ("tried to sprint to a non-client\n");
 		return 0;
 	}
-	SV_ClientPrintf (&svs.clients[entnum-MAX_TIME_PERIODS], level, "%s", str);
+	SV_ClientPrintf (&svs.clients[entnum-tc_sv_loaded_bsps], level, "%s", str);
 	return 0;
 }
 
@@ -1355,7 +1359,7 @@ static int bi_lua_traceline(lua_State *L)
 	lua_getfield(L, 4, "entnum");
 	ent = (wedict_t*)EDICT_NUM_UB((&lua.progfuncs), lua_tointegerx(L, -1, NULL));
 
-	trace = World_Move (&sv.world, v1, vec3_origin, vec3_origin, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
+	trace = World_Move (&sv.world, v1, vec3_origin, vec3_origin, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
 
 	return pushset_trace_globals(L, &trace);
 }
@@ -1375,7 +1379,7 @@ static int bi_lua_tracebox(lua_State *L)
 	lua_getfield(L, 6, "entnum");
 	ent = (wedict_t*)EDICT_NUM_UB((&lua.progfuncs), lua_tointegerx(L, -1, NULL));
 
-	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
+	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
 
 	return pushset_trace_globals(L, &trace);
 }
@@ -1617,7 +1621,7 @@ static int bi_lua_findradiuschain(lua_State *L)
 	rad = lua_tonumberx(L, 2, NULL);
 	rad = rad*rad;
 
-	for (i=MAX_TIME_PERIODS ; i<world->num_edicts ; i++)
+	for (i=tc_sv_loaded_bsps ; i<world->num_edicts ; i++)
 	{
 		ent = EDICT_NUM_PB(world->progs, i);
 		if (ED_ISFREE(ent))
@@ -1656,7 +1660,7 @@ static int bi_lua_findradiustable(lua_State *L)
 
 	lua_newtable(L);	//our return value.
 
-	for (i=MAX_TIME_PERIODS ; i<world->num_edicts ; i++)
+	for (i=tc_sv_loaded_bsps ; i<world->num_edicts ; i++)
 	{
 		ent = EDICT_NUM_PB(world->progs, i);
 		if (ED_ISFREE(ent))
@@ -3023,7 +3027,7 @@ static void QDECL Lua_SetStringField(pubprogfuncs_t *prinst, edict_t *ed, string
 	string_t base;
 	if (ed)
 	{
-		base = (ed->entnum+MAX_TIME_PERIODS)<<10;
+		base = (ed->entnum+tc_sv_loaded_bsps)<<10;
 		val = (char*)fld-(char*)ed->v;
 
 		lua_pushedict(lua.ctx, lua.edicttable[ed->entnum]);
@@ -3114,7 +3118,7 @@ static void Lua_Event_Touch(world_t *w, wedict_t *s, wedict_t *o, trace_t *trace
 static void Lua_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, w->edicts);
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
 
 #if 0
 	PR_ExecuteProgram (w->progs, s->v->think);

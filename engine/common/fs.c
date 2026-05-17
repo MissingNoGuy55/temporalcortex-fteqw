@@ -167,6 +167,9 @@ static const gamemode_info_t gamemode_info[] = {
 	{"-nehahra",	"nehahra",	"FTE-Quake",			{"nehahra/pak0.pak"},			NEHCFG,	{"id1",		"qw",	"nehahra",	"*fte"},	"Quake: Seal Of Nehahra",			UPDATEURL(Q1)},
 	//various quake-based standalone mods.
 	{"-librequake",	"librequake","LibreQuake",			{"lq1/pak0.pak","lq1/gfx.pk3","lq1/quake.rc"},QCFG,	{"lq1"},									"LibreQuake",			UPDATEURL(LQ)},
+#ifdef TEMPORALCORTEX
+	{"-temporalcortex",	"temporalcortex","Temporal Cortex",			{"temporalcortex/pak0.pak","temporalcortex/gfx.pk3","temporalcortex/quake.rc"},QCFG,	{"temporalcortex"},									"Temporal Cortex",			UPDATEURL(LQ)},
+#endif
 //	{"-nexuiz",		"nexuiz",	"Nexuiz",				{"nexuiz.exe"},					NEXCFG,	{"data",						"*ftedata"},"Nexuiz"},
 //	{"-xonotic",	"xonotic",	"Xonotic",				{"data/xonotic-data.pk3dir",
 //														 "data/xonotic-*data*.pk3"},	XONCFG,	{"data",						"*ftedata"},"Xonotic",							UPDATEURL(Xonotic)},

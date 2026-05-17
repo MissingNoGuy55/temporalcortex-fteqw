@@ -945,7 +945,11 @@ void Log_MapNowCompleted(void)
 	if (deathmatch.ival || coop.ival || sv_allow_cheats == 1)
 		return;
 
-	if (!FS_FLocateFile(sv.world.worldmodel[sv_current_time_period]->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
+#ifdef TEMPORALCORTEX
+	if (!FS_FLocateFile(sv.world.worldmodel[sv_current_bsp_index]->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
+#else
+	if (!FS_FLocateFile(sv.world.worldmodel->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
+#endif
 	{
 		Con_Printf("completion log: unable to determine logical path for map\n");
 		return;	//don't know
@@ -957,11 +961,20 @@ void Log_MapNowCompleted(void)
 		return;
 	}
 
-	m = Log_FindMap(packagename, sv.world.worldmodel[sv_current_time_period]->name);
+#ifdef TEMPORALCORTEX
+	m = Log_FindMap(packagename, sv.world.worldmodel[sv_current_bsp_index]->name);
+#else
+	m = Log_FindMap(packagename, sv.world.worldmodel->name);
+#endif
 	if (!m)
 	{
-		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel[sv_current_time_period]->name)+2);
-		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel[sv_current_time_period]->name);
+#ifdef TEMPORALCORTEX
+		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel[sv_current_bsp_index]->name)+2);
+		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel[sv_current_bsp_index]->name);
+#else
+		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel->name)+2);
+		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel->name);
+#endif
 
 		m->fulltime = m->besttime = FLT_MAX;
 		m->bestkills = m->bestsecrets = 0;

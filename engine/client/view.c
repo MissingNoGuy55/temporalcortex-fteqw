@@ -103,6 +103,12 @@ cvar_t	crosshaircorrect		= CVARFD("crosshaircorrect", "0", CVAR_SEMICHEAT, "Move
 cvar_t	crosshairimage			= CVARD("crosshairimage", "", "Enables the use of an external/custom crosshair image");
 cvar_t	crosshairalpha			= CVAR("crosshairalpha", "1");
 
+#ifdef TEMPORALCORTEX
+cvar_t	tc_cl_viewsway			= CVARD("tc_cl_viewsway", "1", "TEMPORAL CORTEX: Allows sway with viewmodels and side movement.");
+cvar_t	tc_cl_viewsway_scale	= CVARD("tc_cl_viewsway_scale", "3.0", "TEMPORAL CORTEX: Scales the view sway effect by this amount.");
+cvar_t	tc_cl_q1viewmodel			= CVARD("tc_cl_q1viewmodel", "0", "TEMPORAL CORTEX: Puts the view model at the center of the screen.");
+#endif
+
 static qboolean v_skyroom_set;
 static vec4_t v_skyroom_origin;
 static vec4_t v_skyroom_orientation;
@@ -146,6 +152,9 @@ static cvar_t	v_quadcshift			= CVARD("v_quadcshift", "1", "Controls the strength
 static cvar_t	v_suitcshift			= CVARD("v_suitcshift", "1", "Controls the strength of envirosuit colour tints (gl_polyblend must be enabled).");
 static cvar_t	v_ringcshift			= CVARD("v_ringcshift", "1", "Controls the strength of ring-of-invisibility colour tints (gl_polyblend must be enabled).");
 static cvar_t	v_pentcshift			= CVARD("v_pentcshift", "1", "Controls the strength of pentagram-of-protection colour tints (gl_polyblend must be enabled).");
+#ifdef TEMPORALCORTEX
+static cvar_t	v_psychosiscshift		= CVARD("v_psychosiscshift", "1", "Controls the strength of pentagram-of-protection colour tints (gl_polyblend must be enabled).");
+#endif
 static cvar_t	v_gunkick				= CVARD("v_gunkick", "0", "Controls the strength of view angle changes when firing weapons.");
 cvar_t	v_gunkick_q2			= CVARD("v_gunkick_q2", "1", "Controls the strength of view angle changes when firing weapons (in Quake2).");
 static cvar_t	v_viewmodel_quake		= CVARD("r_viewmodel_quake", "0", "Controls whether to use weird viewmodel movements from vanilla quake.");	//name comes from MarkV.
@@ -791,6 +800,15 @@ void V_CalcPowerupCshift (playerview_t *pv)
 		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
 	}
+#ifdef TEMPORALCORTEX
+	else if (im & IT2_PSYCHOSIS)
+	{
+		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
+		pv->cshifts[CSHIFT_POWERUP].percent = 40*v_psychosiscshift.value;
+	}
+#endif
 	else
 		pv->cshifts[CSHIFT_POWERUP].percent = 0;
 
@@ -1017,6 +1035,10 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 	int i;
 	float xyspeed;
 	vec3_t xyvel;
+#ifdef TEMPORALCORTEX
+	vec3_t forward, right, up;
+	vec3_t y_cross;
+#endif
 
 	yaw = r_refdef.viewangles[YAW];
 	pitch = -r_refdef.viewangles[PITCH];
@@ -1068,7 +1090,6 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 	AngleVectors(vw_angles, r_refdef.weaponmatrix[0], r_refdef.weaponmatrix[1], r_refdef.weaponmatrix[2]);
 	VectorInverse(r_refdef.weaponmatrix[1]);
 
-
 	VectorCopy (r_refdef.vieworg, r_refdef.weaponmatrix[3]);
 	for (i=0 ; i<3 ; i++)
 	{
@@ -1084,6 +1105,28 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 	//FIXME: cl_followmodel should lag the viewmodel's position relative to the view
 	//FIXME: cl_leanmodel should lag the viewmodel's angles relative to the view
 
+#ifdef TEMPORALCORTEX
+	if ( (int)tc_cl_q1viewmodel.value == 0 )
+	{
+		AngleVectors( r_refdef.viewangles, forward, right, up );
+		CrossProduct( forward, up, y_cross );
+
+		VectorMA( r_refdef.weaponmatrix[3], 7, right, r_refdef.weaponmatrix[3] );
+		VectorMA( r_refdef.weaponmatrix[3], 5, forward, r_refdef.weaponmatrix[3] );
+	}
+	if ( (int)tc_cl_viewsway.value != 0 )
+	{
+		AngleVectors( r_refdef.viewangles, forward, right, up );
+		CrossProduct( forward, up, y_cross );
+
+		// Missi: Veer up in the event of Z velocity. (2025.12.27)
+		VectorMA( r_refdef.weaponmatrix[3], ( ( pv->simvel[2] / movevars.maxspeed ) * pv->gravitydir[2] ) * tc_cl_viewsway_scale.value, up, r_refdef.weaponmatrix[3] );
+
+		// Missi: Roll to the side based on angle (2025.12.22)
+		VectorMA( r_refdef.weaponmatrix[3], pv->rollangle * 2, y_cross, r_refdef.weaponmatrix[3] );
+	}
+#endif
+
 // fudge position around to keep amount of weapon visible
 // roughly equal with different FOV
 //FIXME: should use y fov, not viewsize.
@@ -1098,8 +1141,6 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 		else if (scr_viewsize.value == 80)
 			r_refdef.weaponmatrix[3][2] += 0.5;
 	}
-
-
 
 	memcpy(r_refdef.weaponmatrix_bob, r_refdef.weaponmatrix, sizeof(r_refdef.weaponmatrix_bob));
 	if (cl_bobmodel.value)
@@ -1171,6 +1212,10 @@ void V_AddIdle (playerview_t *pv)
 	r_refdef.viewangles[PITCH] += v_idlescale.value * sin(cl.time*pitch_cycle) * pitch_level;
 	r_refdef.viewangles[YAW] += v_idlescale.value * sin(cl.time*yaw_cycle) * yaw_level;
 
+#ifdef TEMPORALCORTEX
+	r_refdef.weaponmatrix[3][0] += yaw_level;
+#endif
+
 //	pv->viewent.angles[ROLL] -= v_idlescale.value * sin(cl.time*roll_cycle) * roll_level;
 //	pv->viewent.angles[PITCH] -= v_idlescale.value * sin(cl.time*pitch_cycle) * pitch_level;
 //	pv->viewent.angles[YAW] -= v_idlescale.value * sin(cl.time*yaw_cycle) * yaw_level;
@@ -1212,7 +1257,6 @@ void V_CalcViewRoll (playerview_t *pv)
 		r_refdef.viewangles[PITCH] += pv->v_dmg_time/v_kicktime.value*pv->v_dmg_pitch;
 		pv->v_dmg_time -= host_frametime;
 	}
-
 }
 
 
@@ -1747,9 +1791,15 @@ void V_CalcRefdef (playerview_t *pv)
 			VectorMA(camdir, -chase_up.value, pv->gravitydir, camdir);
 		len = VectorLength(camdir);
 		VectorMA(r_refdef.vieworg, (len+128)/len, camdir, camorg);	//push it 128qu further
-		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.NativeTrace)
+#ifdef TEMPORALCORTEX
+		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace)
 		{
-			cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
+			cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
+#else
+		if (cl.worldmodel && cl.worldmodel->funcs.NativeTrace)
+		{
+			cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
+#endif
 			if (!tr.startsolid)
 			{
 				if (tr.fraction < 1)
@@ -2080,7 +2130,11 @@ void R_DrawNameTags(void)
 		return;
 
 #if defined(CSQC_DAT) || !defined(CLIENTONLY)
-	if (r_showshaders.ival && cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (r_showshaders.ival && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+#else
+	if (r_showshaders.ival && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
+#endif
 	{
 #ifdef CSQC_DAT
 		extern world_t csqc_world;
@@ -2100,24 +2154,39 @@ void R_DrawNameTags(void)
 		{
 			int oldhit = csqc_world.edicts->xv->hitcontentsmaski;
 			csqc_world.edicts->xv->hitcontentsmaski = ~0;
+#ifdef TEMPORALCORTEX
+			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, csqc_world.edicts, cl_current_bsp_index);
+#else
 			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, csqc_world.edicts);
+#endif
 			csqc_world.edicts->xv->hitcontentsmaski = oldhit;
 		}
 		else
 #endif
-			cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
-
+#ifdef TEMPORALCORTEX
+			cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
+#else
+			cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
+#endif
 		if (trace.fraction >= 1)
 			str = "hit nothing";
 		else
 		{
 			shader = NULL;
 #ifdef TERRAIN
-			if (cl.worldmodel[cl_current_time_period]->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel[cl_current_time_period], &trace)))
+#ifdef TEMPORALCORTEX
+			if (cl.worldmodel[cl_current_bsp_index]->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel[cl_current_bsp_index], &trace)))
+#else
+			if (cl.worldmodel->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel, &trace)))
+#endif
 				shadername = shader->name;
 			else
 #endif
-				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel[cl_current_time_period], trace.endpos)))
+#ifdef TEMPORALCORTEX
+				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel[cl_current_bsp_index], trace.endpos)))
+#else
+				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel, trace.endpos)))
+#endif
 			{
 				shadername = surf->texinfo->texture->name;
 				shader = surf->texinfo->texture->shader;
@@ -2205,8 +2274,11 @@ void R_DrawNameTags(void)
 			for (i=0 ; i<pak->num_entities ; i++)
 			{
 				state = &pak->entities[i];
-
+#ifdef TEMPORALCORTEX
+				mod = cl.model_precache[cl_current_bsp_index][state->modelindex];
+#else
 				mod = cl.model_precache[state->modelindex];
+#endif
 				if (mod && mod->loadstate == MLS_LOADED)
 					VectorInterpolate(mod->mins, 0.5, mod->maxs, org);
 				else
@@ -2282,7 +2354,11 @@ void R_DrawNameTags(void)
 		{
 			int best = 0;
 			float bestscore = 0, score = 0;
-			for (i = MAX_TIME_PERIODS; i < w->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+			for (i = tc_cl_loaded_bsps; i < w->num_edicts; i++)
+#else
+			for (i = 1; i < w->num_edicts; i++)
+#endif
 			{
 				e = WEDICT_NUM_PB(w->progs, i);
 				if (ED_ISFREE(e))
@@ -2753,6 +2829,9 @@ void V_Init (void)
 	Cvar_Register (&v_suitcshift, VIEWVARS);
 	Cvar_Register (&v_ringcshift, VIEWVARS);
 	Cvar_Register (&v_pentcshift, VIEWVARS);
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&v_psychosiscshift, VIEWVARS);
+#endif
 	Cvar_Register (&v_gunkick, VIEWVARS);
 	Cvar_Register (&v_gunkick_q2, VIEWVARS);
 
@@ -2831,6 +2910,12 @@ void V_Init (void)
 	Cvar_Register (&chase_back, VIEWVARS);
 	Cvar_Register (&chase_up, VIEWVARS);
 	Cvar_Register (&chase_right, VIEWVARS);
+
+#ifdef TEMPORALCORTEX
+	Cvar_Register( &tc_cl_viewsway, VIEWVARS );
+	Cvar_Register( &tc_cl_viewsway_scale, VIEWVARS );
+	Cvar_Register( &tc_cl_q1viewmodel, VIEWVARS );
+#endif
 
 #if defined(_WIN32) && !defined(MINIMAL)
 	Cvar_Register (&itburnsitburnsmakeitstop, VIEWVARS);

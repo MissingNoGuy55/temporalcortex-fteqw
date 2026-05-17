@@ -367,9 +367,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define svcfte_csqcentities_sized	92	//entity lump for csqc (with size info)
 #define svcfte_setanglebase			93	//updates the base angle (and optionally locks the view, otherwise nudging it without race conditions.)
 #define svcfte_spawnstaticsound2	94	//*sigh*
-
-#define svctc_timeperiod			95
-
+#ifdef TEMPORALCORTEX
+#define svctc_timeperiod			95	// Missi: Temporal Cortex addition (2025.12.6)
+#define svctc_gamespeed				96	// Missi: Temporal Cortex addition (2025.12.6)
+#endif
 //fitz svcs
 #define svcfitz_skybox				37
 #define svcfitz_bf					40
@@ -514,7 +515,9 @@ enum svcq2_ops_e
 	svcq2ex_routemarker = 31,
 	svcq2ex_muzzleflash3 = 32,
 	svcq2ex_achievement = 33,
-
+#ifdef TEMPORALCORTEX
+	svcq2tc_timeperiod = 34,
+#endif
 
 	svcr1q2_zpacket = 21,
 	svcr1q2_zdownload = 22,
@@ -577,6 +580,11 @@ enum {
 #define clcfte_brushedit		84
 #define clcfte_move				85	//part of PEXT2_VRINPUTS. replaces clc_move+clcfte_prydoncursor+clcdp_ackframe
 #define clcfte_stringcmd_seat	86
+
+#ifdef TEMPORALCORTEX
+#define clctc_timeperiod		128 // Missi: Only used for savegames. See sv_user.c and SV_ExecuteClientMessage for more info (2025.12.6)
+#define clctc_gamespeed			129 // Missi: Used to query the server to change gamespeed. NOTE: This behavior is intentionally blocked off for MP games (2026.1.1)
+#endif
 
 #define VRM_LOSS	(1u<<0)	//for server packetloss reports
 #define VRM_DELAY	(1u<<1)	//for server to compute lag properly.
@@ -1140,6 +1148,12 @@ enum {
 	TEDP_SMOKE			= 77,
 	TEDP_TEI_BIGEXPLOSION = 78,
 	TEDP_TEI_PLASMAHIT	= 79,
+
+#ifdef TEMPORALCORTEX
+	TE_TC_BULLET		= 200,
+	TE_TC_SUPERBULLET	= 201,
+	TE_TC_GRAPPLING_HOOK = 202,
+#endif
 };
 
 
@@ -1568,6 +1582,11 @@ typedef struct q1usercmd_s
 #define Q2RDF_UVGOGGLES			(1u<<3)		//usused / reserved
 //ROGUE
 
+#ifdef TEMPORALCORTEX
+#define TCRDF_TIMETRAVEL		(1u<<4)
+#define TCRDF_TIMETRAVELWARP	(1u<<5)
+#endif
+
 #define RDF_BLOOM				(1u<<16)
 #define RDF_FISHEYE				(1u<<17)
 #define RDF_WATERWARP			(1u<<18)
@@ -1579,7 +1598,11 @@ typedef struct q1usercmd_s
 #define RDF_SKIPSKY				(1u<<24)	//we drew a skyroom, skip drawing sky chains for this scene.
 #define RDF_SKYROOMENABLED		(1u<<25)	//skyroom position is known, be prepared to draw the skyroom if its visible.
 
+#ifdef TEMPORALCORTEX
+#define RDF_ALLPOSTPROC			(RDF_BLOOM|RDF_FISHEYE|RDF_WATERWARP|RDF_CUSTOMPOSTPROC|RDF_ANTIALIAS|RDF_SCENEGAMMA|TCRDF_TIMETRAVELWARP)	//these flags require rendering to an fbo for the various different post-processing shaders.
+#else
 #define RDF_ALLPOSTPROC			(RDF_BLOOM|RDF_FISHEYE|RDF_WATERWARP|RDF_CUSTOMPOSTPROC|RDF_ANTIALIAS|RDF_SCENEGAMMA)	//these flags require rendering to an fbo for the various different post-processing shaders.
+#endif
 
 
 

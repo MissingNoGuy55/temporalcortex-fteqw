@@ -54,7 +54,10 @@ typedef struct	//merge?
 	int				deltaFrame;
 } q3client_frame_t;
 
-
+#ifdef TEMPORALCORTEX
+extern int tc_sv3_current_time_period;
+extern int tc_sv3_loaded_bsps;
+#endif
 
 #ifdef HAVE_SERVER
 typedef struct

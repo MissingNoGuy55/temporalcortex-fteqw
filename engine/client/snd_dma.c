@@ -2193,9 +2193,17 @@ void S_DoRestart (qboolean onlyifneeded)
 
 	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
 	{
+#ifdef TEMPORALCORTEX
+		if (!cl.sound_name[cl_current_bsp_index][i])
+#else
 		if (!cl.sound_name[i])
+#endif
 			break;
+#ifdef TEMPORALCORTEX
+		cl.sound_precache[cl_current_bsp_index][i] = S_FindName (cl.sound_name[cl_current_bsp_index][i], true, false);
+#else
 		cl.sound_precache[i] = S_FindName (cl.sound_name[i], true, false);
+#endif
 	}
 }
 
@@ -2774,12 +2782,21 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 			//bmodels should report the center of the entity rather than the origin (which is frequently at 0 0 0 or merely used as a pivot)
 			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < countof(cl.model_precache))
 			{
+#ifdef TEMPORALCORTEX
+				if (cl.model_precache[cl_current_bsp_index][midx] && cl.model_precache[cl_current_bsp_index][midx]->loadstate == MLS_LOADED && cl.model_precache[cl_current_bsp_index][midx]->type == mod_brush)
+				{
+					//fixme: should probably deal with rotations.
+					VectorMA(ch->origin, 0.5, cl.model_precache[cl_current_bsp_index][midx]->mins, ch->origin);
+					VectorMA(ch->origin, 0.5, cl.model_precache[cl_current_bsp_index][midx]->maxs, ch->origin);
+				}
+#else
 				if (cl.model_precache[midx] && cl.model_precache[midx]->loadstate == MLS_LOADED && cl.model_precache[midx]->type == mod_brush)
 				{
 					//fixme: should probably deal with rotations.
 					VectorMA(ch->origin, 0.5, cl.model_precache[midx]->mins, ch->origin);
 					VectorMA(ch->origin, 0.5, cl.model_precache[midx]->maxs, ch->origin);
 				}
+#endif
 			}
 		}
 		//FIXME: update rate to provide doppler
@@ -3536,7 +3553,11 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 // calc ambient sound levels
 	for (i = 0; i < NUM_AMBIENTS; i++)
 		ambientlevel[i] = 0;
-	if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->type == mod_brush && cl.worldmodel[cl_current_time_period]->fromgame == fg_quake && cl.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->type == mod_brush && cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+#else
+	if (cl.worldmodel && cl.worldmodel->type == mod_brush && cl.worldmodel->fromgame == fg_quake && cl.worldmodel->loadstate == MLS_LOADED)
+#endif
 	{
 		if (ambient_level.value)
 		{
@@ -3545,7 +3566,11 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 				int seat = max(1,cl.splitclients);
 				while(seat --> 0)
 				{
-					l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_time_period], listener[seat].origin);
+#ifdef TEMPORALCORTEX
+					l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_bsp_index], listener[seat].origin);
+#else
+					l = Q1BSP_LeafForPoint(cl.worldmodel, listener[seat].origin);
+#endif
 					if (!l)
 						continue;
 
@@ -3555,7 +3580,11 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 			}
 			else
 			{
-				l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_time_period], listener[sc->seat].origin);
+#ifdef TEMPORALCORTEX
+				l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_bsp_index], listener[sc->seat].origin);
+#else
+				l = Q1BSP_LeafForPoint(cl.worldmodel, listener[sc->seat].origin);
+#endif
 				if (l)
 					for (i = 0; i < NUM_AMBIENTS; i++)
 						ambientlevel[i] = l->ambient_sound_level[i];

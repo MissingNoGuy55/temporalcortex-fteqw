@@ -140,8 +140,11 @@ static void R_Clutter_Insert_Soup(clutter_build_ctx_t *ctx, shader_t *shader, ve
 	for (i = 0; i < numidx; i++)
 		soup->idx[soup->numidx++] = soup->numverts+*index++;
 
-
-	cl.worldmodel[cl_current_time_period]->funcs.LightPointValues(cl.worldmodel[cl_current_time_period], origin, diffuse, ambient, ldir);
+#ifdef TEMPORALCORTEX
+	cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[cl_current_bsp_index], origin, diffuse, ambient, ldir);
+#else
+	cl.worldmodel->funcs.LightPointValues(cl.worldmodel, origin, diffuse, ambient, ldir);
+#endif
 	VectorScale(ambient, 1/255.0, ambient);
 	VectorScale(diffuse, 1/255.0, diffuse);
 
@@ -354,8 +357,11 @@ void R_Clutter_Emit(batch_t **batches)
 	cluttersector_t *sect;
 	batch_t *b;
 	qboolean rebuildlimit = false;
-
-	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
+#else
+	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
+#endif
 		return;
 
 	if (qrenderer != QR_OPENGL && qrenderer != QR_VULKAN)	//vbo only!
@@ -417,7 +423,11 @@ void R_Clutter_Emit(batch_t **batches)
 			cctx.y = y;
 			cctx.z = z;
 			cctx.w = (sect-cluttersector)+1;
-			Mod_ClipDecal(cl.worldmodel[cl_current_time_period], org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
+#ifdef TEMPORALCORTEX
+			Mod_ClipDecal(cl.worldmodel[cl_current_bsp_index], org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
+#else
+			Mod_ClipDecal(cl.worldmodel, org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
+#endif
 			sect->loadingmodel = cctx.loadingmodel;
 
 			for (i = 0; i < cctx.numsoups; i++)
@@ -895,7 +905,11 @@ float CL_TraceLine (vec3_t start, vec3_t end, vec3_t impact, vec3_t normal, int 
 	extern world_t csqc_world;
 	if (csqc_world.progs)
 	{
+#ifdef TEMPORALCORTEX
+		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, csqc_world.edicts, cl_current_bsp_index);
+#else
 		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, csqc_world.edicts);
+#endif
 		VectorCopy(trace.endpos, impact);
 		if (normal)
 			VectorCopy(trace.plane.normal, normal);

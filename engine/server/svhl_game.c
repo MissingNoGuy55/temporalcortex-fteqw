@@ -263,7 +263,7 @@ void QDECL GHL_MoveToOrigin(hledict_t *ent, vec3_t dest, float dist, int movefla
 						VectorMA(neworg, 8, up, neworg);
 				}
 			}
-			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent);
+			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, sv_current_bsp_index);
 			if (set_move_trace)
 				set_move_trace(world->progs, set_trace_globs, &trace);
 	
@@ -400,7 +400,7 @@ int QDECL GHL_GetEntityIllum(hledict_t *ent)
 	if (!r_shadow_realtime_world.ival || r_shadow_realtime_world_lightmaps.value)
 #endif
 	{
-		sv.world.worldmodel[sv_current_time_period]->funcs.LightPointValues(sv.world.worldmodel[sv_current_time_period], ent->v.origin, ambient, diffuse, dir);
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[sv_current_bsp_index], ent->v.origin, ambient, diffuse, dir);
 		lev += (VectorLength(ambient) + VectorLength(diffuse)/2.0)/256;
 	}
 	return lev * 255; //I assume its 0-255, no idea
@@ -451,7 +451,7 @@ hledict_t *QDECL GHL_FindClientInPVS(hledict_t *ed)
 	//fixme: we need to track some state
 	//a different client should be returned each call _per ent_ (so it can be used once per frame)
 
-	viewerpvs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_time_period], sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], ed->v.origin), NULL, 0);
+	viewerpvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], ed->v.origin), NULL, 0);
 
 	for (i = 0; i < svs.allocated_client_slots; i++)
 	{
@@ -463,7 +463,7 @@ hledict_t *QDECL GHL_FindClientInPVS(hledict_t *ed)
 			if (svs.clients[i].spectator)
 				continue;	//ignore spectators
 
-			clusternum = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], other->v.origin)-1;/*pvs is 1 based, leafs are 0 based*/
+			clusternum = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], other->v.origin)-1;/*pvs is 1 based, leafs are 0 based*/
 			if (viewerpvs[clusternum>>3] & (1<<(clusternum&7)))
 			{
 				VectorSubtract(ed->v.origin, other->v.origin, ofs);
@@ -665,7 +665,7 @@ int QDECL GHL_WalkMove(hledict_t *ent, float yaw, float dist, int mode)
 						VectorMA(neworg, 8, up, neworg);
 				}
 			}
-			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent);
+			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, sv_current_bsp_index);
 			if (set_move_trace)
 				set_move_trace(world->progs, set_trace_globs, &trace);
 	
@@ -801,7 +801,7 @@ void QDECL GHL_TraceHull(float *start, float *end, int flags, int hullnum, hledi
 	trace_t t;
 	bi_trace();
 
-	t = SVHL_Move(start, sv.world.worldmodel[sv_current_time_period]->hulls[hullnum].clip_mins, sv.world.worldmodel[sv_current_time_period]->hulls[hullnum].clip_maxs, end, flags, 0, ignore);
+	t = SVHL_Move(start, sv.world.worldmodel[sv_current_bsp_index]->hulls[hullnum].clip_mins, sv.world.worldmodel[sv_current_bsp_index]->hulls[hullnum].clip_maxs, end, flags, 0, ignore);
 
 	result->allsolid = t.allsolid;
 	result->startsolid = t.startsolid;
@@ -819,7 +819,7 @@ char *QDECL GHL_TraceTexture(hledict_t *againstent, vec3_t start, vec3_t end)
 {
 	trace_t tr;
 	bi_trace();
-	sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace(sv.world.worldmodel[sv_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
+	sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace(sv.world.worldmodel[sv_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
 	return tr.surface->name;
 }
 unk QDECL GHL_TraceSphere(unk){notimpf(__func__);}
@@ -903,7 +903,7 @@ void QDECL GHL_MessageEnd(unk)
 		SZ_Write(&sv.datagram, sv.multicast.data, sv.multicast.cursize);
 		break;
 	case MSG_ONE:
-		cl = &svs.clients[svhl_messageent - SVHL_Edict - MAX_TIME_PERIODS];
+		cl = &svs.clients[svhl_messageent - SVHL_Edict - tc_sv_loaded_bsps];
 		if (cl->state >= cs_spawned)
 		{
 			ClientReliableCheckBlock(cl, sv.multicast.cursize);
@@ -1285,7 +1285,7 @@ char *QDECL GHL_GetInfoKeyBuffer(hledict_t *ed)
 	if (!ed)
 		return svs.info;
 
-	return svs.clients[ed - SVHL_Edict - MAX_TIME_PERIODS].userinfo;
+	return svs.clients[ed - SVHL_Edict - tc_sv_loaded_bsps].userinfo;
 }
 char *QDECL GHL_InfoKeyValue(char *infostr, char *key)
 {
@@ -1301,7 +1301,11 @@ int QDECL GHL_GetPlayerUserId(hledict_t *ed)
 {
 	unsigned int clnum = (ed - SVHL_Edict) - 1;
 	bi_trace();
+#ifdef TEMPORALCORTEX
+	if (clnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	if (clnum >= sv.allocated_client_slots)
+#endif
 		return -1;
 	return svs.clients[clnum].userid;
 }
@@ -1523,9 +1527,17 @@ qboolean QDECL GHL_Voice_SetClientListening(int listener, int sender, int should
 }
 char *QDECL GHL_GetPlayerAuthId(hledict_t *playered)
 {
+#ifdef TEMPORALCORTEX
+	unsigned int clnum = (playered - SVHL_Edict) - tc_sv_loaded_bsps;
+#else
 	unsigned int clnum = (playered - SVHL_Edict) - 1;
+#endif
 	bi_trace();
+#ifdef TEMPORALCORTEX
+	if (clnum >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	if (clnum >= sv.allocated_client_slots)
+#endif
 		return NULL;
 	return svs.clients[clnum].guid;
 }
@@ -1880,7 +1892,7 @@ void SVHL_SpawnEntities(char *entstring)
 	//precache the inline models (and touch them).
 	sv.strings.model_precache[0] = "";
 	sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
-	for (i=1 ; i<sv.world.worldmodel[sv_current_time_period]->numsubmodels ; i++)
+	for (i=1 ; i<sv.world.worldmodel[sv_current_bsp_index]->numsubmodels ; i++)
 	{
 		const char *s = va("*%i", i);
 		char *n;
@@ -1983,7 +1995,7 @@ void SVHL_ShutdownGame(void)
 
 qboolean HLSV_ClientCommand(client_t *client)
 {
-	hledict_t *ed = &SVHL_Edict[client - svs.clients + MAX_TIME_PERIODS];
+	hledict_t *ed = &SVHL_Edict[client - svs.clients + tc_sv_loaded_bsps];
 	if (!hlgamecode)
 		return false;
 	if (!strcmp("noclip", Cmd_Argv(0)))
@@ -2014,7 +2026,7 @@ qboolean SVHL_ClientConnect(client_t *client, netadr_t adr, char rejectmessage[1
 
 	sv.skipbprintclient = client;
 	bi_begin();
-	client->hledict = &SVHL_Edict[client-svs.clients+MAX_TIME_PERIODS];
+	client->hledict = &SVHL_Edict[client-svs.clients + tc_sv_loaded_bsps];
 	result = SVHL_GameFuncs.ClientConnect(client->hledict, client->name, ipadr, rejectmessage);
 	bi_end();
 	sv.skipbprintclient = NULL;
@@ -2024,7 +2036,7 @@ qboolean SVHL_ClientConnect(client_t *client, netadr_t adr, char rejectmessage[1
 
 void SVHL_BuildStats(client_t *client, int *si, float *sf, char **ss)
 {
-	hledict_t *ed = &SVHL_Edict[client - svs.clients + MAX_TIME_PERIODS];
+	hledict_t *ed = &SVHL_Edict[client - svs.clients + tc_sv_loaded_bsps];
 
 	si[STAT_HEALTH] = ed->v.health;
 	si[STAT_VIEWHEIGHT] = ed->v.view_ofs[2];
@@ -2034,10 +2046,10 @@ void SVHL_BuildStats(client_t *client, int *si, float *sf, char **ss)
 
 void SVHL_PutClientInServer(client_t *client)
 {
-	hledict_t *ed = &SVHL_Edict[client - svs.clients + MAX_TIME_PERIODS];
+	hledict_t *ed = &SVHL_Edict[client - svs.clients + tc_sv_loaded_bsps];
 	ed->isfree = false;
 	bi_begin();
-	SVHL_GameFuncs.ClientPutInServer(&SVHL_Edict[client-svs.clients+MAX_TIME_PERIODS]);
+	SVHL_GameFuncs.ClientPutInServer(&SVHL_Edict[client-svs.clients+tc_sv_loaded_bsps]);
 	bi_end();
 }
 
@@ -2045,7 +2057,7 @@ void SVHL_DropClient(client_t *drop)
 {
 	hledict_t *ed = &SVHL_Edict[drop - svs.clients + 1];
 	bi_begin();
-	SVHL_GameFuncs.ClientDisconnect(&SVHL_Edict[drop-svs.clients+MAX_TIME_PERIODS]);
+	SVHL_GameFuncs.ClientDisconnect(&SVHL_Edict[drop-svs.clients+tc_sv_loaded_bsps]);
 	bi_end();
 	drop->hledict = NULL;
 	ed->isfree = true;
@@ -2093,7 +2105,7 @@ static void SVHL_RunCmdR(hledict_t *ed, usercmd_t *ucmd)
 		break;
 	}
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
+	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
 	pmove.physents[0].info = 0;
 	pmove.skipent = -1;
 	pmove.onladder = false;
@@ -2381,7 +2393,7 @@ qbyte *SVHL_Snapshot_SetupPVS(client_t *client, qbyte *pvs, unsigned int pvsbufs
 	if (client->hledict)
 	{
 		VectorAdd (client->hledict->v.origin, client->hledict->v.view_ofs, org);
-		sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org, pvs, pvsbufsize, false);
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, pvs, pvsbufsize, false);
 	}
 
 	return pvs;

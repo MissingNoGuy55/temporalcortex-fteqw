@@ -241,6 +241,11 @@ cvar_t r_telealpha							= CVARF  ("r_telealpha", "",
 cvar_t r_waterwarp							= CVARFD ("r_waterwarp", "1",
 												CVAR_ARCHIVE, "Enables fullscreen warp, preferably via glsl. -1 specifies to force the fov warp fallback instead which can give a smidge more performance.");
 
+#ifdef TEMPORALCORTEX
+cvar_t tc_r_timetravel_warp_intensity		= CVARFD ("tc_r_timetravel_warp_intensity", "0.0",
+												CVAR_SHADERSYSTEM, "Enables fullscreen warp, preferably via glsl. -1 specifies to force the fov warp fallback instead which can give a smidge more performance.");
+#endif
+
 cvar_t r_replacemodels						= CVARFD ("r_replacemodels", IFMINIMAL("","md3 md2 md5mesh"),
 												CVAR_ARCHIVE, "A list of filename extensions to attempt to use instead of mdl.");
 
@@ -961,6 +966,9 @@ void Renderer_Init(void)
 	Cvar_Register (&r_drawviewmodel, GRAPHICALNICETIES);
 	Cvar_Register (&r_drawviewmodelinvis, GRAPHICALNICETIES);
 	Cvar_Register (&r_waterwarp, GRAPHICALNICETIES);
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&tc_r_timetravel_warp_intensity, GRAPHICALNICETIES);
+#endif
 	Cvar_Register (&r_speeds, SCREENOPTIONS);
 	Cvar_Register (&r_netgraph, SCREENOPTIONS);
 
@@ -1493,7 +1501,10 @@ qboolean R_ApplyRenderer (rendererstate_t *newr)
 }
 qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 {
-	int i, j, t;
+	int i, j;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 	double start = Sys_DoubleTime();
 
 	COM_WorkerFullSync();
@@ -1707,25 +1718,144 @@ TRACE(("dbg: R_ApplyRenderer: initing mods\n"));
 	Surf_PreNewMap();
 
 #ifndef CLIENTONLY
-	if (sv.world.worldmodel[sv_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index])
 	{
 TRACE(("dbg: R_ApplyRenderer: reloading server map\n"));
-		sv.world.worldmodel[sv_current_time_period] = Mod_ForName (sv.modelname[sv_current_time_period], MLV_WARNSYNC);
+		sv.world.worldmodel[sv_current_bsp_index] = Mod_ForName (sv.modelname[sv_current_bsp_index], MLV_WARNSYNC);
 TRACE(("dbg: R_ApplyRenderer: loaded\n"));
-		if (sv.world.worldmodel[sv_current_time_period]->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(sv.world.worldmodel[sv_current_time_period], &sv.world.worldmodel[sv_current_time_period]->loadstate, MLS_LOADING);
+		if (sv.world.worldmodel[sv_current_bsp_index]->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(sv.world.worldmodel[sv_current_bsp_index], &sv.world.worldmodel[sv_current_bsp_index]->loadstate, MLS_LOADING);
 TRACE(("dbg: R_ApplyRenderer: doing that funky phs thang\n"));
 		SV_CalcPHS ();
 
 TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 
-		if (sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
+		if (sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
+			SV_UnspawnServer();
+		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
+		{
+#ifdef TEMPORALCORTEX
+			for (t = 0; t < tc_cl_loaded_bsps; t++)
+			{
+				for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+				{
+					if (sv.strings.model_precache[t][i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[t][i] + strlen(sv.strings.model_precache[t][i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
+						sv.models[t][i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[t][i], sv.strings.model_precache[sv_current_bsp_index][1]));
+					else
+						sv.models[t][i] = NULL;
+				}
+			}
+#else
+			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+			{
+				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv_current_bsp_index]));
+				else
+					sv.models[i] = NULL;
+			}
+#endif
+
+			World_ClearWorld (&sv.world, true);
+//			ent = sv.world.edicts;
+//			ent->v->model = PR_NewString(svprogfuncs, sv.worldmodel->name);	//FIXME: is this a problem for normal ents?
+		}
+#ifdef Q2SERVER
+		else if (svs.gametype == GT_QUAKE2)
+		{
+			q2edict_t *q2ent;
+#ifdef TEMPORALCORTEX
+			for (t = 0; t < tc_cl_loaded_bsps; t++)
+			{
+				for (i = 0; i < Q2MAX_MODELS; i++)
+				{
+					if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
+						sv.models[t][i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[sv_current_bsp_index]));
+					else
+						sv.models[t][i] = NULL;
+				}
+				for (; i < MAX_PRECACHE_MODELS; i++)
+				{
+					if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
+						sv.models[t][i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_bsp_index]));
+					else
+						sv.models[t][i] = NULL;
+				}
+			}
+#else
+			for (i = 0; i < Q2MAX_MODELS; i++)
+			{
+				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[sv_current_bsp_index]));
+				else
+					sv.models[i] = NULL;
+			}
+			for (; i < MAX_PRECACHE_MODELS; i++)
+			{
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_bsp_index]));
+				else
+					sv.models[i] = NULL;
+			}
+#endif
+
+			World_ClearWorld (&sv.world, false);
+			q2ent = ge->edicts;
+			for (i=0 ; i<ge->num_edicts ; i++, q2ent = (q2edict_t *)((char *)q2ent + ge->edict_size))
+			{
+				if (!q2ent)
+					continue;
+				if (!q2ent->inuse)
+					continue;
+
+				if (q2ent->area.prev)
+				{
+					q2ent->area.prev = q2ent->area.next = NULL;
+					WorldQ2_LinkEdict (&sv.world, q2ent);	// relink ents so touch functions continue to work.
+				}
+			}
+		}
+#endif
+#ifdef Q3SERVER
+		else if (svs.gametype == GT_QUAKE3)
+		{
+			memset(&sv.models, 0, sizeof(sv.models));
+#ifdef TEMPORALCORTEX
+			for (t = 0; t < tc_cl_loaded_bsps; t++)
+			{
+				sv.models[t][1] = Mod_FindName(sv.modelname[t]);
+			}
+#else
+			sv.models[1+sv_current_bsp_index] = Mod_FindName(sv.modelname[sv_current_bsp_index]);
+#endif
+			//traditionally a q3 server can just keep hold of its world cmodel and nothing is harmed.
+			//this means we just need to reload the worldmodel and all is fine...
+			//there are some edge cases however, like lingering pointers refering to entities.
+		}
+#endif
+		else
+			SV_UnspawnServer();
+	}
+#else
+	if (sv.world.worldmodel)
+	{
+TRACE(("dbg: R_ApplyRenderer: reloading server map\n"));
+		sv.world.worldmodel = Mod_ForName (sv.modelname, MLV_WARNSYNC);
+TRACE(("dbg: R_ApplyRenderer: loaded\n"));
+		if (sv.world.worldmodel->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(sv.world.worldmodel, &sv.world.worldmodel->loadstate, MLS_LOADING);
+TRACE(("dbg: R_ApplyRenderer: doing that funky phs thang\n"));
+		SV_CalcPHS ();
+
+TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
+
+		if (sv.world.worldmodel->loadstate != MLS_LOADED)
 			SV_UnspawnServer();
 		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
 			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 			{
-				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
+				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel->numsubmodels))
 					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 				else
 					sv.models[i] = NULL;
@@ -1741,15 +1871,27 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			q2edict_t *q2ent;
 			for (i = 0; i < Q2MAX_MODELS; i++)
 			{
-				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[sv_current_time_period]));
+#ifdef TEMPORALCORTEX
+				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] +
+					strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname));
+#else
+				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] +
+					strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname));
+#endif
 				else
 					sv.models[i] = NULL;
 			}
 			for (; i < MAX_PRECACHE_MODELS; i++)
 			{
-				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_time_period]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_time_period]));
+#ifdef TEMPORALCORTEX
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_bsp_index]));
+#else
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname));
+#endif
 				else
 					sv.models[i] = NULL;
 			}
@@ -1775,7 +1917,7 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 		else if (svs.gametype == GT_QUAKE3)
 		{
 			memset(&sv.models, 0, sizeof(sv.models));
-			sv.models[1+sv_current_time_period] = Mod_FindName(sv.modelname[sv_current_time_period]);
+			sv.models[1] = Mod_FindName(sv.modelname);
 			//traditionally a q3 server can just keep hold of its world cmodel and nothing is harmed.
 			//this means we just need to reload the worldmodel and all is fine...
 			//there are some edge cases however, like lingering pointers refering to entities.
@@ -1784,6 +1926,7 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 		else
 			SV_UnspawnServer();
 	}
+#endif
 #endif
 #ifdef PLUGINS
 	Plug_ResChanged(true);
@@ -1814,43 +1957,75 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 	if (svs.gametype == GT_QUAKE3)
 	{
 		// Missi: Iterate through each time period (2025.9.20)
-		for (int t = 0; t < MAX_TIME_PERIODS; t++)
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < MAX_TIME_PERIODS; t++)
 			cl.worldmodel[t] = NULL;
+#else
+		cl.worldmodel = NULL;
+#endif
 		if (q3)
 			q3->cg.VideoRestarted();
 	}
 	else
 #endif
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+#ifdef TEMPORALCORTEX
+	for ( t = 0; t < tc_cl_loaded_bsps; t++ )
 	{
 		if (cl.worldmodel[t])
+#else
+		if (cl.worldmodel)
+#endif
 		{
 			int wmidx = 0;
+#ifdef TEMPORALCORTEX
 			model_t *oldwm = cl.worldmodel[t];
 			cl.worldmodel[t] = NULL;
+#else
+			model_t *oldwm = cl.worldmodel;
+			cl.worldmodel = NULL;
+#endif
 			CL_ClearEntityLists();	//shouldn't really be needed, but we're paranoid
 
 			//FIXME: this code should not be here. call CL_LoadModels instead? that does csqc loading etc though. :s
 	TRACE(("dbg: R_ApplyRenderer: reloading ALL models\n"));
 			for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 			{
+#ifdef TEMPORALCORTEX
+				if (!cl.model_name[cl_current_bsp_index][i])
+#else
 				if (!cl.model_name[i])
+#endif
 					break;
 
 				TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
-
+#ifdef TEMPORALCORTEX
+				if (oldwm == cl.model_precache[cl_current_bsp_index][i])
+					wmidx = i;
+#else
 				if (oldwm == cl.model_precache[i])
 					wmidx = i;
-
+#endif
 #ifdef Q2CLIENT	//skip vweps
+#ifdef TEMPORALCORTEX
+				if (cls.protocol == CP_QUAKE2 && *cl.model_name[cl_current_bsp_index][i] == '#')
+					cl.model_precache[cl_current_bsp_index][i] = NULL;
+#else
 				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
 					cl.model_precache[i] = NULL;
+#endif
 				else
 #endif
-					if (i < MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+					if (i < tc_cl_loaded_bsps+1)
+						cl.model_precache[cl_current_bsp_index][i] = Mod_ForName (cl.model_name[cl_current_bsp_index][i], MLV_SILENT);
+					else
+						cl.model_precache[cl_current_bsp_index][i] = Mod_FindName (Mod_FixName(cl.model_name[cl_current_bsp_index][i], cl.model_name[cl_current_bsp_index][1]));
+#else
+					if (i < tc_cl_loaded_bsps+1)
 						cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
 					else
 						cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
+#endif
 			}
 
 #ifdef HAVE_LEGACY
@@ -1874,20 +2049,40 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 
 				cl.model_csqcprecache[i] = NULL;
 				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
+#ifdef TEMPORALCORTEX
+				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[cl_current_bsp_index][1]), MLV_SILENT);
+#else
 				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
+#endif
 			}
-
+#ifdef TEMPORALCORTEX
 			if (wmidx < 0)
 				cl.worldmodel[t] = cl.model_csqcprecache[-wmidx];
 			else
+#else
+			if (wmidx < 0)
+				cl.worldmodel = cl.model_csqcprecache[-wmidx];
+			else
 #endif
-				cl.worldmodel[t] = cl.model_precache[wmidx];
-
+#endif
+#ifdef TEMPORALCORTEX
+				cl.worldmodel[t] = cl.model_precache[cl_current_bsp_index][wmidx];
+#else
+				cl.worldmodel = cl.model_precache[wmidx];
+#endif
+#ifdef TEMPORALCORTEX
 			if (cl.worldmodel[t] && cl.worldmodel[t]->loadstate == MLS_LOADING)
 				COM_WorkerPartialSync(cl.worldmodel[t], &cl.worldmodel[t]->loadstate, MLS_LOADING);
-
+#else
+			if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
+#endif
 	TRACE(("dbg: R_ApplyRenderer: done the models\n"));
+#ifdef TEMPORALCORTEX
 			if (!cl.worldmodel[t] || cl.worldmodel[t]->loadstate != MLS_LOADED)
+#else
+			if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 			{
 	//			Con_Printf ("\nThe required model file '%s' could not be found.\n\n", cl.model_name[i]);
 	//			Con_Printf ("You may need to download or purchase a client pack in order to play on this server.\n\n");
@@ -1900,20 +2095,29 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 			}
 
 	TRACE(("dbg: R_ApplyRenderer: checking any wad textures\n"));
+#ifdef TEMPORALCORTEX
 			Mod_NowLoadExternal(cl.worldmodel[t], t);
-
+#else
+			Mod_NowLoadExternal(cl.worldmodel, 0);
+#endif
 			for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
 				cl_static_entities[i].ent.model = NULL;
 
 	TRACE(("dbg: R_ApplyRenderer: Surf_NewMap\n"));
+#ifdef TEMPORALCORTEX
 			Surf_NewMap(cl.worldmodel[t], t);
+#else
+			Surf_NewMap(cl.worldmodel);
+#endif
 	TRACE(("dbg: R_ApplyRenderer: efrags\n"));
 
 	//		Skin_FlushAll();
 			Skin_FlushPlayers();
 
 		}
+#ifdef TEMPORALCORTEX
 	}
+#endif
 
 #ifdef SKELETALOBJECTS
 	skel_reload();
@@ -1951,10 +2155,18 @@ void R_ReloadRenderer_f (void)
 		return;	//don't bother reloading the renderer if its not actually rendering anything anyway.
 
 #if !defined(CLIENTONLY)
-	if (sv.state == ss_active && sv.world.worldmodel[cl_current_time_period] && sv.world.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_time_period]->funcs.SaveAreaPortalBlob)
+#ifdef TEMPORALCORTEX
+	if (sv.state == ss_active && sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
+#else
+	if (sv.state == ss_active && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.SaveAreaPortalBlob)
+#endif
 	{
 		void *t;
-		portalsize = sv.world.worldmodel[cl_current_time_period]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_time_period], &t);
+#ifdef TEMPORALCORTEX
+		portalsize = sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], &t);
+#else
+		portalsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &t);
+#endif
 		if (portalsize && (portalblob = BZ_Malloc(portalsize)))
 			memcpy(portalblob, t, portalsize);
 	}
@@ -1970,8 +2182,13 @@ void R_ReloadRenderer_f (void)
 #if !defined(CLIENTONLY)
 	if (portalblob)
 	{
-		if (sv.world.worldmodel[cl_current_time_period]&& sv.world.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_time_period]->funcs.LoadAreaPortalBlob)
-			sv.world.worldmodel[cl_current_time_period]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_time_period], portalblob, portalsize);
+#ifdef TEMPORALCORTEX
+		if (sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], portalblob, portalsize);
+#else
+		if (sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, portalblob, portalsize);
+#endif
 		BZ_Free(portalblob);
 	}
 #endif
@@ -2218,10 +2435,18 @@ void R_RestartRenderer (rendererstate_t *newr)
 	}
 
 #ifdef HAVE_SERVER
-	if (sv.state == ss_active && sv.world.worldmodel[cl_current_time_period] && sv.world.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_time_period]->funcs.SaveAreaPortalBlob)
+#ifdef TEMPORALCORTEX
+	if (sv.state == ss_active && sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
+#else
+	if (sv.state == ss_active && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.SaveAreaPortalBlob)
+#endif
 	{
 		void *t;
-		portalsize = sv.world.worldmodel[cl_current_time_period]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_time_period], &t);
+#ifdef TEMPORALCORTEX
+		portalsize = sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], &t);
+#else
+		portalsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &t);
+#endif
 		if (portalsize && (portalblob = BZ_Malloc(portalsize)))
 			memcpy(portalblob, t, portalsize);
 	}
@@ -2318,8 +2543,13 @@ void R_RestartRenderer (rendererstate_t *newr)
 #ifdef HAVE_SERVER
 	if (portalblob)
 	{
-		if (sv.world.worldmodel[cl_current_time_period] && sv.world.worldmodel[cl_current_time_period]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_time_period]->funcs.LoadAreaPortalBlob)
-			sv.world.worldmodel[cl_current_time_period]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_time_period], portalblob, portalsize);
+#ifdef TEMPORALCORTEX
+		if (sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], portalblob, portalsize);
+#else
+		if (sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, portalblob, portalsize);
+#endif
 		BZ_Free(portalblob);
 	}
 #endif

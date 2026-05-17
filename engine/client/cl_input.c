@@ -148,6 +148,10 @@ static kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
 static kbutton_t	in_use, in_jump, in_attack;
 static kbutton_t	in_rollleft, in_rollright, in_up, in_down;
 
+#ifdef TEMPORALCORTEX
+kbutton_t	in_slowtime, in_speeduptime, in_centertime;
+#endif
+
 static kbutton_t	in_button[19+1];
 
 #define IN_IMPULSECACHE 32
@@ -954,7 +958,57 @@ static void IN_StrafeUp(void) {KeyUp(&in_strafe);}
 
 static void IN_AttackDown(void) {IN_DoPostSelect(); KeyDown(&in_attack, NULL);}
 static void IN_AttackUp(void) {if (KeyUp(&in_attack)) IN_DoWeaponHide();}
+#ifdef TEMPORALCORTEX
+static void IN_SlowTimeDown(void)
+{
+	KeyDown(&in_slowtime, NULL);
+}
+static void IN_SlowTimeUp(void)
+{
+	if ( cl.allocated_client_slots > 1 )
+		return;
 
+	KeyUp(&in_slowtime);
+}
+
+static void IN_FastTimeDown(void)
+{
+	if ( cl.allocated_client_slots > 1 )
+		return;
+
+	cl.gamespeed += 1.0 * host_frametime;
+
+	if ( cl.gamespeed > 8.0f )
+		cl.gamespeed = 8.0f;
+
+	KeyDown(&in_speeduptime, NULL);
+}
+static void IN_FastTimeUp(void)
+{
+	if ( cl.allocated_client_slots > 1 )
+		return;
+
+	KeyUp(&in_speeduptime);
+}
+
+static void IN_CenterTimeDown(void)
+{
+	if ( cl.allocated_client_slots > 1 )
+		return;
+
+	if ( cl.gamespeed != 1.0f )
+		cl.gamespeed = 1.0f;
+
+	KeyDown(&in_centertime, NULL);
+}
+static void IN_CenterTimeUp(void)
+{
+	if ( cl.allocated_client_slots > 1 )
+		return;
+
+	KeyUp(&in_centertime);
+}
+#endif
 static void IN_UseDown (void) {KeyDown(&in_use, NULL);}
 static void IN_UseUp (void) {KeyUp(&in_use);}
 static void IN_JumpDown (void)
@@ -1028,6 +1082,11 @@ void IN_WriteButtons(vfsfile_t *f, qboolean all)
 		{&in_rollright,	"rollright"},
 		{&in_up,		"up"},
 		{&in_down,		"down"},
+#ifdef TEMPORALCORTEX
+		{&in_slowtime,	"slowtime"},
+		{&in_speeduptime,	"speeduptime"},
+		{&in_centertime,	"centertime"},
+#endif
 	};
 
 	s = 0;
@@ -1304,6 +1363,7 @@ void CL_ClearPendingCommands(void)
 			cl_pendingcmd[seat].angles[i] = ((int)(cl.playerview[seat].viewangles[i]*65536.0/360)&65535);
 	}
 }
+
 /*
 ================
 CL_AdjustAngles
@@ -1730,6 +1790,7 @@ static void CL_AccumlateInput(int plnum, float frametime/*extra contribution*/, 
 	CL_BaseMove (newmoves, plnum);
 
 	CL_AdjustAngles (plnum, frametime);
+
 	if (!cmd->msec)
 		VectorClear(mousemovements[plnum]);
 	IN_Move (mousemovements[plnum], newmoves, plnum, frametime);
@@ -2327,7 +2388,12 @@ void CL_UseIndepPhysics(qboolean allow)
 
 void CL_UpdateSeats(void)
 {
-	if (!cls.netchan.message.cursize && cl.allocated_client_slots > 1 && cls.state == ca_active && cl.splitclients && (cls.fteprotocolextensions & PEXT_SPLITSCREEN) && cl.worldmodel[cl_current_time_period])
+	if (!cls.netchan.message.cursize && cl.allocated_client_slots > 1 && cls.state == ca_active && cl.splitclients && (cls.fteprotocolextensions & PEXT_SPLITSCREEN) &&
+#ifdef TEMPORALCORTEX
+		cl.worldmodel[cl_current_bsp_index])
+#else
+		cl.worldmodel)
+#endif
 	{
 		int targ = bound(1, cl_splitscreen.ival+1, MAX_SPLITS);
 		if (cl.splitclients < targ)
@@ -2528,6 +2594,9 @@ qboolean CLQW_SendCmd (sizebuf_t *buf, qboolean actuallysend)
 	int curframe;
 	int st = buf->cursize;
 	int chatstate;
+#ifdef TEMPORALCORTEX
+	float newspeed = 1.0f;
+#endif
 
 	cl.movesequence = cls.netchan.outgoing_sequence;	//make sure its correct even over map changes.
 	curframe = cl.movesequence & UPDATE_MASK;
@@ -2621,6 +2690,36 @@ qboolean CLQW_SendCmd (sizebuf_t *buf, qboolean actuallysend)
 
 			if (!firstsize)
 				firstsize = buf->cursize;
+#ifdef TEMPORALCORTEX
+			if ( cl.allocated_client_slots == 1 )
+			{
+				newspeed = cl.gamespeed;
+
+				if ( in_centertime.state[plnum] & 1 )
+				{
+					newspeed = 1.0f;
+				}
+				else if ( in_slowtime.state[plnum] & 1 )
+				{
+					newspeed -= host_frametime * 4;
+
+					if ( newspeed < 0.5f )
+						newspeed = 0.5f;
+				}
+				else if ( in_speeduptime.state[plnum] & 1 )
+				{
+					newspeed += host_frametime * 4;
+
+					if ( newspeed > 1.5f )
+						newspeed = 1.5f;
+				}
+
+				cl.gamespeed = newspeed;
+			}
+
+			MSG_WriteByte( buf, clctc_gamespeed );
+			MSG_WriteFloat( buf, newspeed );
+#endif
 		}
 
 	// calculate a checksum over the move commands
@@ -3103,6 +3202,11 @@ void CL_SendCmd (double frametime, qboolean mainloop)
 		if (cls.demorecording)
 			CL_WriteDemoCmd(&cl.outframes[cl.movesequence & UPDATE_MASK].cmd[0]);
 
+#ifdef TEMPORALCORTEX
+		//if ( !rewinding )
+			//CL_WriteTemporalCacheCmd( &cl.outframes[cl.movesequence & UPDATE_MASK].cmd[0] );
+#endif
+
 //		Con_DPrintf("generated sequence %i\n", cl.movesequence);
 		cl.movesequence++;
 
@@ -3330,4 +3434,13 @@ void CL_InitInput (void)
 		Cmd_AddCommandD(bcmd[i][0],		IN_ButtonNDown, "This auxilliary command has mod-specific behaviour (often none).");
 		Cmd_AddCommand (bcmd[i][1],		IN_ButtonNUp);
 	}
+
+#ifdef TEMPORALCORTEX
+	Cmd_AddCommand( "+slowtime",	IN_SlowTimeDown );
+	Cmd_AddCommand( "-slowtime",	IN_SlowTimeUp );
+	Cmd_AddCommand( "+speeduptime",	IN_FastTimeDown );
+	Cmd_AddCommand( "-speeduptime",	IN_FastTimeUp );
+	Cmd_AddCommand( "+centertime",	IN_CenterTimeDown );
+	Cmd_AddCommand( "-centertime",	IN_CenterTimeUp );
+#endif
 }

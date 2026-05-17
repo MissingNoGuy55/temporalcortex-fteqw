@@ -1770,7 +1770,18 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 	MSG_WriteFloat (&buf, sv.time);
 
 	// send full levelname
-	MSG_WriteString (&buf, svs.name);	// Missi: Stripped level name (2025.9.14)
+	MSG_WriteString (&buf, svs.name);
+
+	// send full mapname
+	char out[64];
+
+#ifdef TEMPORALCORTEX
+	COM_FileBase( sv.world.worldmodel[sv_current_bsp_index]->name, out, sizeof( out ) );
+#else
+	COM_FileBase( sv.world.worldmodel->name, out, sizeof( out ) );
+#endif
+
+	MSG_WriteString (&buf, out );
 
 	// send the movevars
 	MSG_WriteFloat(&buf, movevars.gravity);

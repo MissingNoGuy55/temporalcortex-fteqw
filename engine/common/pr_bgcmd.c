@@ -1406,7 +1406,15 @@ void QCBUILTIN PF_getsurfacepointattribute(pubprogfuncs_t *prinst, struct global
 void QCBUILTIN PF_checkpvs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	world_t *world = prinst->parms->user;
-	model_t *worldmodel = world->worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	model_t *worldmodel = world->worldmodel[sv_current_bsp_index];
+#elif defined(HAVE_CLIENT)
+	model_t *worldmodel = world->worldmodel[cl_current_bsp_index];
+#endif
+#else
+	model_t *worldmodel = world->worldmodel;
+#endif
 	VM_VECTORARG(viewpos, OFS_PARM0);
 	wedict_t *ent = G_WEDICT(prinst, OFS_PARM1);
 	int cluster;
@@ -1510,8 +1518,15 @@ void QCBUILTIN PF_findchainflags (pubprogfuncs_t *prinst, struct globalvars_s *p
 		PR_BIError (prinst, "PF_FindChain: bad field reference");
 		return;
 	}
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	for (i = tc_sv_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#elif defined( HAVE_CLIENT )
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#endif
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1548,8 +1563,15 @@ void QCBUILTIN PF_findchainfloat (pubprogfuncs_t *prinst, struct globalvars_s *p
 		PR_BIError (prinst, "PF_FindChain: bad field reference");
 		return;
 	}
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	for (i = tc_sv_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#elif defined( HAVE_CLIENT )
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#endif
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1587,8 +1609,15 @@ void QCBUILTIN PF_findchain (pubprogfuncs_t *prinst, struct globalvars_s *pr_glo
 		PR_BIError (prinst, "PF_FindChain: bad field reference");
 		return;
 	}
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	for (i = tc_sv_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#elif defined( HAVE_CLIENT )
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#endif
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = WEDICT_NUM_PB(prinst, i);
 		if (ED_ISFREE(ent))
@@ -1770,7 +1799,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 		string_t t;
 		if (!s)
 			s = ""; /* o.O */
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed) || ed->readonly)
@@ -1785,7 +1822,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_float)
 	{	//handling -0 properly requires care
 		pvec_t s = G_FLOAT(OFS_PARM1);
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1797,7 +1842,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_double)
 	{	//handling 64bit -0 properly requires care
 		double s = G_DOUBLE(OFS_PARM1);
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1809,7 +1862,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_int64 || type == ev_uint64)
 	{	//handling -0 properly requires care
 		pint64_t s = G_INT64(OFS_PARM1);
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1821,7 +1882,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else if (type == ev_vector)
 	{	//big types...
 		pvec_t *s = G_VECTOR(OFS_PARM1);
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1835,7 +1904,15 @@ void QCBUILTIN PF_FindList (pubprogfuncs_t *prinst, struct globalvars_s *pr_glob
 	else
 	{	//generic references and other stuff that can just be treated as ints
 		pint_t s = G_INT(OFS_PARM1);
-		for (e=MAX_TIME_PERIODS ; e < *prinst->parms->num_edicts ; e++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (e=tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined( HAVE_CLIENT )
+		for (e=tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
+		for (e=1 ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -4062,7 +4139,15 @@ void QCBUILTIN PF_findradius (pubprogfuncs_t *prinst, struct globalvars_s *pr_gl
 	else
 	{
 		rad = rad*rad;
-		for (i=MAX_TIME_PERIODS ; i<w->num_edicts ; i++)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		for (i=tc_sv_loaded_bsps ; i<w->num_edicts ; i++)
+#elif defined( HAVE_CLIENT )
+		for (i=tc_cl_loaded_bsps ; i<w->num_edicts ; i++)
+#endif
+#else
+		for (i=1 ; i<w->num_edicts ; i++)
+#endif
 		{
 			ent = WEDICT_NUM_PB(prinst, i);
 			if (ED_ISFREE(ent))
@@ -4175,6 +4260,14 @@ void QCBUILTIN PF_Spawn (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals
 {
 	struct edict_s	*ed;
 	ed = ED_Alloc(prinst, false, 0);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	ed->bspnum = sv_current_bsp_index;
+#endif
+#ifdef HAVE_CLIENT
+	ed->bspnum = cl_current_bsp_index;
+#endif
+#endif
 	pr_globals = PR_globals(prinst, PR_CURRENT);
 	RETURN_EDICT(prinst, ed);
 }
@@ -6640,7 +6733,15 @@ void QCBUILTIN PF_droptofloor (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 		VectorMA(end, 256, gravitydir, end);
 
 	VectorCopy (ent->v->origin, start);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, cl_current_bsp_index);
+#endif
+#else
 	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent);
+#endif
 
 	if (trace.allsolid && sv_gameplayfix_droptofloorstartsolid.ival && gravitydir[2] == -1)
 	{
@@ -6650,7 +6751,15 @@ void QCBUILTIN PF_droptofloor (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 		offset[2] = ent->v->mins[2];
 		VectorAdd(start, offset, start);
 		VectorAdd(end, offset, end);
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, cl_current_bsp_index);
+#endif
+#else
 		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent);
+#endif
 		if (trace.fraction < 1)
 		{
 			VectorSubtract (trace.endpos, offset, ent->v->origin);
@@ -6906,6 +7015,11 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 	world_t *world = prinst->parms->user;
 	qcstate_t *state;
 	edict_t *ed;
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+	extern world_t csqc_world;
+#endif
+#endif
 
 	state = prinst->parms->memalloc(sizeof(qcstate_t));
 	state->next = world->qcthreads;
@@ -6916,10 +7030,26 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 	{
 		ed = PROG_TO_EDICT(prinst, world->g.self?*world->g.self:0);
 		state->self = NUM_FOR_EDICT(prinst, ed);
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+		state->selfid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#else
 		state->selfid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#endif
+#else
+		state->selfid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#endif
 		ed = PROG_TO_EDICT(prinst, world->g.self?*world->g.self:0);
 		state->other = NUM_FOR_EDICT(prinst, ed);
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+		state->selfid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#else
 		state->otherid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#endif
+#else
+		state->otherid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+#endif
 	}
 	else	//allows us to call this during init().
 		state->self = state->other = state->selfid = state->otherid = 0;
@@ -6932,6 +7062,11 @@ void PR_RunThreads(world_t *world)
 {
 	struct globalvars_s *pr_globals;
 	edict_t *ed;
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+	extern world_t csqc_world;
+#endif
+#endif
 
 	qcstate_t *state = world->qcthreads, *next;
 	world->qcthreads = NULL;
@@ -6953,7 +7088,15 @@ void PR_RunThreads(world_t *world)
 			{
 				//restore the thread's self variable, if applicable.
 				ed = PROG_TO_EDICT(prinst, state->self);
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+				if ((prinst==csqc_world.progs?ed->xv->uniquespawnid:0) != state->selfid)
+#else
 				if ((prinst==svprogfuncs?ed->xv->uniquespawnid:0) != state->selfid)
+#endif
+#else
+				if ((prinst==svprogfuncs?ed->xv->uniquespawnid:0) != state->selfid)
+#endif
 					ed = prinst->edicttable[0];
 				*world->g.self = EDICT_TO_PROG(prinst, ed);
 			}
@@ -6962,7 +7105,15 @@ void PR_RunThreads(world_t *world)
 			{
 				//restore the thread's other variable, if applicable
 				ed = PROG_TO_EDICT(prinst, state->other);
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+				if ((prinst==csqc_world.progs?ed->xv->uniquespawnid:0) != state->otherid)
+#else
 				if ((prinst==svprogfuncs?ed->xv->uniquespawnid:0) != state->otherid)
+#endif
+#else
+				if ((prinst==svprogfuncs?ed->xv->uniquespawnid:0) != state->otherid)
+#endif
 					ed = prinst->edicttable[0];
 				*world->g.other = EDICT_TO_PROG(prinst, ed);
 			}
@@ -7016,8 +7167,21 @@ void QCBUILTIN PF_Fork(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	world_t *world = prinst->parms->user;
 	float sleeptime;
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+	extern world_t csqc_world;
+#endif
+#endif
 
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+	if (csqc_world.progs->callargc >= 1)
+#else
 	if (svprogfuncs->callargc >= 1)
+#endif
+#else
+	if (svprogfuncs->callargc >= 1)
+#endif
 		sleeptime = G_FLOAT(OFS_PARM0);
 	else
 		sleeptime = 0;
@@ -8544,7 +8708,8 @@ qc_extension_t QSG_Extensions[] = {
 	{"ZQ_VWEP",							NULL,	1,{"precache_vwep_model"}},
 
 
-	{"ZQ_QC_STRINGS",					check_notrerelease,	7,{"stof", "strlen","strcat","substring","stov","strzone","strunzone"}, "The strings-only subset of FRIK_FILE is supported."}	//a trimmed down FRIK_FILE.
+	{"ZQ_QC_STRINGS",					check_notrerelease,	7,{"stof", "strlen","strcat","substring","stov","strzone","strunzone"}, "The strings-only subset of FRIK_FILE is supported."}
+	//a trimmed down FRIK_FILE.
 };
 unsigned int QSG_Extensions_count = sizeof(QSG_Extensions)/sizeof(QSG_Extensions[0]);
 #endif

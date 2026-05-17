@@ -592,9 +592,11 @@ void CLQ3_ParseGameState(sizebuf_t *msg)
 		UI_Restart_f();
 		return;
 	}
-
+#ifdef TEMPORALCORTEX
+	scenefuncs->NewMap(NULL, 0);
+#else
 	scenefuncs->NewMap(NULL);
-
+#endif
 	CG_Restart();
 	UI_Restart_f();
 

@@ -104,8 +104,6 @@ extern int sv_max_staticentities;
 extern staticsound_state_t *sv_staticsounds;
 extern int sv_max_staticsounds;
 
-extern timeperiod_t sv_current_time_period;
-
 typedef struct server_s
 {
 	qboolean	active;				// false when server is going down
@@ -138,8 +136,13 @@ typedef struct server_s
 	unsigned	eyes_player_checksum;
 
 //	char		name[64];			// file map name (moved to svs, for restart)
+#ifdef TEMPORALCORTEX
 	char		mapname[MAX_TIME_PERIODS][256];		// text description of the map
 	char		modelname[MAX_TIME_PERIODS][MAX_QPATH];		// maps/<name>.bsp, for model_precache[0]
+#else
+	char		mapname[256];		// text description of the map
+	char		modelname[MAX_QPATH];		// maps/<name>.bsp, for model_precache[0]
+#endif
 
 	world_t world;
 
@@ -155,9 +158,17 @@ typedef struct server_s
 #ifdef HAVE_LEGACY
 			const char	*vw_model_precache[32];
 #endif
+#ifdef TEMPORALCORTEX
+			const char	*model_precache[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];	// NULL terminated
+#else
 			const char	*model_precache[MAX_PRECACHE_MODELS];	// NULL terminated
+#endif
 			const char	*particle_precache[MAX_SSPARTICLESPRE];	// NULL terminated
+#ifdef TEMPORALCORTEX
+			const char	*sound_precache[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];	// NULL terminated
+#else
 			const char	*sound_precache[MAX_PRECACHE_SOUNDS];	// NULL terminated
+#endif
 		};
 		const char *ptrs[1];
 	} strings;
@@ -180,8 +191,11 @@ typedef struct server_s
 	int			allocated_client_slots;	//number of slots available. (used mostly to stop single player saved games cacking up)
 	int			spawned_client_slots; //number of PLAYER slots which are active (ie: putclientinserver was called)
 	int			spawned_observer_slots;
-
+#ifdef TEMPORALCORTEX
+	model_t	*models[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
+#else
 	model_t	*models[MAX_PRECACHE_MODELS];
+#endif
 
 	struct client_s	*skipbprintclient;	//SV_BroadcastPrint skips this client
 
@@ -1683,9 +1697,6 @@ void SV_FlushLevelCache(void);
 extern cvar_t sv_autosave;
 extern cvar_t sv_savefmt;
 
-// Missi: Used for model precaching so the lists don't get out of sync between the server and client (2025.9.19)
-extern int tc_sv_loaded_bsps;
-
 int SV_RateForClient(client_t *cl);
 
 void SVVC_Frame (qboolean enabled);
@@ -1726,4 +1737,3 @@ qboolean HLSV_ClientCommand(client_t *client);
 void SVHL_DropClient(client_t *drop);
 void SVHL_ShutdownGame(void);
 #endif
-

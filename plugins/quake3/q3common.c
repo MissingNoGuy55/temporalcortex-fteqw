@@ -1715,8 +1715,10 @@ void Q3_Shutdown(void)
 #ifdef HAVE_SERVER
 	SVQ3_ShutdownGame(false);
 #endif
-#ifdef HAVE_CLIENT
+// Missi: Fixes a crash (2026.1.16)
+#ifdef CLIENTONLY // HAVE_CLIENT
 	CG_Stop();
+
 	UI_Stop();
 
 	VMQ3_FlushStringHandles();

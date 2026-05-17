@@ -549,7 +549,11 @@ void Cam_Unlock(playerview_t *pv)
 	{
 		CL_SendSeatClientCommand(true, pv-cl.playerview, "ptrack");
 		pv->cam_state = CAM_FREECAM;
-		pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);	//free floating
+#ifdef TEMPORALCORTEX
+		pv->viewentity = (cls.demoplayback)?0:(pv->playernum+tc_cl_loaded_bsps);	//free floating
+#else
+		pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);	//free floating
+#endif
 		SCR_CenterPrint(pv-cl.playerview, NULL, true);
 		Sbar_Changed();
 
@@ -572,7 +576,11 @@ void Cam_Lock(playerview_t *pv, int playernum)
 	}
 	pv->cam_spec_track = playernum;
 	pv->cam_state = CAM_PENDING;
-	pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);	//free floating until actually locked
+#ifdef TEMPORALCORTEX
+	pv->viewentity = (cls.demoplayback)?0:(pv->playernum+tc_cl_loaded_bsps);	//free floating until actually locked
+#else
+	pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);	//free floating until actually locked
+#endif
 	SCR_CenterPrint(pv-cl.playerview, NULL, true);
 
 	
@@ -711,7 +719,11 @@ static qboolean InitFlyby(playerview_t *pv, vec3_t selforigin, vec3_t playerorig
 	}
 
 	pv->cam_state = CAM_WALLCAM;
-	pv->viewentity = pv->playernum+MAX_TIME_PERIODS;//pv->cam_spec_track+1;
+#ifdef TEMPORALCORTEX
+	pv->viewentity = pv->playernum+tc_cl_loaded_bsps;//pv->cam_spec_track+1;
+#else
+	pv->viewentity = pv->playernum+1;//pv->cam_spec_track+1;
+#endif
 	VectorCopy(vec, pv->cam_desired_position); 
 	return true;
 }
@@ -748,7 +760,11 @@ static void Cam_CheckHighTarget(playerview_t *pv)
 void Cam_SelfTrack(playerview_t *pv)
 {
 	vec3_t vec;
-	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 		return;
 
 	if (selfcam == 1)
@@ -822,14 +838,20 @@ void Cam_Track(playerview_t *pv, usercmd_t *cmd)
 	inframe_t *frame;
 	vec3_t vec;
 	float len;
-
-	if (!pv->spectator || !cl.worldmodel[cl_current_time_period])	//can happen when the server changes level
+#ifdef TEMPORALCORTEX
+	if (!pv->spectator || !cl.worldmodel[cl_current_bsp_index])	//can happen when the server changes level
+#else
+	if (!pv->spectator || !cl.worldmodel)	//can happen when the server changes level
+#endif
 		return;
 	
 	if (autotrackmode != TM_USER && pv->cam_state == CAM_FREECAM)
 		Cam_CheckHighTarget(pv);
-
-	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 		return;
 
 	if (CAM_ISLOCKED(pv) && (!cl.players[pv->cam_spec_track].name[0] || cl.players[pv->cam_spec_track].spectator))
@@ -1134,7 +1156,11 @@ void Cam_FinishMove(playerview_t *pv, usercmd_t *cmd)
 			Cam_Lock(pv, i);
 			return;
 		}
-		i = (i + MAX_TIME_PERIODS) % cl.allocated_client_slots;
+#ifdef TEMPORALCORTEX
+		i = (i + tc_cl_loaded_bsps) % cl.allocated_client_slots;
+#else
+		i = (i + 1) % cl.allocated_client_slots;
+#endif
 	} while (i != end);
 	// stay on same guy?
 	i = pv->cam_spec_track;

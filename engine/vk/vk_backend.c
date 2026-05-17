@@ -5214,7 +5214,11 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		r_refdef.vrect.height = max(1, vid.fbvheight*bs->portalfboscale);
 		VKBE_RT_Gen(&shaderstate.rt_reflection, NULL, r_refdef.vrect.width, r_refdef.vrect.height, false, RT_IMAGEFLAGS);
 		VKBE_RT_Begin(&shaderstate.rt_reflection);
-		R_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, 1);
+#ifdef TEMPORALCORTEX
+		R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 1);
+#else
+		R_DrawPortal(batch, cl.worldmodel->batches, NULL, 1);
+#endif
 		VKBE_RT_End(&shaderstate.rt_reflection);
 		r_refdef.vrect = orect;
 		r_refdef.pxrect = oprect;
@@ -5233,7 +5237,11 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 			r_refdef.vrect.height = vid.fbvheight/2;
 			VKBE_RT_Gen(&shaderstate.rt_refraction, NULL, r_refdef.vrect.width, r_refdef.vrect.height, false, RT_IMAGEFLAGS);
 			VKBE_RT_Begin(&shaderstate.rt_refraction);
-			R_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#ifdef TEMPORALCORTEX
+			R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#else
+			R_DrawPortal(batch, cl.worldmodel->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+#endif
 			VKBE_RT_End(&shaderstate.rt_refraction);
 			r_refdef.vrect = ovrect;
 			r_refdef.pxrect = oprect;
@@ -5242,7 +5250,11 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		}
 		else
 		{
-			R_DrawPortal(batch, cl.worldmodel[cl_current_time_period]->batches, NULL, 3);
+#ifdef TEMPORALCORTEX
+			R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 3);
+#else
+			R_DrawPortal(batch, cl.worldmodel->batches, NULL, 3);
+#endif
 			T_Gen_CurrentRender();
 			shaderstate.tex_refraction = shaderstate.tex_currentrender;
 		}
@@ -5293,7 +5305,7 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		BE_RT_Begin(&shaderstate.rt_refraction, vid.fbpwidth, vid.fbpheight);
 
 		r_refdef.recurse+=1; //paranoid, should stop potential infinite loops
-		GLBE_SubmitMeshes(cl.worldmodel[cl_current_time_period]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
+		GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
 		r_refdef.recurse-=1;
 
 		r_refdef.vrect = orect;
@@ -5561,15 +5573,22 @@ static void R_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist
 
 		//use the player's origin for r_viewleaf, because there's not much we can do anyway*/
 		VectorCopy(r_origin, r_refdef.pvsorigin);
-
-		if (cl.worldmodel[cl_current_time_period] && cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS && !r_novis.ival)
+#ifdef TEMPORALCORTEX
+		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
+#else
+		if (cl.worldmodel && cl.worldmodel->funcs.ClusterPVS && !r_novis.ival)
+#endif
 		{
 			int clust, i, j;
 			float d;
 			vec3_t point;
 			r_refdef.forcevis = true;
 			r_refdef.forcedvis = NULL;
-			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_time_period]->pvsbytes);
+#ifdef TEMPORALCORTEX
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_bsp_index]->pvsbytes);
+#else
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel->pvsbytes);
+#endif
 			for (i = batch->firstmesh; i < batch->meshes; i++)
 			{
 				mesh = batch->mesh[i];
@@ -5580,12 +5599,23 @@ static void R_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist
 				d = DotProduct(point, plane.normal) - plane.dist;
 				d += 0.1;	//an epsilon on the far side
 				VectorMA(point, d, plane.normal, point);
-
-				clust = cl.worldmodel[cl_current_time_period]->funcs.ClusterForPoint(cl.worldmodel[cl_current_time_period], point, NULL);
+#ifdef TEMPORALCORTEX
+				clust = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], point, NULL);
+#else
+				clust = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, point, NULL);
+#endif
 				if (i == batch->firstmesh)
-					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_REPLACE);
+#ifdef TEMPORALCORTEX
+					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
+#else
+					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_REPLACE);
+#endif
 				else
-					r_refdef.forcedvis = cl.worldmodel[cl_current_time_period]->funcs.ClusterPVS(cl.worldmodel[cl_current_time_period], clust, &newvis, PVM_MERGE);
+#ifdef TEMPORALCORTEX
+					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_MERGE);
+#else
+					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_MERGE);
+#endif
 			}
 //			memset(newvis, 0xff, pvsbytes);
 		}

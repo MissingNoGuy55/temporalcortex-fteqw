@@ -118,14 +118,24 @@ NATIVE_BASE_DIR?=$(BASE_DIR)
 NATIVE_RELEASE_DIR?=$(RELEASE_DIR)
 NATIVE_DEBUG_DIR?=$(DEBUG_DIR)
 
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
 EXE_NAME=fteqw
+else
+EXE_NAME=fteqwtc
+endif
 
 #include the appropriate games.
 ifneq (,$(BRANDING))
     BRANDFLAGS+=-DBRANDING_INC=../game_$(BRANDING).h
     -include game_$(BRANDING).mak
 endif
+
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
+FTE_CONFIG?=fteqwtc
+else
 FTE_CONFIG?=fteqw
+endif
+
 ifneq ($(findstring msvc,$(FTE_TARGET)),msvc)
 ifeq (,$(FTE_CONFIG_EXTRA))
     FTE_CONFIG_EXTRA := $(shell $(CC) -xc -E -P -DFTE_TARGET_$(shell echo $(FTE_TARGET) | tr '[:lower:]' '[:upper:]') -DCOMPILE_OPTS $(CFLAGS) common/config_$(FTE_CONFIG).h)
@@ -977,6 +987,10 @@ COMMON_OBJS = \
 	plugin.o		\
 	q1bsp.o		\
 	q2pmove.o
+
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
+	COMMON_OBJS += com_timetravel.o
+endif
 
 ifeq (1,$(LINK_QUAKE3))
     VPATH := $(VPATH) : $(BASE_DIR)/../plugins/quake3 : $(BASE_DIR)/../plugins/quake3/botlib

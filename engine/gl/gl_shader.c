@@ -2023,7 +2023,11 @@ static qboolean Shader_LoadPermutations(char *name, program_t *prog, char *scrip
 		}
 		else if (!strncmp(script, "!!", 2))
 		{
+#ifdef TEMPORALCORTEX
+			Con_DPrintf("Unknown directive in glsl program %s\n", name);
+#else
 			Con_DPrintf("Unknown directinve in glsl program %s\n", name);
+#endif
 			script += 2;
 			while (*script == ' ' || *script == '\t')
 				script++;

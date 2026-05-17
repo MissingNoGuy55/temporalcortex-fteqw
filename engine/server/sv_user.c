@@ -256,6 +256,10 @@ void SV_New_f (void)
 	client_t *split;
 	unsigned int fteext1, fteext2, ezext1, vers;	//reported to client
 
+#ifdef TEMPORALCORTEX
+	char		out[64];
+#endif
+
 	host_client->prespawn_stage = PRESPAWN_INVALID;
 	host_client->prespawn_idx = 0;
 
@@ -388,7 +392,16 @@ void SV_New_f (void)
 		if (host_client->protocol==SCP_QUAKE2EX)
 			ClientReliableWrite_Byte (host_client, 10);	//tick rate.
 	}
+
+	// Missi: Game directory (2026.1.14)
 	ClientReliableWrite_String (host_client, gamedir);
+#ifdef TEMPORALCORTEX
+	// Missi: Write the number of worlds loaded. A bit strange to do it here,
+	// but we need the number for other operations like viewents and querying
+	// whether the player actually has the map. A lot of the view code relies
+	// on tc_cl_loaded_bsps being something other than 0. (2026.1.14)
+	ClientReliableWrite_Long (host_client, tc_sv_loaded_bsps);
+#endif
 
 	if (fteext2 & PEXT2_MAXPLAYERS)
 	{
@@ -487,7 +500,16 @@ void SV_New_f (void)
 		ClientReliableWrite_String (host_client, sv.demfullmapname);
 	else
 #endif
-		ClientReliableWrite_String (host_client, sv.mapname[0]);
+	{
+#ifdef TEMPORALCORTEX
+		COM_FileBase( sv.modelname[sv_current_bsp_index], out, sizeof( out ) );
+		// Missi (2025.9.22)
+		ClientReliableWrite_String (host_client, sv.mapname[sv_current_bsp_index]);
+		ClientReliableWrite_String (host_client, out);
+#else
+		ClientReliableWrite_String (host_client, sv.mapname);
+#endif
+	}
 
 	//
 	// game server
@@ -554,6 +576,9 @@ void SVNQ_New_f (void)
 	const char *gamedir;
 	unsigned int modelcount, soundcount;
 	extern cvar_t allow_download;
+#ifdef TEMPORALCORTEX
+	int j;
+#endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
 	host_client->prespawn_idx = 0;
@@ -693,10 +718,20 @@ void SVNQ_New_f (void)
 		{
 			if (!host_client->supportedprotocols && !host_client->fteprotocolextensions && !host_client->fteprotocolextensions2)
 			{
+#ifdef TEMPORALCORTEX
+				for (j = 0; j < tc_sv_loaded_bsps; j++)
+				{
+					for (modelcount = 1; modelcount < MAX_PRECACHE_MODELS && sv.strings.model_precache[sv_current_bsp_index][modelcount]; modelcount++)
+						;
+					for (soundcount = 1; soundcount < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[sv_current_bsp_index][soundcount]; soundcount++)
+						;
+				}
+#else
 				for (modelcount = 1; modelcount < MAX_PRECACHE_MODELS && sv.strings.model_precache[modelcount]; modelcount++)
 					;
 				for (soundcount = 1; soundcount < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[soundcount]; soundcount++)
 					;
+#endif
 				if (modelcount > 255 || soundcount > 255 || sv.world.num_edicts > 600)
 				{
 					Q_snprintfz (message, sizeof(message), "\x02\n"
@@ -753,7 +788,11 @@ void SVNQ_New_f (void)
 			gamedir = "";
 #endif
 	}
-	COM_FileBase(sv.modelname[sv_current_time_period], mapname, sizeof(mapname));
+#ifdef TEMPORALCORTEX
+	COM_FileBase(sv.modelname[sv_current_bsp_index], mapname, sizeof(mapname));
+#else
+	COM_FileBase(sv.modelname, mapname, sizeof(mapname));
+#endif
 
 	
 	if (op != host_client->protocol)
@@ -844,9 +883,35 @@ void SVNQ_New_f (void)
 	else
 		MSG_WriteByte (&host_client->netchan.message, GAME_COOP);
 
+	// Missi: Level name (2026.2.15)
 	MSG_WriteString (&host_client->netchan.message, message);
 
+#ifdef TEMPORALCORTEX
+	MSG_WriteLong (&host_client->netchan.message, tc_sv_loaded_bsps);
 
+	for (j = 0; j < tc_sv_loaded_bsps; j++)
+	{
+		if (host_client->fteprotocolextensions2)
+		{	//don't bother sending much. we'll spew late precaches later.
+			if (sv.strings.model_precache[j][1])
+				MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[j][1]);
+			MSG_WriteByte (&host_client->netchan.message, 0);	//models. worldmodel only.
+			MSG_WriteByte (&host_client->netchan.message, 0);	//sounds. none at all.
+		}
+		else
+		{
+			//fixme: don't send too many models.
+			for (i = 1; sv.strings.model_precache[j][i] ; i++)
+				MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[j][i]);
+			MSG_WriteByte (&host_client->netchan.message, 0);
+
+			//fixme: don't send too many sounds.
+			for (i = 1; sv.strings.sound_precache[j][i] ; i++)
+				MSG_WriteString (&host_client->netchan.message, sv.strings.sound_precache[j][i]);
+			MSG_WriteByte (&host_client->netchan.message, 0);
+		}
+	}
+#else
 	if (host_client->fteprotocolextensions2)
 	{	//don't bother sending much. we'll spew late precaches later.
 		if (sv.strings.model_precache[1])
@@ -866,6 +931,7 @@ void SVNQ_New_f (void)
 			MSG_WriteString (&host_client->netchan.message, sv.strings.sound_precache[i]);
 		MSG_WriteByte (&host_client->netchan.message, 0);
 	}
+#endif
 
 	if (allow_download.value && (protext1||protext2||ISDPCLIENT(host_client)))
 	{	//technically this is a DP extension, but is separate from actual protocols and shouldn't harm anything.
@@ -913,7 +979,11 @@ void SVNQ_New_f (void)
 
 // set view
 	MSG_WriteByte (&host_client->netchan.message, svc_setview);
-	MSG_WriteEntity (&host_client->netchan.message, (host_client - svs.clients)+MAX_TIME_PERIODS);//NUM_FOR_EDICT(svprogfuncs, host_client->edict));
+#ifdef TEMPORALCORTEX
+	MSG_WriteEntity (&host_client->netchan.message, (host_client - svs.clients)+tc_sv_loaded_bsps);//NUM_FOR_EDICT(svprogfuncs, host_client->edict));
+#else
+	MSG_WriteEntity (&host_client->netchan.message, (host_client - svs.clients)+1);//NUM_FOR_EDICT(svprogfuncs, host_client->edict));
+#endif
 
 	if (!(host_client->fteprotocolextensions2 & PEXT2_PREDINFO))
 	{	//old clients can't cope with reliables until they finish loading the models specified above.
@@ -942,8 +1012,13 @@ void SVNQ_New_f (void)
 
 static const char *SVQ2_GetQ2EXConfigString(int i)
 {	//remap from vanilla to q2e
-	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel[sv_current_time_period])
-		return va("%i", sv.world.worldmodel[sv_current_time_period]->checksum2);
+#ifdef TEMPORALCORTEX
+	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel[sv_current_bsp_index])
+		return va("%i", sv.world.worldmodel[sv_current_bsp_index]->checksum2);
+#else
+	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel)
+		return va("%i", sv.world.worldmodel->checksum2);
+#endif
 #define REMAPR(n,l) 		if (i >= Q2EXCS_##n && i < Q2EXCS_##n+Q2MAX_##l) return sv.strings.configstring[i-Q2EXCS_##n+Q2CS_##n]; else
 #define REMAPS(n)			if (i == Q2EXCS_##n) return sv.strings.configstring[i-Q2EXCS_##n+Q2CS_##n]; else
 #define Q2MAX_STATUSBAR 1//(Q2EXCS_AIRACCEL-Q2EXCS_STATUSBAR)
@@ -1130,7 +1205,11 @@ void SVQ2_BaseLines_f (void)
 
 void SVQ2_NextServer_f (void)
 {
-	if (!*sv.modelname[sv_current_time_period] && atoi(Cmd_Argv(1)) == svs.spawncount)
+#ifdef TEMPORALCORTEX
+	if (!*sv.modelname[sv_current_bsp_index] && atoi(Cmd_Argv(1)) == svs.spawncount)
+#else
+	if (!*sv.modelname && atoi(Cmd_Argv(1)) == svs.spawncount)
+#endif
 	{
 		cvar_t *nsv = Cvar_FindVar("nextserver");
 		if (!nsv || !*nsv->string)
@@ -1168,7 +1247,11 @@ void SVQW_Modellist_f (void)
 void SV_SendClientPrespawnInfo(client_t *client)
 {
 	qboolean started;
-	int i;
+#ifdef TEMPORALCORTEX
+	int i, t;
+#else
+	int t;
+#endif
 	entity_state_t *state;
 	staticsound_state_t *sound;
 	edict_t *ent;
@@ -1256,8 +1339,13 @@ void SV_SendClientPrespawnInfo(client_t *client)
 #endif
 				if (svprogfuncs)
 				{
-					track = ((edict_t*)sv.world.edicts)->v->sounds;
-					noise = PR_GetString(svprogfuncs, ((edict_t*)sv.world.edicts)->v->noise);
+#ifdef TEMPORALCORTEX
+					track = ((edict_t*)&sv.world.edicts[sv_current_bsp_index])->v->sounds;
+					noise = PR_GetString(svprogfuncs, ((edict_t*)&sv.world.edicts[sv_current_bsp_index])->v->noise);
+#else
+					track = ((edict_t*)&sv.world.edicts)->v->sounds;
+					noise = PR_GetString(svprogfuncs, ((edict_t*)&sv.world.edicts)->v->noise);
+#endif
 				}
 
 				if (track == -2)
@@ -1388,29 +1476,35 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				{
 					started = true;
 					client->prespawn_allow_soundlist = false;
-	#if defined(PEXT_SOUNDDBL) || defined(PEXT2_REPLACEMENTDELTAS)
+#if defined(PEXT_SOUNDDBL) || defined(PEXT2_REPLACEMENTDELTAS)
 					if (client->prespawn_idx > 255)
 					{
 						MSG_WriteByte (&client->netchan.message, svcfte_soundlistshort);
 						MSG_WriteShort (&client->netchan.message, client->prespawn_idx);
 					}
 					else
-	#endif
+#endif
 					{
 						MSG_WriteByte (&client->netchan.message, svc_soundlist);
 						MSG_WriteByte (&client->netchan.message, client->prespawn_idx);
 					}
 				}
 				client->prespawn_idx++;
-
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= maxclientsupportedsounds || !sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx])
+#else
 				if (client->prespawn_idx >= maxclientsupportedsounds || !sv.strings.sound_precache[client->prespawn_idx])
+#endif
 				{
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
 					started = 0;
-
+#ifdef TEMPORALCORTEX
+					if (sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
+#else
 					if (sv.strings.sound_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
+#endif
 					{
 						client->plimitwarned |= PLIMIT_SOUNDS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i sounds. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1421,7 +1515,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
+#ifdef TEMPORALCORTEX
+					MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx]);
+#else
 					MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
+#endif
 			}
 			if (started)
 			{
@@ -1437,10 +1535,17 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				client->prespawn_idx = 1;
 			while (client->netchan.message.cursize < maxsize)
 			{
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx])
+				{
+					if (sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
+					{
+#else
 				if (client->prespawn_idx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[client->prespawn_idx])
 				{
 					if (sv.strings.sound_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
 					{
+#endif
 						client->plimitwarned |= PLIMIT_SOUNDS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i sounds. Please upgrade or enable extensions.\n", client->prespawn_idx);
 					}
@@ -1451,7 +1556,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, 0x8000|client->prespawn_idx);
+#ifdef TEMPORALCORTEX
+				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[sv_current_bsp_index][client->prespawn_idx]);
+#else
 				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
+#endif
 				client->prespawn_idx++;
 			}
 		}
@@ -1503,6 +1612,10 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 	if (client->prespawn_stage == PRESPAWN_MODELLIST)
 	{
+#ifdef TEMPORALCORTEX
+		for (t = 0; t < tc_sv_loaded_bsps; t++)
+		{
+#endif
 		if (ISQWCLIENT(client))
 		{
 			started = false;
@@ -1518,29 +1631,42 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				{
 					started = true;
 					client->prespawn_allow_modellist = false;
-	#if defined(PEXT_SOUNDDBL) || defined(PEXT2_REPLACEMENTDELTAS)
+#if defined(PEXT_SOUNDDBL) || defined(PEXT2_REPLACEMENTDELTAS)
 					if (client->prespawn_idx > 255)
 					{
 						MSG_WriteByte (&client->netchan.message, svcfte_modellistshort);
+#ifdef TEMPORALCORTEX
+						MSG_WriteByte (&client->netchan.message, t);
+#endif
 						MSG_WriteShort (&client->netchan.message, client->prespawn_idx);
 					}
 					else
-	#endif
+#endif
 					{
 						MSG_WriteByte (&client->netchan.message, svc_modellist);
+#ifdef TEMPORALCORTEX
+						MSG_WriteByte (&client->netchan.message, t);
+#endif
 						MSG_WriteByte (&client->netchan.message, client->prespawn_idx);
 					}
 				}
-				client->prespawn_idx++;
 
+				client->prespawn_idx++;
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[t][client->prespawn_idx])
+#else
 				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
+#endif
 				{
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
 					started = 0;
-
+#ifdef TEMPORALCORTEX
+					if (sv.strings.model_precache[t][client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+#else
 					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+#endif
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1551,8 +1677,13 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
+#ifdef TEMPORALCORTEX
+					MSG_WriteString (&client->netchan.message, sv.strings.model_precache[t][client->prespawn_idx]);
+#else
 					MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+#endif
 			}
+
 			if (started)
 			{
 				//write end-of-packet
@@ -1566,9 +1697,15 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				client->prespawn_idx = 1;
 			while (client->netchan.message.cursize < maxsize)
 			{
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[t][client->prespawn_idx])
+				{
+					if (sv.strings.model_precache[t][client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+#else
 				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
 				{
 					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+#endif
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1580,12 +1717,19 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
+#ifdef TEMPORALCORTEX
+				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[t][client->prespawn_idx]);
+#else
 				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+#endif
 				client->prespawn_idx++;
 			}
 		}
 		else
 			client->prespawn_stage++;
+#ifdef TEMPORALCORTEX
+		}
+#endif
 	}
 	if (client->prespawn_stage == PRESPAWN_NQSIGNON1)
 	{
@@ -1846,7 +1990,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 			else
 				state = &ent->baseline;
 
+#ifdef TEMPORALCORTEX
+			if (state->number < tc_sv_loaded_bsps || !state->modelindex)
+#else
 			if (!state->number || !state->modelindex)
+#endif
 			{	//ent doesn't have a baseline
 				client->prespawn_idx++;
 				continue;
@@ -2009,9 +2157,13 @@ void SVQW_PreSpawn_f (void)
 		check = atoi(Cmd_Argv(3));
 
 //		Con_DPrintf("Client check = %d\n", check);
-
+#ifdef TEMPORALCORTEX
 		if (sv_mapcheck.value && check != sv.world.worldmodel[0]->checksum &&
 			COM_RemapMapChecksum(sv.world.worldmodel[0], check) != COM_RemapMapChecksum(sv.world.worldmodel[0], LittleLong(sv.world.worldmodel[0]->checksum2)))
+#else
+		if (sv_mapcheck.value && check != sv.world.worldmodel->checksum &&
+			COM_RemapMapChecksum(sv.world.worldmodel, check) != COM_RemapMapChecksum(sv.world.worldmodel, LittleLong(sv.world.worldmodel->checksum2)))
+#endif
 #ifdef SERVER_DEMO_PLAYBACK
 		if (!sv.demofile || (sv.demofile && !sv.democausesreconnect))	//demo playing causes no check. If it's the return level, check anyway to avoid that loophole.
 #endif
@@ -2019,10 +2171,16 @@ void SVQW_PreSpawn_f (void)
 			char *msg;
 			SV_ClientTPrintf (host_client, PRINT_HIGH,
 				"Map model file does not match (%s), %#X != %#X/%#X.\nYou may need a new version of the map, or the proper install files.\n",
+#ifdef TEMPORALCORTEX
 				sv.modelname[0], check, sv.world.worldmodel[0]->checksum, sv.world.worldmodel[0]->checksum2);
-
-
+#else
+				sv.modelname, check, sv.world.worldmodel->checksum, sv.world.worldmodel->checksum2);
+#endif
+#ifdef TEMPORALCORTEX
 			msg = va("\n//kickfile \"%s\"\n", sv.modelname[0]);
+#else
+			msg = va("\n//kickfile \"%s\"\n", sv.modelname);
+#endif
 			ClientReliableWrite_Begin (host_client, svc_stufftext, 3+strlen(msg));
 			ClientReliableWrite_String (host_client, msg);
 			SV_DropClient (host_client);
@@ -2458,13 +2616,25 @@ void SV_Begin_Core(client_t *split)
 							split->edict->v->maxs[1] = 16;
 							split->edict->v->maxs[2] = 32;
 							split->edict->v->view_ofs[2] = DEFAULT_VIEWHEIGHT;
-							if (sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake3)
+#ifdef TEMPORALCORTEX
+							if (sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake3)
+#else
+							if (sv.world.worldmodel->fromgame == fg_quake3)
+#endif
 								split->edict->v->view_ofs[2] = 26;	//q3 defaults to slightly higher view heights (though same player size as quake).
-							if (sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_maxs[2]-sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_mins[2]>0)
+#ifdef TEMPORALCORTEX
+							if (sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_maxs[2]-sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_mins[2]>0)
 							{
-								VectorCopy(sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_mins, split->edict->v->mins);
-								VectorCopy(sv.world.worldmodel[sv_current_time_period]->hulls[1].clip_maxs, split->edict->v->maxs);
+								VectorCopy(sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_mins, split->edict->v->mins);
+								VectorCopy(sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_maxs, split->edict->v->maxs);
 							}
+#else
+							if (sv.world.worldmodel->hulls[1].clip_maxs[2]-sv.world.worldmodel->hulls[1].clip_mins[2]>0)
+							{
+								VectorCopy(sv.world.worldmodel->hulls[1].clip_mins, split->edict->v->mins);
+								VectorCopy(sv.world.worldmodel->hulls[1].clip_maxs, split->edict->v->maxs);
+							}
+#endif
 							split->edict->v->movetype = MOVETYPE_NOCLIP;
 						}
 						VectorCopy(split->edict->v->origin, split->edict->v->oldorigin);	//make sure oldorigin isn't 0 0 0 or anything too clumsy like that. stuck somewhere killable is better than stuck outside the map.
@@ -4742,14 +4912,22 @@ void SV_PTrack_f (void)
 	{
 		// turn off tracking
 		host_client->spec_track = 0;
-		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
+#endif
 		tent = EDICT_NUM_PB(svprogfuncs, 0);
 		ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 		if (ISNQCLIENT(host_client))
 		{
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+#endif
 		}
 		return;
 	}
@@ -4762,8 +4940,11 @@ void SV_PTrack_f (void)
 		return;
 	}
 #endif
-
-	if (!SV_CanTrack(host_client, i+MAX_TIME_PERIODS))
+#ifdef TEMPORALCORTEX
+	if (!SV_CanTrack(host_client, i+tc_sv_loaded_bsps))
+#else
+	if (!SV_CanTrack(host_client, i+1))
+#endif
 	{
 		if (i < 0 || i >= sv.allocated_client_slots)
 			SV_ClientTPrintf (host_client, PRINT_HIGH, "invalid player to track\n");
@@ -4774,27 +4955,48 @@ void SV_PTrack_f (void)
 		else
 			SV_ClientTPrintf (host_client, PRINT_HIGH, "invalid player to track\n");
 		host_client->spec_track = 0;
-		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+		ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
+#endif
 		tent = EDICT_NUM_PB(svprogfuncs, 0);
 		ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 		if (ISNQCLIENT(host_client))
 		{
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+			ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+#endif
 		}
 		return;
 	}
-	host_client->spec_track = i + MAX_TIME_PERIODS; // now tracking
+#ifdef TEMPORALCORTEX
+	host_client->spec_track = i + tc_sv_loaded_bsps; // now tracking
+#else
+	host_client->spec_track = i + 1; // now tracking
+#endif
 
-	ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+	ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + tc_sv_loaded_bsps);
+	tent = EDICT_NUM_PB(svprogfuncs, i + tc_sv_loaded_bsps);
+#else
+	ent = EDICT_NUM_PB(svprogfuncs, host_client - svs.clients + 1);
 	tent = EDICT_NUM_PB(svprogfuncs, i + 1);
+#endif
 	ent->v->goalentity = EDICT_TO_PROG(svprogfuncs, tent);
 
 	if (ISNQCLIENT(host_client))
 	{
 		ClientReliableWrite_Begin(host_client, svc_setview, 4);
-		ClientReliableWrite_Entity(host_client, i + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		ClientReliableWrite_Entity(host_client, i + tc_sv_loaded_bsps);
+#else
+		ClientReliableWrite_Entity(host_client, i + 1);
+#endif
 	}
 }
 
@@ -5552,7 +5754,7 @@ void Cmd_SetPos_f(void)
 		sv_player->v->fixangle = FIXANGLE_FIXED;
 	}
 }
-
+#ifdef TEMPORALCORTEX
 void Cmd_ChangeTimePeriod_f(void)
 {
 	int arg;
@@ -5560,9 +5762,9 @@ void Cmd_ChangeTimePeriod_f(void)
 
 	arg = atoi(pszArg);
 
-	cl_current_time_period = (timeperiod_t)arg;
+	sv_current_bsp_index = (timeperiod_t)arg;
 }
-
+#endif
 void SV_SetUpClientEdict (client_t *cl, edict_t *ent)
 {
 #ifdef VM_Q1
@@ -5771,7 +5973,11 @@ void Cmd_Join_f (void)
 	if (ISNQCLIENT(host_client))
 	{	//make sure the nq client is viewing from its own player entity again
 		ClientReliableWrite_Begin(host_client, svc_setview, 4);
-		ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		ClientReliableWrite_Entity(host_client, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+		ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+#endif
 	}
 
 	for (; host_client; host_client = host_client->controlled)
@@ -6624,7 +6830,9 @@ ucmd_t ucmds[] =
 	{"fly",			Cmd_Fly_f},
 	{"notarget",	Cmd_Notarget_f},
 	{"setpos",		Cmd_SetPos_f},
-	{"changetimeperiod", SV_ChangeTimePeriod_f},
+#ifdef TEMPORALCORTEX
+	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
+#endif
 #if defined(_DEBUG) && defined(SUBSERVERS)
 	{"ssvtransfer", Cmd_SSV_Transfer_f},//transfer the player to a different map/server
 	{"ssvsay",		Cmd_SSV_AllSay_f},	//says realm-wide
@@ -7024,7 +7232,11 @@ static qboolean AddEntityToPmove(world_t *w, wedict_t *player, wedict_t *check)
 	{
 		if(progstype != PROG_H2)
 			pe->angles[0]*=r_meshpitch.value;	//quake is wierd. I guess someone fixed it hexen2... or my code is buggy or something...
+#ifdef TEMPORALCORTEX
+		pe->model = sv.models[sv_current_bsp_index][(int)(check->v->modelindex)];
+#else
 		pe->model = sv.models[(int)(check->v->modelindex)];
+#endif
 		VectorCopy (check->v->angles, pe->angles);
 	}
 	else
@@ -7537,7 +7749,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 		pmove.jump_msec = 0;
 		pmove.waterjumptime = 0;
 		pmove.numphysent = 1;
-		pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
+		pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
 		pmove.cmd = *ucmd;
 		pmove.hullnum = SV_HullNumForPlayer(0, player_mins, player_maxs);
 		pmove.capsule = (sv_player->xv->geomtype == GEOMTYPE_CAPSULE);
@@ -7594,7 +7806,11 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 	if (progstype == PROG_H2)
 	{
 		//fixme: should probably support rtlights, but this is a server, so urgh.
-		if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->funcs.LightPointValues)
+#ifdef TEMPORALCORTEX
+		if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues)
+#else
+		if (sv.world.worldmodel && sv.world.worldmodel->funcs.LightPointValues)
+#endif
 		{
 			vec3_t diffuse, ambient, dir;
 			float lev = 0;
@@ -7605,7 +7821,11 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 			if (!r_shadow_realtime_world.ival || r_shadow_realtime_world_lightmaps.value)
 #endif
 			{
-				sv.world.worldmodel[sv_current_time_period]->funcs.LightPointValues(sv.world.worldmodel[sv_current_time_period], sv_player->v->origin, ambient, diffuse, dir);
+#ifdef TEMPORALCORTEX
+				sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[sv_current_bsp_index], sv_player->v->origin, ambient, diffuse, dir);
+#else
+				sv.world.worldmodel->funcs.LightPointValues(sv.world.worldmodel, sv_player->v->origin, ambient, diffuse, dir);
+#endif
 				lev += (VectorLength(ambient) + VectorLength(diffuse)/2.0)/256;
 			}
 			sv_player->xv->light_level = lev * 255;
@@ -7775,7 +7995,11 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 	else
 		pmove.waterjumptime = sv_player->v->teleport_time;
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+#else
+	pmove.physents[0].model = sv.world.worldmodel;
+#endif
 	pmove.cmd = *ucmd;
 	pmove.skipent = -1;
 	pmove.capsule = (sv_player->xv->geomtype == GEOMTYPE_CAPSULE);
@@ -8199,7 +8423,11 @@ void SV_ReadQCRequest(void)
 			ed = EDICT_NUM_PB(svprogfuncs, e);
 			if (!ed)
 			{
-				ed = (edict_t*)sv.world.edicts;
+#ifdef TEMPORALCORTEX
+				ed = (edict_t*)&sv.world.edicts[sv_current_bsp_index];
+#else
+				ed = (edict_t*)&sv.world.edicts;
+#endif
 				Con_Printf("client %s sent invalid entity\n", host_client->name);
 				host_client->drop = true;
 			}
@@ -8304,7 +8532,11 @@ static double SVFTE_ExecuteClientMove(client_t *controller, unsigned int moveseq
 		split->lossage = loss;
 
 		//all sorts of reasons why we might not want to do physics here and now.
-		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel[sv_current_time_period] || sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED);
+#ifdef TEMPORALCORTEX
+		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel[sv_current_bsp_index] || sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED);
+#else
+		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel || sv.world.worldmodel->loadstate != MLS_LOADED);
+#endif
 
 		ran = false;
 		oldcmd = nullcmd;
@@ -8415,6 +8647,10 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int		checksumIndex;
 	qbyte	checksum, calculatedChecksum;
 	int		seq_hash;
+#ifdef TEMPORALCORTEX
+	float	newspeed;
+	timeperiod_t input;
+#endif
 
 	if (!cl->frameunion.frames)
 	{
@@ -8612,7 +8848,11 @@ void SV_ExecuteClientMessage (client_t *cl)
 				}
 				else
 #endif
-					if (!sv.paused && sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->loadstate == MLS_LOADED)
+#ifdef TEMPORALCORTEX
+					if (!sv.paused && sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->loadstate == MLS_LOADED)
+#else
+					if (!sv.paused && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED)
+#endif
 				{
 					if (sv_nqplayerphysics.ival || split->state < cs_spawned)
 					{
@@ -8753,6 +8993,28 @@ void SV_ExecuteClientMessage (client_t *cl)
 			}
 			SV_AckEntityFrame(cl, cl->delta_sequence);
 			break;
+#ifdef TEMPORALCORTEX
+		// Missi: This is only used for savegame loading.
+		// While the level is loading from a savegame, it is dangerous to change
+		// the time period due to the way entities are parsed. It is much safer
+		// to send a network packet to the server that it can parse once everything
+		// is set up. (2025.12.6)
+		case clctc_timeperiod:
+			input = MSG_ReadLong();
+			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
+				sv_current_bsp_index = input;
+			break;
+		case clctc_gamespeed:
+			newspeed = MSG_ReadFloat();
+			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
+			{
+				MSG_WriteByte( &sv.reliable_datagram, svctc_gamespeed );
+				MSG_WriteFloat( &sv.reliable_datagram, newspeed );
+
+				Cvar_SetValue( Cvar_FindVar("sv_gamespeed"), newspeed );
+			}
+			break;
+#endif
 		}
 	}
 
@@ -9219,7 +9481,11 @@ void SVNQ_ReadClientMove (qboolean forceangle16, qboolean quakeex)
 				host_client->spec_track = 0;
 				host_client->edict->v->goalentity = EDICT_TO_PROG(svprogfuncs, EDICT_NUM_PB(svprogfuncs, 0));
 				ClientReliableWrite_Begin(host_client, svc_setview, 4);
-				ClientReliableWrite_Entity(host_client, host_client - svs.clients + MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+				ClientReliableWrite_Entity(host_client, host_client - svs.clients + tc_sv_loaded_bsps);
+#else
+				ClientReliableWrite_Entity(host_client, host_client - svs.clients + 1);
+#endif
 			}
 			else	//otherwise track the next person, if we can
 				tracknext = true;
@@ -9249,10 +9515,17 @@ void SVNQ_ReadClientMove (qboolean forceangle16, qboolean quakeex)
 			host_client->spec_track = i;
 			host_client->edict->v->goalentity = EDICT_TO_PROG(svprogfuncs, EDICT_NUM_PB(svprogfuncs, i));
 			ClientReliableWrite_Begin(host_client, svc_setview, 4);
-			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + MAX_TIME_PERIODS));
-
+#ifdef TEMPORALCORTEX
+			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + tc_sv_loaded_bsps));
+#else
+			ClientReliableWrite_Entity(host_client, i?i:(host_client - svs.clients + 1));
+#endif
 			if (i)
-				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-MAX_TIME_PERIODS].name);
+#ifdef TEMPORALCORTEX
+				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-tc_sv_loaded_bsps].name);
+#else
+				SV_ClientTPrintf (host_client, PRINT_HIGH, "tracking %s\n", svs.clients[i-1].name);
+#endif
 		}
 	}
 
@@ -9312,6 +9585,11 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 	char	*s;
 //	client_frame_t	*frame;
 	qboolean forceangle16;
+
+#ifdef TEMPORALCORTEX
+	float	newspeed;
+	timeperiod_t input;
+#endif
 
 	cl->netchan.outgoing_sequence++;
 	cl->netchan.incoming_acknowledged = cl->netchan.outgoing_sequence-1;
@@ -9513,6 +9791,19 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 			/*host_client->edict->v->origin[1] =*/ MSG_ReadFloat();
 			/*host_client->edict->v->origin[2] =*/ MSG_ReadFloat();
 			break;
+#ifdef TEMPORALCORTEX
+		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
+		case clctc_timeperiod:
+			input = MSG_ReadLong();
+			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
+				sv_current_bsp_index = input;
+			break;
+		case clctc_gamespeed:
+			newspeed = MSG_ReadFloat();
+			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
+				Cvar_SetValue( Cvar_FindVar("sv_gamespeed"), newspeed );
+			break;
+#endif
 		safedefault:
 			Con_Printf ("SVNQ_ReadClientMessage: unknown command char %i\n", c);
 			SV_DropClient (cl);
@@ -9682,9 +9973,11 @@ static void SV_UserFriction (void)
 	start[1] = stop[1] = origin[1] + vel[1]/speed*16;
 	start[2] = origin[2] + sv_player->v->mins[2];
 	stop[2] = start[2] - 34;
-
+#ifdef TEMPORALCORTEX
+	trace = World_Move (&sv.world, start, vec3_origin, vec3_origin, stop, true, (wedict_t*)sv_player, sv_player->bspnum);
+#else
 	trace = World_Move (&sv.world, start, vec3_origin, vec3_origin, stop, true, (wedict_t*)sv_player);
-
+#endif
 	if (trace.fraction == 1.0)
 		friction = sv_friction.value*(*pm_edgefriction.string?pm_edgefriction.value:2);
 	else

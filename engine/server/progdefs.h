@@ -267,6 +267,12 @@ and the extension fields are added on the end and can have extra vm-specific stu
 #define svextqcfieldshexen2
 #endif
 
+#ifdef TEMPORALCORTEX
+#define svextqcfields_temporalcortex \
+	comfieldfloat(grappling,"Temporal Cortex: Checks if the player is casting the grappling hook, and is not hooked to anything.") \
+	comfieldfloat(hooked,"Temporal Cortex: Checks if the player is hooked to anything.")
+#endif
+
 #define comextqcfields	\
 	comfieldvector(punchangle,NULL) /*std in nq*/\
 	comfieldfloat(gravity,"Multiplier applied in addition to sv_gravity (not absolute units), to control the gravity affecting this entity specifically.")	/*added in quake 1.09 (for hipnotic)*/\
@@ -324,7 +330,7 @@ and the extension fields are added on the end and can have extra vm-specific stu
 #else
 #define svextqcfield_clientcamera
 #endif
-
+#
 #define svextqcfields \
 	comfieldfloat(maxspeed,NULL)/*added in quake 1.09*/\
 	comfieldentity(view2,"defines a second viewpoint, typically displayed in a corner of the screen (also punches open pvs).")/*FTE_PEXT_VIEW2*/\
@@ -404,9 +410,18 @@ and the extension fields are added on the end and can have extra vm-specific stu
 	comfieldfloat(drawmask, "Matces the bitmask passed to the addentities builtin, to easily submit entities to the renderer. Not otherwise meaningful.")	/*So that the qc can specify all rockets at once or all bannanas at once*/	\
 	comfieldfunction(predraw, ".float()","Called as part of the addentities builtin. Returns one of the PREDRAW_ constants. This gives you a chance to interpolate or animate entities as desired.")	/*If present, is called just before it's drawn.*/	
 
-
 #define comfieldentitydep(nam,desc,depreason) comfieldentity(nam,desc)
 #define comfieldfloatdep(nam,desc,depreason) comfieldfloat(nam,desc)
+
+#ifdef TEMPORALCORTEX
+	#define svextqcfieldstemporalcortex	\
+		comfieldfloat(grappling,"Temporal Cortex: Used for testing whether the player casted the grappling hook, NOT WHETHER THEY ARE HOOKED TO SOMETHING.") \
+		comfieldfloat(hooked,"Temporal Cortex: Used for testing whether the player is HOOKED to something with the grappling hook.")
+
+	#define csextqcfieldstemporalcortex \
+		comfieldfloat(grappling,"Temporal Cortex: Used for testing whether the player casted the grappling hook, NOT WHETHER THEY ARE HOOKED TO SOMETHING.") \
+		comfieldfloat(hooked,"Temporal Cortex: Used for testing whether the player is HOOKED to something with the grappling hook.")
+#endif
 
 typedef struct stdentvars_s //standard = standard for qw
 {
@@ -435,6 +450,9 @@ typedef struct extentvars_s
 #define comfieldfunction(name, typestr,desc) func_t name;
 comextqcfields
 svextqcfields
+#ifdef TEMPORALCORTEX
+svextqcfieldstemporalcortex
+#endif
 #undef comfieldfloat
 #undef comfieldint
 #undef comfieldvector

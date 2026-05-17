@@ -1760,8 +1760,11 @@ void QCBUILTIN PF_menu_findchain (pubprogfuncs_t *prinst, struct globalvars_s *p
 
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = PR_GetStringOfs(prinst, OFS_PARM1);
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = (menuedict_t *)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -1792,8 +1795,11 @@ void QCBUILTIN PF_menu_findchainfloat (pubprogfuncs_t *prinst, struct globalvars
 
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = G_FLOAT(OFS_PARM1);
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = (menuedict_t*)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -1821,8 +1827,11 @@ void QCBUILTIN PF_menu_findchainflags (pubprogfuncs_t *prinst, struct globalvars
 
 	f = G_INT(OFS_PARM0)+prinst->fieldadjust;
 	s = G_FLOAT(OFS_PARM1);
-
-	for (i = MAX_TIME_PERIODS; i < *prinst->parms->num_edicts; i++)
+#ifdef TEMPORALCORTEX
+	for (i = tc_cl_loaded_bsps; i < *prinst->parms->num_edicts; i++)
+#else
+	for (i = 1; i < *prinst->parms->num_edicts; i++)
+#endif
 	{
 		ent = (menuedict_t*)EDICT_NUM_PB(prinst, i);
 		if (ent->ereftype == ER_FREE)
@@ -2885,6 +2894,14 @@ static struct {
 	{"controller_rumble",		PF_cl_gp_rumble,			741},	// EXT_CONTROLLER_REKI
 	{"controller_rumbletriggers",PF_cl_gp_rumbletriggers,	742},	// EXT_CONTROLLER_REKI
 
+#ifdef TEMPORALCORTEX
+	// Missi: Temporal Cortex extras (2025.12.17)
+	{"timeperiod_queue",		PF_Fixme,					743},
+	{"timeperiod_change",		PF_Fixme,					744},
+	{"drawline3d",				PF_CL_drawline3D,			745},
+	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
+#endif
+
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype
 	{"gp_rumble",				PF_cl_gp_rumble,			0}, // #0 void(float devid, float amp_low, float amp_high, float duration) gp_rumble
 	{"gp_rumbletriggers",		PF_cl_gp_rumbletriggers,	0}, // #0 void(float devid, float left, float right, float duration) gp_rumbletriggers
@@ -3258,6 +3275,9 @@ qboolean MP_Init (void)
 	menuprogparms.Abort = Menu_Abort;
 	menuprogparms.CheckHeaderCrc = Menu_CheckHeaderCrc;
 	menuprogparms.edictsize = sizeof(menuedict_t);
+#ifdef TEMPORALCORTEX
+	menuprogparms.loaded_bsps = &tc_cl_loaded_bsps;
+#endif
 
 	menuprogparms.entspawn = NULL;//void (*entspawn) (struct edict_s *ent);	//ent has been spawned, but may not have all the extra variables (that may need to be set) set
 	menuprogparms.entcanfree = NULL;//bool (*entcanfree) (struct edict_s *ent);	//return true to stop ent from being freed
@@ -3360,9 +3380,13 @@ qboolean MP_Init (void)
 
 		//'world' edict
 //		EDICT_NUM_PB(menu_world.progs, 0)->readonly = true;
+#ifdef TEMPORALCORTEX
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PRESENT)->ereftype = ER_ENTITY;
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PAST)->ereftype = ER_ENTITY;
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_FUTURE)->ereftype = ER_ENTITY;
+#else
+		EDICT_NUM_PB(menu_world.progs, 0)->ereftype = ER_ENTITY;
+#endif
 
 
 		mpfuncs.init = PR_FindFunction(menu_world.progs, "m_init", PR_ANY);
@@ -3385,10 +3409,13 @@ qboolean MP_Init (void)
 		if (mpfuncs.init)
 			PR_ExecuteProgram(menu_world.progs, mpfuncs.init);
 		inmenuprogs--;
-
+#ifdef TEMPORALCORTEX
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PRESENT)->readonly = true;
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PAST)->readonly = true;
 		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_FUTURE)->readonly = true;
+#else
+		EDICT_NUM_PB(menu_world.progs, 0)->readonly = true;
+#endif
 
 		Con_DPrintf("Initialized menu.dat\n");
 		return true;
@@ -3576,9 +3603,11 @@ void MP_RendererRestarted(void)
 	int i;
 	if (!menu_world.progs)
 		return;
-
-	menu_world.worldmodel[cl_current_time_period] = cl.worldmodel[cl_current_time_period];
-
+#ifdef TEMPORALCORTEX
+	menu_world.worldmodel[cl_current_bsp_index] = cl.worldmodel[cl_current_bsp_index];
+#else
+	menu_world.worldmodel = cl.worldmodel;
+#endif
 	for (i = 0; i < MAX_CSMODELS; i++)
 	{
 		cl.model_csqcprecache[i] = NULL;

@@ -302,6 +302,9 @@ cvar_t	cl_expsprite = CVARFD("cl_expsprite", "1", CVAR_ARCHIVE, "Display a centr
 cvar_t  r_explosionlight = CVARFC("r_explosionlight", "1", CVAR_ARCHIVE, Cvar_Limiter_ZeroToOne_Callback);
 static cvar_t  r_explosionlight_colour = CVARFD("r_explosionlight_colour", "4.0 2.0 0.5", CVAR_ARCHIVE, "This controls the initial RGB values of EF_EXPLOSION effects.");
 static cvar_t  r_explosionlight_fade = CVARFD("r_explosionlight_fade", "0.784 0.92 0.48", CVAR_ARCHIVE, "This controls the per-second RGB decay values of EF_EXPLOSION effects.");
+#ifdef TEMPORALCORTEX
+cvar_t  r_bullet_colour = CVARFD("r_bullet_colour", "1.0 0.9 0.5 100", CVAR_ARCHIVE, "Temporal Cortex: Color of bullets.");
+#endif
 cvar_t  r_dimlight_colour = CVARFD("r_dimlight_colour", "2.0 1.0 0.5 200", CVAR_ARCHIVE, "The red, green, blue, radius values for EF_DIMLIGHT effects (used for quad+pent in vanilla quake).");
 cvar_t  r_brightlight_colour = CVARFD("r_brightlight_colour", "2.0 1.0 0.5 400", CVAR_ARCHIVE, "The red, green, blue, radius values for EF_BRIGHTLIGHT effects (unused in vanilla quake).");
 cvar_t  r_redlight_colour = CVARFD("r_redlight_colour", "3.0 0.5 0.5 200", CVAR_ARCHIVE, "The red, green, blue, radius values for EF_RED effects (typically used for pentagram in quakeworld).");
@@ -461,6 +464,9 @@ void CL_InitTEnts (void)
 	Cvar_Register (&r_explosionlight_fade, "Temporary entity control");
 	Cvar_Register (&r_muzzleflash_colour, "Temporary entity control");
 	Cvar_Register (&r_muzzleflash_fade, "Temporary entity control");
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&r_bullet_colour, "Temporary entity control");
+#endif
 	Cvar_Register (&r_dimlight_colour, "Temporary entity control");
 	Cvar_Register (&r_redlight_colour, "Temporary entity control");
 	Cvar_Register (&r_greenlight_colour, "Temporary entity control");
@@ -1193,7 +1199,11 @@ void CL_ParseTEnt (void)
 			/*68*/NULL,NULL,"dpexplosionquad",NULL,
 			/*72*/"dpsmallflash","dpcustomflash","dpflamejet","dpplasmaburn",
 			/*76*/"dpteig3","dpsmoke","dpteibigexplosion","dpteiplasmahit",
+#ifdef TEMPORALCORTEX
+			/*80*/"bullet"
+#else
 			/*80*/
+#endif
 		};
 		if (type < countof(te_names) && te_names[type])
 			Con_Printf("  te_%s\n", te_names[type]);
@@ -1329,6 +1339,34 @@ void CL_ParseTEnt (void)
 				S_StartSound (0, 0, cl_sfx_ric3, pos, NULL, 1, 1, 0, 0, 0);
 		}
 		break;
+#ifdef TEMPORALCORTEX
+	case TE_TC_BULLET:
+	case TE_TC_SUPERBULLET:
+	case TE_TC_GRAPPLING_HOOK:
+		pos[0] = MSG_ReadCoord ();
+		pos[1] = MSG_ReadCoord ();
+		pos[2] = MSG_ReadCoord ();
+
+		if (cl_legacystains.ival) Surf_AddStain(pos, -10, -10, -10, 20);
+
+		if (P_RunParticleEffectType(pos, NULL, 1, ptfte_bullet))
+			if (P_RunParticleEffectType(pos, NULL, 10, pt_gunshot))
+				P_RunParticleEffect (pos, vec3_origin, 0, 10);
+
+		if ( rand() % 5 )
+			S_StartSound (0, 0, cl_sfx_tink1, pos, NULL, 1, 1, 0, 0, 0);
+		else
+		{
+			rnd = rand() & 3;
+			if (rnd == 1)
+				S_StartSound (0, 0, cl_sfx_ric1, pos, NULL, 1, 1, 0, 0, 0);
+			else if (rnd == 2)
+				S_StartSound (0, 0, cl_sfx_ric2, pos, NULL, 1, 1, 0, 0, 0);
+			else
+				S_StartSound (0, 0, cl_sfx_ric3, pos, NULL, 1, 1, 0, 0, 0);
+		}
+		break;
+#endif
 
 #ifdef PEXT_TE_BULLET
 	case TE_BULLET:
@@ -2577,8 +2615,11 @@ void CL_ParseEffect (qboolean effect2)
 
 	framecount = MSG_ReadByte();
 	framerate = MSG_ReadByte();
-
+#ifdef TEMPORALCORTEX
+	mod = cl.model_precache[cl_current_bsp_index][modelindex];
+#else
 	mod = cl.model_precache[modelindex];
+#endif
 	CL_SpawnSpriteEffect(org, NULL, NULL, mod, startframe, framecount, framerate, mod->type==mod_sprite?-1:1, 1, 0, 0, P_INVALID, 0, 0, 1.0f, 1.0f, 1.0f);
 }
 
@@ -3322,7 +3363,11 @@ void CL_UpdateExplosions (float frametime)
 #ifdef HEXEN2
 		ent->drawflags = SCALE_ORIGIN_ORIGIN;
 #endif
-		cl.worldmodel[cl_current_time_period]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_time_period], &ent->pvscache, ent->origin, ent->origin);
+#ifdef TEMPORALCORTEX
+		cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_bsp_index], &ent->pvscache, ent->origin, ent->origin);
+#else
+		cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &ent->pvscache, ent->origin, ent->origin);
+#endif
 
 		if (ex->traileffect != P_INVALID)
 			pe->ParticleTrail(ent->oldorigin, ent->origin, ex->traileffect, frametime, 0, ent->axis, &(ex->trailstate));

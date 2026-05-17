@@ -399,7 +399,11 @@ static pubsubserver_t *MSV_Loop_GetLocalServer(void)
 	f->Close = MSV_Loop_Close;
 
 	s = MSV_Link_Server(f, 0, "");
-	Q_strncpyz(s->name, sv.mapname[0], sizeof(s->name));
+#ifdef TEMPORALCORTEX
+	Q_strncpyz(s->name, sv.mapname[sv_current_bsp_index], sizeof(s->name));
+#else
+	Q_strncpyz(s->name, sv.mapname, sizeof(s->name));
+#endif
 	svs.clusterserverid = s->id;
 	return s;
 }
@@ -511,7 +515,9 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 {
 	extern cvar_t sv_playerslots;
 	int plslots;	//not really used, but affects whether we open public sockets or not.
+#ifdef TEMPORALCORTEX
 	int t;
+#endif
 
 	//this command will likely be used in configs. don't ever allow subservers to act as entire new clusters
 	if (SSV_IsSubServer())
@@ -531,9 +537,13 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 	Q_strncpyz(svs.name, landingmap, sizeof(svs.name));
 	if (!*svs.name)
 		Q_strncpyz(svs.name, "start", sizeof(svs.name));
+#ifdef TEMPORALCORTEX
 	// Missi: Attempt to find a BSP for each time period (2025.9.20)
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
 		Q_strncpyz(sv.modelname[t], svs.name, sizeof(sv.modelname[t]));
+#else
+	Q_strncpyz(sv.modelname, svs.name, sizeof(sv.modelname));
+#endif
 
 	if (use_database)
 	{
@@ -587,9 +597,14 @@ void MSV_MapCluster_Setup(const char *landingmap, qboolean use_database, qboolea
 
 	//get on with it now...
 	if (singleplayer && !use_database)
+#ifdef TEMPORALCORTEX
 		// Missi: Iterate through each time period (2025.9.20)
-		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
-			MSV_FindSubServerName(va(":%s", sv.modelname[t]));
+		for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+			if (MSV_FindSubServerName(va(":%s", sv.modelname[t])))
+				break;
+#else
+		MSV_FindSubServerName(va(":%s", sv.modelname));
+#endif
 }
 void MSV_MapCluster_f(void)
 {
@@ -1504,9 +1519,11 @@ void SSV_ReadFromControlServer(void)
 			int i;
 
 			(void)to;
-
-			Con_Printf("%s: got tookplayer\n", sv.modelname[sv_current_time_period]);
-
+#ifdef TEMPORALCORTEX
+			Con_Printf("%s: got tookplayer\n", sv.modelname[sv_current_bsp_index]);
+#else
+			Con_Printf("%s: got tookplayer\n", sv.modelname);
+#endif
 			for (i = 0; i < svs.allocated_client_slots; i++)
 			{
 				if (svs.clients[i].state && svs.clients[i].userid == plid)
@@ -1519,20 +1536,32 @@ void SSV_ReadFromControlServer(void)
 			{
 				if (!*addr)
 				{
-					Con_Printf("%s: tookplayer: failed\n", sv.modelname[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+					Con_Printf("%s: tookplayer: failed\n", sv.modelname[sv_current_bsp_index]);
+#else
+					Con_Printf("%s: tookplayer: failed\n", sv.modelname);
+#endif
 					Z_Free(cl->transfer);
 					cl->transfer = NULL;
 				}
 				else
 				{
-					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname[sv_current_bsp_index]);
+#else
+					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname);
+#endif
 //					SV_StuffcmdToClient(cl, va("connect \"%s\"\n", addr));
 					SV_StuffcmdToClient(cl, va("cl_transfer \"%s\"\n", addr));
 					cl->redirect = 2;
 				}
 			}
 			else
-				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname[sv_current_time_period]);
+#ifdef TEMPORALCORTEX
+				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname[sv_current_bsp_index]);
+#else
+				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname);
+#endif
 		}
 		break;
 
@@ -1793,13 +1822,19 @@ qboolean MSV_ClusterLoginReply(netadr_t *legacyclientredirect, unsigned int serv
 	char tmpbuf[256];
 	netadr_t serveraddr;
 	pubsubserver_t *s = NULL;
+#ifdef TEMPORALCORTEX
 	int t;
+#endif
 
 	if (!s)
 	{
-		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+#ifdef TEMPORALCORTEX
+		for ( t = 0; t < tc_sv_loaded_bsps; t++ )
 			// Missi: Iterate through each time period (2025.9.20)
 			s = MSV_FindSubServerName(va(":%s", sv.modelname[t]));
+#else
+		s = MSV_FindSubServerName(va(":%s", sv.modelname));
+#endif
 	}
 
 	if (!s || !MSV_AddressForServer(&serveraddr, clientaddr->type, s))

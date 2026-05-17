@@ -137,10 +137,10 @@ help:
 #wget http://ffmpeg.org/releases/ffmpeg-1.2.tar.gz && cd tar xvfz ffmpeg-1.2.tar.gz && cd ffmpeg-1.2/ && ./configure --disable-yasm --enable-shared && make && sudo make install
 #we use ffmpeg's version for some reason, as opposed to libav. not sure what the differences are meant to be, but libav seemed to have non-depricated functions defined, docs that say to use them, and these functions missing.
 
-AV_VER=ffmpeg-4.0
+AV_VER=ffmpeg-master-latest
 
 ifeq ($(findstring win,$(FTE_TARGET)),win)
-	AV_BASE=$(abspath $(OUT_DIR)/../fte_libav_$(AV_VER))/
+	AV_BASE=$(abspath $(OUT_DIR)/../fte-libav-$(AV_VER))/
 else
 	ifeq ($(FTE_TARGET),bsd)
 		AV_BASE=/usr/local/include/
@@ -172,61 +172,40 @@ ifeq ($(findstring win,$(FTE_TARGET)),win)
 		AV_EXTRACT=unzip -ju
 	endif
 
-	AV_W32_DEV=$(AV_VER)-win32-dev$(AV_ARCHIVEEXT)
-	AV_W64_DEV=$(AV_VER)-win64-dev$(AV_ARCHIVEEXT)
-	AV_W32_BIN=$(AV_VER)-win32-shared$(AV_ARCHIVEEXT)
-	AV_W64_BIN=$(AV_VER)-win64-shared$(AV_ARCHIVEEXT)
-	AV_URL32_DEV=https://archive.org/download/zeranoe/win32/dev/$(AV_W32_DEV)
-	AV_URL64_DEV=https://archive.org/download/zeranoe/win64/dev/$(AV_W64_DEV)
-	AV_URL32_BIN=https://archive.org/download/zeranoe/win32/shared/$(AV_W32_BIN)
-	AV_URL64_BIN=https://archive.org/download/zeranoe/win64/shared/$(AV_W64_BIN)
-	AV_PRE32_DEV=$(AV_VER)-win32-dev/
-	AV_PRE64_DEV=$(AV_VER)-win64-dev/
-	AV_PRE32_BIN=$(AV_VER)-win32-shared/
-	AV_PRE64_BIN=$(AV_VER)-win64-shared/
+	AV_W64_DEV=$(AV_VER)-$(FTE_TARGET)-gpl-shared$(AV_ARCHIVEEXT)
+	AV_URL64_DEV=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/$(AV_W64_DEV)
+	AV_PRE64_DEV=$(AV_VER)-$(FTE_TARGET)-gpl-shared/
 
-	ifeq ($(FTE_TARGET),win32)
-		FFMPEG_ZIP=$(AV_BASE)/$(AV_VER)-x86.zip
-		#NATIVE_PLUGINS+=ffmpeg
-	endif
+	FFMPEG_ZIP=$(AV_BASE)/$(AV_VER)-$(FTE_TARGET)-gpl-shared.zip
 
-	ifeq ($(FTE_TARGET),win64)
-		FFMPEG_ZIP=$(AV_BASE)/$(AV_VER)-x64.zip
-		#NATIVE_PLUGINS+=ffmpeg
-	endif
-
-$(AV_BASE)$(AV_VER)-win32.zip:
+# Missi: This seems to be unused as-is and was used for uploading FFmpeg distributions to archive.org...
+$(AV_BASE)$(AV_VER)-$(FTE_TARGET)-gpl-shared.zip:
 	mkdir -p $(AV_BASE)
-	cd $(AV_BASE) && wget -N $(AV_URL32_BIN)
-	mkdir -p $(AV_BASE)bin32 && cd $(AV_BASE)bin32 && $(AV_EXTRACT) ../$(AV_W32_BIN) $(AV_PRE32_BIN)bin/avcodec-*.dll $(AV_PRE32_BIN)bin/avutil-*.dll $(AV_PRE32_BIN)bin/swresample-*.dll $(AV_PRE32_BIN)bin/avformat-*.dll $(AV_PRE32_BIN)bin/swscale-*.dll && cd -
-	zip -j9 $@ $(AV_BASE)bin32/*.dll
-
-$(AV_BASE)$(AV_VER)-win64.zip:
-	mkdir -p $(AV_BASE)
-	cd $(AV_BASE) && wget -N $(AV_URL64_BIN)
-	mkdir -p $(AV_BASE)bin64 && cd $(AV_BASE)bin64 && $(AV_EXTRACT) ../$(AV_W64_BIN) $(AV_PRE64_BIN)bin/avcodec-*.dll $(AV_PRE64_BIN)bin/avutil-*.dll $(AV_PRE64_BIN)bin/swresample-*.dll $(AV_PRE64_BIN)bin/avformat-*.dll $(AV_PRE64_BIN)bin/swscale-*.dll && cd -
-	zip -j9 $@ $(AV_BASE)bin64/*.dll
+	cd $(AV_BASE) && wget -N $(AV_URL64_DEV)
+	mkdir -p $(AV_BASE)bin && cd $(AV_BASE)bin && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)bin/avcodec-*.dll $(AV_PRE64_DEV)bin/avutil-*.dll $(AV_PRE64_DEV)bin/swresample-*.dll $(AV_PRE64_DEV)bin/avformat-*.dll $(AV_PRE64_DEV)bin/swscale-*.dll
 
 	ifneq ($(FFMPEG_ZIP),)
-	$(FFMPEG_ZIP): $(AV_BASE)$(AV_VER)-$(FTE_TARGET).zip
-		cp $(AV_BASE)$(AV_VER)-$(FTE_TARGET).zip $@
+		$(FFMPEG_ZIP): $(AV_BASE)$(AV_VER)-$(FTE_TARGET)-gpl-shared.zip
+		cp $(AV_BASE)$(AV_VER)-$(FTE_TARGET)-gpl-shared.zip $@
 	endif
 
 $(AV_BASE)libavformat/avformat.h:
 	mkdir -p $(AV_BASE)
-	cd $(AV_BASE) && wget -N $(AV_URL32_DEV)
-	mkdir -p $(AV_BASE)libavformat && cd $(AV_BASE)libavformat && $(AV_EXTRACT) ../$(AV_W32_DEV) $(AV_PRE32_DEV)include/libavformat/* && cd -
-	mkdir -p $(AV_BASE)libavcodec  && cd $(AV_BASE)libavcodec  && $(AV_EXTRACT) ../$(AV_W32_DEV) $(AV_PRE32_DEV)include/libavcodec/*  && cd -
-	mkdir -p $(AV_BASE)libavutil   && cd $(AV_BASE)libavutil   && $(AV_EXTRACT) ../$(AV_W32_DEV) $(AV_PRE32_DEV)include/libavutil/*   && cd -
-	mkdir -p $(AV_BASE)libswscale  && cd $(AV_BASE)libswscale  && $(AV_EXTRACT) ../$(AV_W32_DEV) $(AV_PRE32_DEV)include/libswscale/*  && cd -
-	mkdir -p $(AV_BASE)lib32 && cd $(AV_BASE)lib32 && $(AV_EXTRACT) ../$(AV_W32_DEV) $(AV_PRE32_DEV)lib/avformat.lib $(AV_PRE32_DEV)lib/avcodec.lib $(AV_PRE32_DEV)lib/avutil.lib $(AV_PRE32_DEV)lib/swscale.lib && cd -
 	cd $(AV_BASE) && wget -N $(AV_URL64_DEV)
-	mkdir -p $(AV_BASE)lib64 && cd $(AV_BASE)lib64 && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)lib/avformat.lib $(AV_PRE64_DEV)lib/avcodec.lib $(AV_PRE64_DEV)lib/avutil.lib $(AV_PRE64_DEV)lib/swscale.lib && cd -
+	mkdir -p $(AV_BASE)lib$(BITS) && cd $(AV_BASE)lib$(BITS) && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)lib/avformat.lib $(AV_PRE64_DEV)lib/avcodec.lib $(AV_PRE64_DEV)lib/avutil.lib $(AV_PRE64_DEV)lib/swscale.lib
+
+	mkdir -p $(AV_BASE)bin && cd $(AV_BASE)bin && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)bin/*.dll
+	mkdir -p $(AV_BASE)libavcodec && cd $(AV_BASE)libavcodec && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libavcodec/*.h
+	mkdir -p $(AV_BASE)libavdevice && cd $(AV_BASE)libavdevice && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libavdevice/*.h
+	mkdir -p $(AV_BASE)libavfilter && cd $(AV_BASE)libavfilter && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libavfilter/*.h
+	mkdir -p $(AV_BASE)libavformat && cd $(AV_BASE)libavformat && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libavformat/*.h
+	mkdir -p $(AV_BASE)libavutil && cd $(AV_BASE)libavutil && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libavutil/*.h
+	mkdir -p $(AV_BASE)libswresample && cd $(AV_BASE)libswresample && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libswresample/*.h
+	mkdir -p $(AV_BASE)libswscale && cd $(AV_BASE)libswscale && $(AV_EXTRACT) ../$(AV_W64_DEV) $(AV_PRE64_DEV)include/libswscale/*.h
 
 distclean:
 	rm $(AV_BASE)libavformat/avformat.h
-	rm $(AV_BASE)$(AV_VER)-win32.zip
-	rm $(AV_BASE)$(AV_VER)-win64.zip
+	rm $(AV_BASE)$(AV_VER)-$(FTE_TARGET)-gpl-shared.zip
 
 $(PLUG_PREFIX)ffmpeg$(PLUG_NATIVE_EXT): $(AV_DEP) $(AVPLUG_OBJS)
 	$(CC) $(BASE_CFLAGS) $(CFLAGS) -DFTEPLUGIN -s -o $@ -shared $(PLUG_CFLAGS) $(AV_CFLAGS) $(AVPLUG_OBJS) $(PLUG_DEFFILE) $(PLUG_LDFLAGS) $(AV_LDFLAGS)

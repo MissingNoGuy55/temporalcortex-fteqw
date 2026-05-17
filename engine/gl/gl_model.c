@@ -1551,7 +1551,11 @@ void Mod_NowLoadExternal(model_t *loadmodel, int num)
 	int i;
 	texture_t	*tx;
 	char loadname[32];
+#ifdef TEMPORALCORTEX
 	COM_FileBase (cl.worldmodel[num]->name, loadname, sizeof(loadname));
+#else
+	COM_FileBase (cl.worldmodel->name, loadname, sizeof(loadname));
+#endif
 	
 	if (!strncmp(loadname, "b_", 2))
 		Q_strncpyz(loadname, "bmodels", sizeof(loadname));
@@ -2202,11 +2206,19 @@ static void Mod_ShowEnt_f(void)
 		mod = Mod_ForName(n, MLV_WARN);
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
-		mod = sv.world.worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = sv.world.worldmodel[sv_current_bsp_index];
+#else
+		mod = sv.world.worldmodel;
+#endif
 #endif
 #ifndef SERVERONLY
 	if (cls.state && !mod)
-		mod = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = cl.worldmodel[cl_current_bsp_index];
+#else
+		mod = cl.worldmodel;
+#endif
 #endif
 	if (mod && mod->loadstate == MLS_LOADING)
 		COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);
@@ -2251,11 +2263,19 @@ static void Mod_SaveEntFile_f(void)
 		mod = Mod_ForName(n, MLV_WARN);
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
-		mod = sv.world.worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = sv.world.worldmodel[sv_current_bsp_index];
+#else
+		mod = sv.world.worldmodel;
+#endif
 #endif
 #ifndef SERVERONLY
 	if (cls.state && !mod)
-		mod = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = cl.worldmodel[cl_current_bsp_index];
+#else
+		mod = cl.worldmodel;
+#endif
 #endif
 	if (mod && mod->loadstate == MLS_LOADING)
 		COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);
@@ -4090,7 +4110,7 @@ static qboolean Mod_LoadSubmodels (model_t *loadmodel, qbyte *mod_base, lump_t *
 			Con_Printf (CON_ERROR "MOD_LoadBmodel: funny lump size in %s\n",loadmodel->name);
 			return false;
 		}
-		out = ZG_Malloc(&loadmodel->memgroup, count*sizeof(*out));	
+		out = ZG_Malloc(&loadmodel->memgroup, count*sizeof(*out));
 
 		loadmodel->submodels = out;
 		loadmodel->numsubmodels = count;
@@ -5524,7 +5544,7 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 
 	COM_FileBase (mod->name, loadname, sizeof(loadname));
 	mod->type = mod_brush;
-	
+
 	if (fsize < sizeof(header))
 		return false;
 
@@ -5537,11 +5557,27 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 	}
 
 #ifdef SERVERONLY
-	isnotmap = !!sv.world.worldmodel[sv_current_time_period];
+#ifdef TEMPORALCORTEX
+	isnotmap = !!sv.world.worldmodel[sv_current_bsp_index];
 #else
-	if ((!cl.worldmodel[cl_current_time_period] && cls.state>=ca_connected)
+	isnotmap = !!sv.world.worldmodel;
+#endif
+#else
+#ifdef TEMPORALCORTEX
+	if ((!cl.worldmodel[cl_current_bsp_index] && cls.state>=ca_connected)
+#else
+	if ((!cl.worldmodel && cls.state>=ca_connected)
+#endif
 #ifndef CLIENTONLY
-		|| (!sv.world.worldmodel[sv_current_time_period] && sv.state)
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		|| (!sv.world.worldmodel[sv_current_bsp_index] && sv.state)
+#elif defined(HAVE_CLIENT)
+		|| (!sv.world.worldmodel[cl_current_bsp_index] && sv.state)
+#endif
+#else
+		|| (!sv.world.worldmodel && sv.state)
+#endif
 #endif
 		)
 		isnotmap = false;
@@ -5591,7 +5627,7 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 	header.version = LittleLong(header.version);
 
 	mod->lightmaps.width = 128;//LMBLOCK_WIDTH;
-	mod->lightmaps.height = 128;//LMBLOCK_HEIGHT; 
+	mod->lightmaps.height = 128;//LMBLOCK_HEIGHT;
 
 // checksum all of the map, except for entities
 	mod->checksum = 0;
@@ -5654,7 +5690,7 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 			}
 		}*/
 	}
-		
+
 	noerrors = true;
 
 	Mod_FindVisPatch(&vispatch, mod, header.lumps[LUMP_LEAFS].filelen);
@@ -5724,7 +5760,7 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 	TRACE(("LoadBrushModel %i\n", __LINE__));
 
 	mod->numframes = 2;		// regular and alternate animation
-	
+
 
 //
 // set up the submodels (FIXME: this is confusing)
@@ -5770,15 +5806,14 @@ TRACE(("LoadBrushModel %i\n", __LINE__));
 				}
 			}
 		}
-		
+
 		submod->firstmodelsurface = bm->firstface;
 		submod->nummodelsurfaces = bm->numfaces;
-		
+
 		VectorCopy (bm->maxs, submod->maxs);
 		VectorCopy (bm->mins, submod->mins);
 
 		submod->radius = RadiusFromBounds (submod->mins, submod->maxs);
-
 		submod->numclusters = (i==0)?bm->visleafs:0;
 		submod->pvsbytes = ((submod->numclusters+31)>>3)&~3;
 
@@ -5819,9 +5854,9 @@ TRACE(("LoadBrushModel %i\n", __LINE__));
 			BZ_Free(leafs);
 		}
 #endif
-
 		if (i)
 			COM_AddWork(WG_MAIN, Mod_ModelLoaded, submod, NULL, MLS_LOADED, 0);
+
 		if (i < submod->numsubmodels-1)
 		{	// duplicate the basic information
 			char	name[MAX_QPATH];
@@ -5838,6 +5873,7 @@ TRACE(("LoadBrushModel %i\n", __LINE__));
 		}
 		TRACE(("LoadBrushModel %i\n", __LINE__));
 	}
+
 TRACE(("LoadBrushModel %i\n", __LINE__));
 	if (!isDedicated)
 		Mod_FixupMinsMaxs(mod);
@@ -5846,6 +5882,7 @@ TRACE(("LoadBrushModel %i\n", __LINE__));
 #ifdef TERRAIN
 	mod->terrain = Mod_LoadTerrainInfo(mod, loadname, false);
 #endif
+
 	return true;
 }
 #endif

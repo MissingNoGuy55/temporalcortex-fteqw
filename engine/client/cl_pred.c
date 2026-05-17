@@ -139,7 +139,11 @@ void CLQ2_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 
 		if (ent->solidsize == ES_SOLID_BSP)
 		{	// special value for bmodel
+#ifdef TEMPORALCORTEX
+			cmodel = cl.model_precache[cl_current_bsp_index][ent->modelindex];
+#else
 			cmodel = cl.model_precache[ent->modelindex];
+#endif
 			if (!cmodel)
 				continue;
 			angles = ent->angles;
@@ -176,7 +180,11 @@ q2trace_t	VARGS CLQ2_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 	trace_t		t;
 
 	// check against world
-	cl.worldmodel[cl_current_time_period]->funcs.NativeTrace(cl.worldmodel[cl_current_time_period], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
+#ifdef TEMPORALCORTEX
+	cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
+#else
+	cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
+#endif
 	if (t.fraction < 1.0)
 		t.ent = (struct edict_s *)1;
 
@@ -203,8 +211,11 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 	model_t		*cmodel;
 	int			contents;
 	vec3_t		axis[3], relpos;
-
-	contents = cl.worldmodel[cl_current_time_period]->funcs.PointContents(cl.worldmodel[cl_current_time_period], NULL, point);
+#ifdef TEMPORALCORTEX
+	contents = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, point);
+#else
+	contents = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, point);
+#endif
 
 	for (i=0 ; i<cl.q2frame.num_entities ; i++)
 	{
@@ -213,8 +224,11 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 
 		if (ent->solidsize != ES_SOLID_BSP) // special value for bmodel
 			continue;
-
+#ifdef TEMPORALCORTEX
+		cmodel = cl.model_precache[cl_current_bsp_index][ent->modelindex];
+#else
 		cmodel = cl.model_precache[ent->modelindex];
+#endif
 		if (!cmodel)
 			continue;
 
@@ -294,8 +308,11 @@ static void CLQ2_PredictMovement (int seat)	//q2 doesn't support split clients.
 //	SCR_DebugGraph (current - ack - 1, 0);
 
 	frame = 0;
-
-	predignoreentitynum = cl.q2frame.seat[seat].clientnum+MAX_TIME_PERIODS;//cl.playerview[seat].playernum+1;
+#ifdef TEMPORALCORTEX
+	predignoreentitynum = cl.q2frame.seat[seat].clientnum+tc_cl_loaded_bsps;//cl.playerview[seat].playernum+1;
+#else
+	predignoreentitynum = cl.q2frame.seat[seat].clientnum+1;//cl.playerview[seat].playernum+1;
+#endif
 
 	// run frames
 	while (++ack < current)
@@ -349,8 +366,11 @@ void CL_NudgePosition (void)
 {
 	vec3_t	base;
 	int		x, y;
-
-	if (cl.worldmodel[cl_current_time_period]->funcs.PointContents (cl.worldmodel[cl_current_time_period], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#ifdef TEMPORALCORTEX
+	if (cl.worldmodel[cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#else
+	if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#endif
 		return;
 
 	VectorCopy (pmove.origin, base);
@@ -360,7 +380,11 @@ void CL_NudgePosition (void)
 		{
 			pmove.origin[0] = base[0] + x * 1.0/8;
 			pmove.origin[1] = base[1] + y * 1.0/8;
-			if (cl.worldmodel[cl_current_time_period]->funcs.PointContents (cl.worldmodel[cl_current_time_period], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#ifdef TEMPORALCORTEX
+			if (cl.worldmodel[cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#else
+			if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
+#endif
 				return;
 		}
 	}
@@ -398,7 +422,11 @@ void CL_PredictUsercmd (int pnum, int entnum, player_state_t *from, player_state
 		}
 		return;
 	}
-	if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 		return;
 
 	VectorCopy (from->origin, pmove.origin);
@@ -761,10 +789,19 @@ static void CL_DecodeStateSize(unsigned int solid, int modelindex, vec3_t mins, 
 {
 	if (solid == ES_SOLID_BSP)
 	{
+#ifdef TEMPORALCORTEX
+		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[cl_current_bsp_index][modelindex] && cl.model_precache[cl_current_bsp_index][modelindex]->loadstate == MLS_LOADED)
+#else
 		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[modelindex] && cl.model_precache[modelindex]->loadstate == MLS_LOADED)
+#endif
 		{
+#ifdef TEMPORALCORTEX
+			VectorCopy(cl.model_precache[cl_current_bsp_index][modelindex]->mins, mins);
+			VectorCopy(cl.model_precache[cl_current_bsp_index][modelindex]->maxs, maxs);
+#else
 			VectorCopy(cl.model_precache[modelindex]->mins, mins);
 			VectorCopy(cl.model_precache[modelindex]->maxs, maxs);
+#endif
 		}
 		else
 		{
@@ -1003,7 +1040,11 @@ void CL_PredictMovePNum (int seat)
 	if (!pv->spectator && (pv->cam_state != CAM_FREECAM || pv->cam_spec_track != -1))	//just in case
 	{
 		if (pv->cam_state != CAM_FREECAM)
-			pv->viewentity = (cls.demoplayback)?0:(pv->playernum+MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+			pv->viewentity = (cls.demoplayback)?0:(pv->playernum+tc_cl_loaded_bsps);
+#else
+			pv->viewentity = (cls.demoplayback)?0:(pv->playernum+1);
+#endif
 		pv->cam_state = CAM_FREECAM;
 		pv->cam_spec_track = -1;
 	}
@@ -1011,7 +1052,11 @@ void CL_PredictMovePNum (int seat)
 #ifdef Q2CLIENT
 	if (cls.protocol == CP_QUAKE2)
 	{
-		if (!cl.worldmodel[cl_current_time_period] || cl.worldmodel[cl_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+		if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+		if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 			return;
 		pv->crouch = 0;
 		CLQ2_PredictMovement(seat);
@@ -1061,14 +1106,27 @@ void CL_PredictMovePNum (int seat)
 	}
 
 	//if we now know where our target player is, we can finally lock on to them.
-	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+tc_cl_loaded_bsps)
+#else
+	if (pv->cam_state == CAM_PENDING && pv->cam_spec_track >= 0 && pv->cam_spec_track < cl.allocated_client_slots && pv->viewentity != pv->cam_spec_track+1)
+#endif
 	{
 		if ((cl.inframes[cl.validsequence & UPDATE_MASK].playerstate[pv->cam_spec_track].messagenum == cl.validsequence) ||
-			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+MAX_TIME_PERIODS].sequence == cl.lerpentssequence) ||
-			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+MAX_TIME_PERIODS, NULL))
+#ifdef TEMPORALCORTEX
+			(pv->cam_spec_track+tc_cl_loaded_bsps < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+tc_cl_loaded_bsps].sequence == cl.lerpentssequence) ||
+			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+tc_cl_loaded_bsps, NULL))
+#else
+			(pv->cam_spec_track+1 < cl.maxlerpents && cl.lerpents[pv->cam_spec_track+1].sequence == cl.lerpentssequence) ||
+			CSQC_GetSSQCEntityOrigin(pv->cam_spec_track+1, NULL))
+#endif
 		{
 			pv->cam_state = CAM_EYECAM;
-			pv->viewentity = pv->cam_spec_track+MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+			pv->viewentity = pv->cam_spec_track+tc_cl_loaded_bsps;
+#else
+			pv->viewentity = pv->cam_spec_track+1;
+#endif
 			cam_nowlocked = true;
 		}
 	}
@@ -1165,8 +1223,13 @@ void CL_PredictMovePNum (int seat)
 
 	if ((pv->cam_state == CAM_WALLCAM || pv->cam_state == CAM_EYECAM) && trackent && trackent <= cl.allocated_client_slots)
 	{
-		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS];
-		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-tc_cl_loaded_bsps];
+		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-tc_cl_loaded_bsps];
+#else
+		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-1];
+		to.state = &cl.inframes[to.frame & UPDATE_MASK].playerstate[trackent-1];
+#endif
 	}
 	else
 	{
@@ -1368,8 +1431,11 @@ void CL_PredictMovePNum (int seat)
 	{
 		VectorCopy (to.state->velocity, pv->simvel);
 		VectorCopy (to.state->origin, pv->simorg);
-
+#ifdef TEMPORALCORTEX
+		if (trackent && trackent != pv->playernum+tc_cl_loaded_bsps && pv->cam_state == CAM_EYECAM)
+#else
 		if (trackent && trackent != pv->playernum+1 && pv->cam_state == CAM_EYECAM)
+#endif
 			VectorCopy(to.state->viewangles, pv->simangles);
 //Con_DPrintf("%f %f %f\n", fromtime, simtime, totime);
 	}
@@ -1397,8 +1463,11 @@ void CL_PredictMovePNum (int seat)
 			{
 				pv->simorg[i] = (1-f)*from.state->origin[i]   + f*to.state->origin[i];
 				pv->simvel[i] = (1-f)*from.state->velocity[i] + f*to.state->velocity[i];
-
+#ifdef TEMPORALCORTEX
 				if (trackent && trackent != pv->playernum+1 && pv->cam_state == CAM_EYECAM)
+#else
+				if (trackent && trackent != pv->playernum+1 && pv->cam_state == CAM_EYECAM)
+#endif
 				{
 					pv->simangles[i] = LerpAngles360(from.state->viewangles[i], to.state->viewangles[i], f);// * (360.0/65535);
 //					pv->viewangles[i] = LerpAngles16(fromstate->command.angles[i], tostate->command.angles[i], f) * (360.0/65535);

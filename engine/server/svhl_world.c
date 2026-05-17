@@ -309,7 +309,7 @@ SV_PointContents
 */
 int SVHL_PointContents (vec3_t p)
 {
-	return sv.world.worldmodel[sv_current_time_period]->funcs.PointContents(sv.world.worldmodel[sv_current_time_period], NULL, p);
+	return sv.world.worldmodel[sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[sv_current_bsp_index], NULL, p);
 }
 
 //===========================================================================
@@ -712,13 +712,13 @@ trace_t SVHL_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type,
 		//z pos/height are assumed to be different from all the others.
 		for (i = 0; i < MAX_MAP_HULLSM; i++)
 		{
-			if (!sv.world.worldmodel[sv_current_time_period]->hulls[i].available)
+			if (!sv.world.worldmodel[sv_current_bsp_index]->hulls[i].available)
 				continue;
 #define sq(x) ((x)*(x))
-			diff = sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[2] - maxs[2]) +
-				sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[2] - mins[2]) +
-				sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[1] - maxs[1]) +
-				sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[0] - mins[0]);
+			diff = sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[2] - maxs[2]) +
+				sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[2] - mins[2]) +
+				sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[1] - maxs[1]) +
+				sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[0] - mins[0]);
 			if (diff < best)
 			{
 				best = diff;

@@ -89,9 +89,9 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 				mask = NULL;
 			else
 			{
-				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_time_period], origin);
+				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_bsp_index], origin);
 				if (cluster >= 0)
-					mask = sv.phs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
+					mask = sv.phs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
 				else
 					mask = NULL;
 			}
@@ -100,9 +100,17 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 		case MULTICAST_PVS_R:
 			reliable = true;	// intentional fallthrough
 		case MULTICAST_PVS:
-			cluster = sv.world.worldmodel[sv_current_time_period]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_time_period], origin);
+#ifdef TEMPORALCORTEX
+			cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_bsp_index], origin);
+#else
+			cluster = sv.world.worldmodel->funcs.LeafnumForPoint(sv.world.worldmodel, origin);
+#endif
 			if (cluster >= 0)
-				mask = sv.pvs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
+#ifdef TEMPORALCORTEX
+				mask = sv.pvs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
+#else
+				mask = sv.pvs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
+#endif
 			else
 				mask = NULL;
 			break;
@@ -133,7 +141,7 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 
 			if (mask)
 			{
-				cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], client->edict->v->origin);
+				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], client->edict->v->origin);
 				if (cluster >= 0 && !(mask[leafnum>>3] & (1<<(leafnum&7)) ) )
 				{
 					continue;
@@ -452,6 +460,10 @@ static qboolean pp_svc_temp_entity_decide(enum protocol_type *pt, union protocol
 	case TE_EXPLOSION:
 	case TEDP_EXPLOSIONQUAD:
 	case TE_SPIKE:
+#ifdef TEMPORALCORTEX
+	case TE_TC_BULLET:
+	case TE_TC_SUPERBULLET:
+#endif
 	case TE_SUPERSPIKE:
 	case TEDP_SPIKEQUAD:
 	case TEDP_SUPERSPIKEQUAD:
@@ -804,7 +816,11 @@ void NPP_NQFlush(void)
 		{
 			cldest->viewent = *(unsigned short*)&buffer[1];
 //			bufferlen = 0;
-			if (cldest->viewent == (cldest - svs.clients)+MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+			if (cldest->viewent == (cldest - svs.clients)+tc_sv_loaded_bsps)
+#else
+			if (cldest->viewent == (cldest - svs.clients)+1)
+#endif
 				cldest->viewent = 0;	//self is the same as none
 		}
 //		bufferlen = 0;
@@ -1382,6 +1398,15 @@ void NPP_NQWriteByte(int dest, qbyte data)	//replacement write func (nq to qw)
 				multicastpos = 2;
 				multicasttype=MULTICAST_PHS;
 				break;
+#ifdef TEMPORALCORTEX
+			case TE_TC_BULLET:
+			case TE_TC_SUPERBULLET:
+			case TE_TC_GRAPPLING_HOOK:
+				multicastpos=2;
+				multicasttype=MULTICAST_PHS;
+				protocollen = (destprim->coordtype&0xf)*3+sizeof(qbyte)*2;
+				break;
+#endif
 
 			default:
 				protocollen = sizeof(buffer);
@@ -1680,10 +1705,15 @@ void NPP_NQWriteEntity(int dest, int data)	//replacement write func (nq to qw)
 {
 	NPP_NQCheckDest(dest);
 
+#ifdef TEMPORALCORTEX
+	if (majortype == svc_temp_entity && data > 0 && data <= sv.allocated_client_slots+tc_sv_loaded_bsps)
+		if (svs.clients[data-tc_sv_loaded_bsps].viewent)
+			data = svs.clients[data-tc_sv_loaded_bsps].viewent;
+#else
 	if (majortype == svc_temp_entity && data > 0 && data <= sv.allocated_client_slots)
-		if (svs.clients[data-MAX_TIME_PERIODS].viewent)
-			data = svs.clients[data-MAX_TIME_PERIODS].viewent;
-
+		if (svs.clients[data-1].viewent)
+			data = svs.clients[data-1].viewent;
+#endif
 #ifdef NQPROT
 	if (dest == MSG_ONE)
 	{
@@ -2273,6 +2303,10 @@ void NPP_QWWriteByte(int dest, qbyte data)	//replacement write func (nq to qw)
 			case TEQW_QWEXPLOSION:
 			case TE_SPIKE:
 			case TE_SUPERSPIKE:
+#ifdef TEMPORALCORTEX
+			case TE_TC_BULLET:
+			case TE_TC_SUPERBULLET:
+#endif
 				multicastpos=2;
 				multicasttype=MULTICAST_PHS_R;
 				protocollen = (destprim->coordtype&0xf)*3+sizeof(qbyte)*2;
@@ -3156,6 +3190,11 @@ void NPP_MVDWriteByte(qbyte data, client_t *to, int broadcast)	//replacement wri
 				case TE_KNIGHTSPIKE:
 				case TE_LAVASPLASH:
 				case TE_TELEPORT:
+#ifdef TEMPORALCORTEX
+				case TE_TC_BULLET:
+				case TE_TC_SUPERBULLET:
+				case TE_TC_GRAPPLING_HOOK:
+#endif
 					multicastpos=2;
 					multicasttype=MULTICAST_PVS;
 					protocollen = sizeof(short)*3+sizeof(qbyte)*2;

@@ -2059,4 +2059,3 @@ void MakeNormalVectors (const vec3_t forward, vec3_t right, vec3_t up)
 	VectorNormalize (right);
 	CrossProduct (right, forward, up);
 }
-

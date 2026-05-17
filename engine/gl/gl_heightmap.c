@@ -1900,10 +1900,17 @@ qboolean Terrain_LocateSection(const char *name, flocation_t *loc)
 	//reject if its not in maps
 	if (Q_strncasecmp(name, "maps/", 5))
 		return false;
-
-	if (!sv.world.worldmodel[sv_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (!sv.world.worldmodel[sv_current_bsp_index])
+#else
+	if (!sv.world.worldmodel)
+#endif
 		return false;
-	hm = sv.world.worldmodel[sv_current_time_period]->terrain;
+#ifdef TEMPORALCORTEX
+	hm = sv.world.worldmodel[sv_current_bsp_index]->terrain;
+#else
+	hm = sv.world.worldmodel->terrain;
+#endif
 	if (!Terr_IsSectionFName(hm, name, &x, &y))
 		return false;
 
@@ -3031,8 +3038,11 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 //	hm->beinglazy = false;
 	if (hm->relight)
 		ted_dorelight(m, hm);
-
-	if (e->model == cl.worldmodel[cl_current_time_period] && hm->skyshader)
+#ifdef TEMPORALCORTEX
+	if (e->model == cl.worldmodel[cl_current_bsp_index] && hm->skyshader)
+#else
+	if (e->model == cl.worldmodel && hm->skyshader)
+#endif
 	{
 		b = BE_GetTempBatch();
 		if (b)
@@ -3103,8 +3113,13 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 	tdibctx.vx = (r_refdef.vieworg[0] + CHUNKBIAS*hm->sectionsize) / hm->sectionsize;
 	tdibctx.vy = (r_refdef.vieworg[1] + CHUNKBIAS*hm->sectionsize) / hm->sectionsize;
 	tdibctx.wmodel = e->model;
-	tdibctx.pvs = (e->model == cl.worldmodel[cl_current_time_period])?r_refdef.scenevis:NULL;
+#ifdef TEMPORALCORTEX
+	tdibctx.pvs = (e->model == cl.worldmodel[cl_current_bsp_index])?r_refdef.scenevis:NULL;
 validatelinks(&hm->recycle);
+#else
+	tdibctx.pvs = (e->model == cl.worldmodel)?r_refdef.scenevis:NULL;
+validatelinks(&hm->recycle);
+#endif
 	Terr_DrawInBounds(&tdibctx, bounds[0], bounds[2], bounds[1]-bounds[0], bounds[3]-bounds[2]);
 
 validatelinks(&hm->recycle);
@@ -6746,7 +6761,11 @@ void CL_Parse_BrushEdit(void)
 	unsigned int	modelindex		= MSG_ReadShort();
 	int				cmd				= MSG_ReadByte();
 
+#ifdef TEMPORALCORTEX
+	model_t			*mod			= (modelindex<countof(cl.model_precache[cl_current_bsp_index]))?cl.model_precache[cl_current_bsp_index][modelindex]:NULL;
+#else
 	model_t			*mod			= (modelindex<countof(cl.model_precache))?cl.model_precache[modelindex]:NULL;
+#endif
 	heightmap_t		*hm				= mod?mod->terrain:NULL;
 
 #ifdef HAVE_SERVER
@@ -6869,7 +6888,11 @@ qboolean SV_Prespawn_Brushes(sizebuf_t *msg, unsigned int *modelindex, unsigned 
 	while(1)
 	{
 		if (*modelindex < MAX_PRECACHE_MODELS)
+#ifdef TEMPORALCORTEX
+			mod = sv.models[sv_current_bsp_index][*modelindex];
+#else
 			mod = sv.models[*modelindex];
+#endif
 		else
 			mod = NULL;
 		if (!mod)
@@ -6934,7 +6957,11 @@ qboolean SV_Parse_BrushEdit(void)
 	qboolean authorise = (host_client->penalties & BAN_MAPPER) || (host_client->netchan.remote_address.type == NA_LOOPBACK);
 	unsigned int	modelindex		= MSG_ReadShort();
 	int				cmd				= MSG_ReadByte();
+#ifdef TEMPORALCORTEX
+	model_t			*mod			= (modelindex<countof(sv.models))?sv.models[sv_current_bsp_index][modelindex]:NULL;
+#else
 	model_t			*mod			= (modelindex<countof(sv.models))?sv.models[modelindex]:NULL;
+#endif
 	heightmap_t		*hm				= mod?mod->terrain:NULL;
 	if (cmd == hmcmd_brush_delete)
 	{	//delete
@@ -7973,7 +8000,11 @@ void Mod_Terrain_Save_f(void)
 		mod = Mod_FindName(va("maps/%s", mapname));
 #ifdef HAVE_CLIENT
 	else if (cls.state)
-		mod = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = cl.worldmodel[cl_current_bsp_index];
+#else
+		mod = cl.worldmodel;
+#endif
 #endif
 	else
 		mod = NULL;
@@ -8828,7 +8859,7 @@ static void Mod_Terrain_Import_f(void)
 	if (*mapname)
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel[cl_current_time_period];
+		mod = cl.worldmodel[cl_current_bsp_index];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -8872,7 +8903,7 @@ static void Mod_Terrain_Export_f(void)
 	if (*Cmd_Argv(1))
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel[cl_current_time_period];
+		mod = cl.worldmodel[cl_current_bsp_index];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -9095,7 +9126,11 @@ void Mod_Terrain_Convert_f(void)
 	if (Cmd_Argc() >= 2)
 		mod = Mod_FindName(va("maps/%s.hmp", Cmd_Argv(1)));
 	else if (cls.state)
-		mod = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = cl.worldmodel[cl_current_bsp_index];
+#else
+		mod = cl.worldmodel;
+#endif
 	else
 		mod = NULL;
 	if (!mod || mod->type == mod_dummy)
@@ -9163,7 +9198,11 @@ void Mod_Terrain_Reload_f(void)
 		mod = Mod_FindName(va("maps/%s.hmp", Cmd_Argv(1)));
 #ifdef HAVE_CLIENT
 	else if (cls.state)
-		mod = cl.worldmodel[cl_current_time_period];
+#ifdef TEMPORALCORTEX
+		mod = cl.worldmodel[cl_current_bsp_index];
+#else
+		mod = cl.worldmodel;
+#endif
 #endif
 	else
 		mod = NULL;

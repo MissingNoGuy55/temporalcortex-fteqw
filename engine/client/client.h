@@ -578,6 +578,13 @@ typedef struct
 
 	colourised_t *colourised;
 	qboolean	nqexpectingstatusresponse;
+
+#ifdef TEMPORALCORTEX
+	// demo recording info must be here, because record is started before
+	// entering a map (and clearing client_state_t)
+	vfsfile_t	*temporalcacheoutfile;
+	vfsfile_t	*temporalcacheinfile;
+#endif
 } client_static_t;
 
 extern client_static_t	cls;
@@ -925,10 +932,17 @@ typedef struct
 	char				*model_name_vwep[MAX_VWEP_MODELS];
 	struct model_s		*model_precache_vwep[MAX_VWEP_MODELS];
 #endif
+#ifdef TEMPORALCORTEX
+	char				*model_name[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
+	struct model_s		*model_precache[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
+	char				*sound_name[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];
+	struct sfx_s		*sound_precache[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];
+#else
 	char				*model_name[MAX_PRECACHE_MODELS];
 	struct model_s		*model_precache[MAX_PRECACHE_MODELS];
 	char				*sound_name[MAX_PRECACHE_SOUNDS];
 	struct sfx_s		*sound_precache[MAX_PRECACHE_SOUNDS];
+#endif
 	char				*particle_ssname[MAX_SSPARTICLESPRE];
 	int					particle_ssprecache[MAX_SSPARTICLESPRE];	//these are actually 1-based, so 0 can be used to lazy-init them. I cheat.
 
@@ -961,11 +975,20 @@ typedef struct
 	fogstate_t	fog[FOGTYPE_COUNT];	//0 = air, 1 = water. if water has no density fall back on air.
 	fogstate_t	oldfog[FOGTYPE_COUNT];
 
+#ifdef TEMPORALCORTEX
 	char		levelname[40];	// for display on solo scoreboard
+	char		mapname[MAX_TIME_PERIODS][40];
+#else
+	char		levelname[40];	// for display on solo scoreboard
+#endif
 	char		*windowtitle;	// fully overrides the window caption.
 
 // refresh related state
+#ifdef TEMPORALCORTEX
 	struct model_s	*worldmodel[MAX_TIME_PERIODS];	// cl_entitites[0].model
+#else
+	struct model_s	*worldmodel;	// cl_entitites[0].model
+#endif
 	int			num_entities;	// stored bottom up in cl_entities array
 	int			num_statics;	// stored top down in cl_entitiers
 
@@ -1245,6 +1268,10 @@ typedef struct kbutton_s
 extern	kbutton_t	in_mlook;
 extern 	kbutton_t 	in_strafe;
 extern 	kbutton_t 	in_speed;
+
+#ifdef TEMPORALCORTEX
+extern kbutton_t	in_slowtime, in_speeduptime, in_centertime;
+#endif
 
 extern	float in_sensitivityscale;
 
@@ -1663,8 +1690,6 @@ void	Validation_Auto_Response(int playernum, char *s);
 extern	qboolean f_modified_particles;
 extern	qboolean care_f_modified;
 
-extern timeperiod_t cl_current_time_period;
-
 //random files (fixme: clean up)
 
 #ifdef Q2CLIENT
@@ -1848,5 +1873,21 @@ qboolean Media_UnregisterDecoder(struct plugin_s *plug, media_decoder_funcs_t *f
 qboolean Media_RegisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
 qboolean Media_UnregisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
 
+#ifdef TEMPORALCORTEX
 // Missi: Used for model precaching so the lists don't get out of sync between the server and client (2025.9.19)
-extern int tc_cl_loaded_bsps;
+extern int msg_idx;
+
+void CLTC_WriteSetTemporalCacheMessage();
+void CL_WriteTemporalCache (sizebuf_t *msg, int payloadoffset);
+void CL_WriteTemporalCacheCmd (usercmd_t *pcmd);
+void CL_WriteRecordTemporalCacheMessage (sizebuf_t *msg, int seq);
+qboolean CL_GetTemporalCacheMessage (void);
+void CLQW_RecordServerData_Reverse(sizebuf_t *buf, int *seq );
+void CLTC_RecordServerData( sizebuf_t *buf, int *seq );
+
+void CLTC_Record_Baseline(sizebuf_t *buf, entity_state_t *state, unsigned int fitzbits);
+int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq);
+int CLTC_Record_Lightstyles(sizebuf_t *buf, int seq);
+int CLTC_RecordInitialPlayers(sizebuf_t *buf, int seq, qboolean isnq);
+int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
+#endif

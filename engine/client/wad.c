@@ -764,11 +764,19 @@ void CL_Skygroup_f(void)
 
 //we only try one download, for textures/fred.wad
 //but we will load wads from the other two paths if we have them locally.
+#ifdef TEMPORALCORTEX
 qboolean Wad_NextDownload (int worldnum)
+#else
+qboolean Wad_NextDownload ()
+#endif
 {
 	char wadname[4096+9]="textures/";
 	int i, j, k;
+#ifdef TEMPORALCORTEX
 	model_t *wmodel = cl.worldmodel[worldnum];
+#else
+	model_t *wmodel = cl.worldmodel;
+#endif
 	if (wmodel && (wmodel->fromgame == fg_halflife || wmodel->type == mod_heightmap) && *wads)	//now go about checking the wads
 	{
 		j = 0;

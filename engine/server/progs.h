@@ -36,7 +36,12 @@ enum initprogs_e
 	INITPROGS_REQUIRE	= 1<<1,
 };
 void Q_InitProgs(enum initprogs_e flags);
+#ifdef TEMPORALCORTEX
+void PR_SpawnInitialEntities(const char *file, int bspnum);
+extern int tc_edictnums[MAX_EDICTS];
+#else
 void PR_SpawnInitialEntities(const char *file);
+#endif
 void PR_RegisterFields(void);
 void PR_Init(void);
 void QDECL ED_Spawned (struct edict_s *ent, int loading);
@@ -67,6 +72,9 @@ typedef struct edict_s
 	int				entnum;
 	unsigned int	fieldsize;
 	pbool			readonly;	//world
+#ifdef TEMPORALCORTEX
+	int				bspnum;
+#endif
 #ifdef VM_Q1
 	stdentvars_t	*v;
 	extentvars_t	*xv;
@@ -98,7 +106,6 @@ typedef struct edict_s
 #endif
 	entity_state_t	baseline;
 
-	int				time_period;
 // other fields from progs come immediately after
 } edict_t;
 

@@ -228,13 +228,20 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 	if (ent)
 	{
 		n = Q2NUM_FOR_EDICT(ent);
-		if (n < MAX_TIME_PERIODS || n > svs.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+		if (n < tc_sv_loaded_bsps || n >= svs.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+		if (n < 1 || n > svs.allocated_client_slots)
+#endif
 		{
 			Sys_Error ("cprintf to a non-client");
 			return;
 		}
-		
-		if (svs.clients[n-MAX_TIME_PERIODS].state < cs_connected)
+#ifdef TEMPORALCORTEX
+		if (svs.clients[n-tc_sv_loaded_bsps].state < cs_connected)
+#else
+		if (svs.clients[n-1].state < cs_connected)
+#endif
 		{
 			Sys_Error ("cprintf to a disconnected client");
 			return;
@@ -246,7 +253,11 @@ static void VARGS PFQ2_cprintf (q2edict_t *ent, int level, const char *fmt, ...)
 	va_end (argptr);
 
 	if (ent)
-		SV_ClientPrintf (svs.clients+(n-MAX_TIME_PERIODS), level, "%s", msg);
+#ifdef TEMPORALCORTEX
+		SV_ClientPrintf (svs.clients+(n-tc_sv_loaded_bsps), level, "%s", msg);
+#else
+		SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
+#endif
 	else
 		Con_Printf ("%s", msg);
 }
@@ -266,10 +277,17 @@ static void VARGS PFQ2_centerprintf (q2edict_t *ent, const char *fmt, ...)
 	int			n;
 	
 	n = Q2NUM_FOR_EDICT(ent);
-	if (n < MAX_TIME_PERIODS || n > svs.allocated_client_slots)
+#ifdef TEMPORALCORTEX
+	if (n < tc_sv_loaded_bsps || n > svs.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (n < 1 || n > svs.allocated_client_slots)
+#endif
 		return;	// Com_Error (ERR_DROP, "centerprintf to a non-client");
-
-	if (svs.clients[n-MAX_TIME_PERIODS].state < cs_connected)
+#ifdef TEMPORALCORTEX
+	if (svs.clients[n-tc_sv_loaded_bsps].state < cs_connected)
+#else
+	if (svs.clients[n-1].state < cs_connected)
+#endif
 		return;
 
 	va_start (argptr,fmt);
@@ -314,7 +332,10 @@ PF_Configstring
 void VARGS PFQ2_Configstring (int i, const char *val)
 {
 	int msgsize;
-	int j, t;
+	int j;
+#ifdef TEMPORALCORTEX
+	int t;
+#endif
 	int q2exremap;
 	client_t *cl;
 	if (i < 0 || i >= Q2MAX_CONFIGSTRINGS)
@@ -350,11 +371,16 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 
 	Z_Free((char*)sv.strings.configstring[i]);
 	sv.strings.configstring[i] = Z_StrDup(val);
-
-	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+#ifdef TEMPORALCORTEX
+	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
 	{
+#endif
 		if (i == Q2CS_NAME)
+#ifdef TEMPORALCORTEX
 			Q_strncpyz(sv.mapname[t], val, sizeof(sv.mapname[t]));
+#else
+			Q_strncpyz(sv.mapname, val, sizeof(sv.mapname));
+#endif
 
 		if (sv.state != ss_loading)
 		{	// send the update to everyone
@@ -378,7 +404,9 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 				}
 			}
 		}
+#ifdef TEMPORALCORTEX
 	}
+#endif
 }
 
 static int SVQ2_FindIndex (const char *name, int start, int max, int overflowtype)
@@ -502,7 +530,11 @@ static void VARGS PFQ2_setmodel (q2edict_t *ent, const char *name)
 // if it is an inline model, get the size information for it
 	if (name[0] == '*')
 	{
-		mod = Mod_FindName (Mod_FixName(name, sv.modelname[sv_current_time_period]));
+#ifdef TEMPORALCORTEX
+		mod = Mod_FindName (Mod_FixName(name, sv.modelname[sv_current_bsp_index]));
+#else
+		mod = Mod_FindName (Mod_FixName(name, sv.modelname));
+#endif
 		if (mod->loadstate == MLS_LOADING)
 			COM_WorkerPartialSync(mod, &mod->loadstate, MLS_LOADING);	//wait for it if needed
 		VectorCopy (mod->mins, ent->mins);
@@ -551,15 +583,25 @@ static qboolean VARGS PFQ2_inPVS (vec3_t p1, vec3_t p2)
 	int		cluster;
 	int		area1, area2;
 	qbyte	*mask;
+#ifdef TEMPORALCORTEX
+	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p1, &area1);
+	mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_bsp_index], cluster, NULL, PVM_FAST);
 
-	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p1, &area1);
-	mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_time_period], cluster, NULL, PVM_FAST);
-
-	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p2, &area2);
+	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;
-	if (!sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], area1, area2))
+	if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], area1, area2))
 		return false;		// a door blocks sight
+#else
+	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
+	mask = sv.world.worldmodel->funcs.ClusterPVS (sv.world.worldmodel, cluster, NULL, PVM_FAST);
+
+	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p2, &area2);
+	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
+		return false;
+	if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))
+		return false;		// a door blocks sight
+#endif
 	return true;
 }
 
@@ -576,23 +618,36 @@ static qboolean VARGS PFQ2_inPHS (vec3_t p1, vec3_t p2)
 	int		cluster;
 	int		area1, area2;
 	qbyte	*mask;
+#ifdef TEMPORALCORTEX
+	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p1, &area1);
+	mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_bsp_index], cluster, NULL);
 
-	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p1, &area1);
-	mask = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_time_period], cluster, NULL);
-
-	cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], p2, &area2);
+	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;		// more than one bounce away
-	if (!sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected (sv.world.worldmodel[sv_current_time_period], area1, area2))
+	if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], area1, area2))
 		return false;		// a door blocks hearing
+#else
+	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
+	mask = sv.world.worldmodel->funcs.ClusterPHS (sv.world.worldmodel, cluster, NULL);
 
+	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p2, &area2);
+	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
+		return false;		// more than one bounce away
+	if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))
+		return false;		// a door blocks hearing
+#endif
 	return true;
 }
 
 qboolean VARGS PFQ2_AreasConnected(unsigned int area1, unsigned int area2)
 {
 	//FIXME: requires q2/q3 bsp
-	return sv.world.worldmodel[sv_current_time_period]->funcs.AreasConnected(sv.world.worldmodel[sv_current_time_period], area1, area2);
+#ifdef TEMPORALCORTEX
+	return sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected(sv.world.worldmodel[sv_current_bsp_index], area1, area2);
+#else
+	return sv.world.worldmodel->funcs.AreasConnected(sv.world.worldmodel, area1, area2);
+#endif
 }
 
 
@@ -873,7 +928,11 @@ static int	VARGS SVQ2_AreaEdicts (vec3_t mins, vec3_t maxs, q2edict_t **list,	in
 static model_t *QDECL SVQ2_GetCModel(world_t *w, int modelindex)
 {
 	if ((unsigned int)modelindex < MAX_PRECACHE_MODELS)
+#ifdef TEMPORALCORTEX
+		return sv.models[sv_current_bsp_index][modelindex];
+#else
 		return sv.models[modelindex];
+#endif
 	else
 		return NULL;
 }
@@ -886,8 +945,13 @@ void SVQ2_InitWorld(void)
 
 static void QDECL PFQ2_SetAreaPortalState(unsigned int p, qboolean s)
 {
-	if (sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState)
-		sv.world.worldmodel[sv_current_time_period]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_time_period], p, -1, -1, s);
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_bsp_index], p, -1, -1, s);
+#else
+	if (sv.world.worldmodel->funcs.SetAreaPortalState)
+		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, p, -1, -1, s);
+#endif
 }
 
 static void *VARGS ZQ2_TagMalloc(int size, int tag)

@@ -46,6 +46,9 @@ char shaders[][64] =
 	"terrain",
 	"rtlight",
 	"rq_rtlight",
+#ifdef TEMPORALCORTEX
+	"temporalcortex_timetravelwarp",
+#endif
 	""
 };
 

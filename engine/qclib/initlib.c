@@ -537,7 +537,10 @@ void PRAddressableFlush(progfuncs_t *progfuncs, size_t totalammount)
 int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
-	edictrun_t *e, *e1, *e2;
+	edictrun_t *e;
+	edictrun_t *e2;	// Missi: Temporal Cortex (2026.1.31)
+	int i;
+
 	prinst.maxedicts = max_ents;
 
 	sv_num_edicts = 0;
@@ -560,34 +563,43 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 	e->fieldsize = prinst.fields_size;
 	e->entnum = 0;
 	e->ereftype = ER_ENTITY;
-	e1 = PRHunkAlloc(progfuncs, externs->edictsize, "edict1");	// Missi: TIME_PERIOD_PAST (2025.9.19)
-	e1->fieldsize = prinst.fields_size;
-	e1->entnum = 1;
-	e1->ereftype = ER_ENTITY;
-	e2 = PRHunkAlloc(progfuncs, externs->edictsize, "edict2");	// Missi: TIME_PERIOD_FUTURE (2025.9.19)
-	e2->fieldsize = prinst.fields_size;
-	e2->entnum = 2;
-	e2->ereftype = ER_ENTITY;
 
 	sv_edicts = (struct edict_s *)e;
-	sv_num_edicts = 3;
+
 	progfuncs->funcs.edicttable[0] = sv_edicts;
-	progfuncs->funcs.edicttable[1] = (struct edict_s *)e1;
-	progfuncs->funcs.edicttable[2] = (struct edict_s *)e2;
 	e->fields = PRAddressableExtend(progfuncs, NULL, e->fieldsize, prinst.max_fields_size-e->fieldsize);
-	e1->fields = PRAddressableExtend(progfuncs, NULL, e1->fieldsize, prinst.max_fields_size-e1->fieldsize);
-	e2->fields = PRAddressableExtend(progfuncs, NULL, e2->fieldsize, prinst.max_fields_size-e2->fieldsize);
 
 	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e);
-	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e1);
-	QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e2);
 
 	if (externs->entspawn)
 	{
 		externs->entspawn((struct edict_s *)e, false);
-		externs->entspawn((struct edict_s *)e1, false);
-		externs->entspawn((struct edict_s *)e2, false);
 	}
+
+	for (i = 1; i < sv_loaded_bsps; i++)
+	{
+		char szEdictName[64];
+
+		snprintf (szEdictName, sizeof(szEdictName), "edict%i", i);
+
+		// Missi: Temporal Cortex (2026.1.31)
+		e2 = PRHunkAlloc(progfuncs, externs->edictsize, szEdictName);	// Missi: TIME_PERIOD_PAST (2025.9.19)
+		e2->fieldsize = prinst.fields_size;
+		e2->entnum = i;
+		e2->ereftype = ER_ENTITY;
+
+		progfuncs->funcs.edicttable[i] = (struct edict_s *)e2;
+		e2->fields = PRAddressableExtend(progfuncs, NULL, e2->fieldsize, prinst.max_fields_size-e2->fieldsize);
+
+		QC_ClearEdict(&progfuncs->funcs, (struct edict_s *)e2);
+
+		if (externs->entspawn)
+		{
+			externs->entspawn((struct edict_s *)e2, false);
+		}
+	}
+
+	sv_num_edicts = i;
 
 	return prinst.max_fields_size;
 }
@@ -1900,6 +1912,7 @@ pubprogfuncs_t * PDECL InitProgs(progexterns_t *ext)
 		static struct edict_s *safe_edicts;
 		static int safe_num_edicts;
 		static double safetime=0;
+		static int safe_bsps=0;
 		if (!ext->progsversion)	ext->progsversion = PROGSTRUCT_VERSION;
 		if (!ext->Printf)		ext->Printf = qclib_null_printf;
 		if (!ext->DPrintf)		ext->DPrintf = qclib_null_printf;
@@ -1908,6 +1921,7 @@ pubprogfuncs_t * PDECL InitProgs(progexterns_t *ext)
 		if (!ext->memfree)		ext->memfree = qclib_free;
 		if (!ext->gametime)		ext->gametime = &safetime;
 		if (!ext->edicts)		ext->edicts = &safe_edicts;
+		if (!ext->loaded_bsps)	ext->loaded_bsps = &safe_bsps;
 		if (!ext->num_edicts)	ext->num_edicts = &safe_num_edicts;
 		if (!ext->edictsize)	ext->edictsize = sizeof(edictrun_t);
 	}

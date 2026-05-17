@@ -994,7 +994,11 @@ static unsigned int SVFTE_DeltaCalcBits(entity_state_t *from, qbyte *frombonedat
 			/*if we've got player movement then write the origin anyway*/
 			bits |= UF_ORIGINXY | UF_ORIGINZ;
 			/*and force angles too, if its not us*/
-			if (host_client != svs.clients + to->number-MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+			if (host_client != svs.clients + to->number-tc_sv_loaded_bsps)
+#else
+			if (host_client != svs.clients + to->number-1)
+#endif
 				bits |= UF_ANGLESXZ | UF_ANGLESY;
 		}
 	}
@@ -1688,9 +1692,14 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 
 			client->pendingdeltabits[0] &= ~UF_SV_REMOVE;
 		}
-		for(j = MAX_TIME_PERIODS; j < client->sentents.num_entities; j++)
+#ifdef TEMPORALCORTEX
+		for(j = 1; j < client->sentents.num_entities; j++)
+#else
+		for(j = 1; j < client->sentents.num_entities; j++)
+#endif
 		{
 			bits = client->pendingdeltabits[j];
+
 			if (!(bits & ~UF_SV_RESET2))	//skip while there's nothing to send (skip reset2 if there's no other changes, its only to reduce chances of the client getting 'new' entities containing just an origin)*/
 				continue;
 			if (msg->cursize + 52 > msg->maxsize)
@@ -1717,7 +1726,11 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 			{
 				//if we didn't reach the end in the last packet, start at that point to avoid spam
 				//player slots are exempt from this, so they are in every packet (strictly speaking only the local player 'needs' this, but its nice to have it for high-priority targets too)
+#ifdef TEMPORALCORTEX
+				if (j < client->nextdeltaindex && j >= svs.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 				if (j < client->nextdeltaindex && j > svs.allocated_client_slots)
+#endif
 					continue;
 
 				if (bits & UF_SV_RESET2)
@@ -1762,8 +1775,9 @@ qboolean SVFTE_EmitPacketEntities(client_t *client, packet_entities_t *to, sizeb
 	for (i = 0; i < to->num_entities; i++)
 	{
 		n = &to->entities[i];
-		j = n->number-MAX_TIME_PERIODS;
-		if (j >= sv.allocated_client_slots + FINAL_TIME_PERIOD)
+		j = n->number-1;
+
+		if (j >= sv.allocated_client_slots)
 			break;	//don't track non-player slots.
 
 		cl = &svs.clients[j];
@@ -2232,8 +2246,11 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	int diff;
 	int best;
 	int hullnum, i;
-
-	if (sv.world.worldmodel[sv_current_time_period]->fromgame != fg_quake)
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index]->fromgame != fg_quake)
+#else
+	if (sv.world.worldmodel->fromgame != fg_quake)
+#endif
 	{
 		return -mins[2] + 32;	//clients are expected to decide themselves.
 	}
@@ -2249,10 +2266,17 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	for (i = 0; i < MAX_MAP_HULLSM; i++)
 	{
 #define sq(x) ((x)*(x))
-		diff = sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[2] - maxs[2]) +
-			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[2] - mins[2]) +
-			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_maxs[0] - maxs[0]) +
-			sq(sv.world.worldmodel[sv_current_time_period]->hulls[i].clip_mins[0] - mins[0]);
+#ifdef TEMPORALCORTEX
+		diff = sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[2] - maxs[2]) +
+			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[2] - mins[2]) +
+			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[0] - maxs[0]) +
+			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[0] - mins[0]);
+#else
+		diff = sq(sv.world.worldmodel->hulls[i].clip_maxs[2] - maxs[2]) +
+			sq(sv.world.worldmodel->hulls[i].clip_mins[2] - mins[2]) +
+			sq(sv.world.worldmodel->hulls[i].clip_maxs[0] - maxs[0]) +
+			sq(sv.world.worldmodel->hulls[i].clip_mins[0] - mins[0]);
+#endif
 		if (diff < best)
 		{
 			best = diff;
@@ -2553,6 +2577,10 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 	//don't cull external models either. unless they're progs/b_*.mdl which SHOULD get culled this way. its awkward okay?
 	if (seen->v->solid == SOLID_BSP)
 		return false;	//bsp ents are never culled this way (typically far too large to care, often with large parts inside walls)
+#ifdef TEMPORALCORTEX
+	if (seen->bspnum != sv_current_bsp_index)
+		return false;
+#endif
 
 	if (timestamp)
 	{
@@ -2577,8 +2605,11 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 				end[0] = amin[0] + frandom()*size[0];
 				end[1] = amin[1] + frandom()*size[1];
 				end[2] = amin[2] + frandom()*size[2];
-
-				if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#ifdef TEMPORALCORTEX
+				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#else
+				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#endif
 				{
 					*timestamp = sv.time + delay;
 					return false;	//this trace went through, so don't cull
@@ -2596,7 +2627,11 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 		for (c = 0; c < cameras->numents; c++)
 		{
 			tr.fraction = 1;
-			if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#ifdef TEMPORALCORTEX
+			if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#else
+			if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#endif
 				return false;	//wasn't blocked
 		}
 
@@ -2610,7 +2645,11 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 				end[2] = seen->v->origin[2] + ((i&4)?seen->v->mins[2]+0.1:seen->v->maxs[2]);
 
 				tr.fraction = 1;
-				if (!sv.world.worldmodel[sv_current_time_period]->funcs.NativeTrace (sv.world.worldmodel[sv_current_time_period], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#ifdef TEMPORALCORTEX
+				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#else
+				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+#endif
 					return false;	//this trace went through, so don't cull
 			}
 		}
@@ -2926,7 +2965,11 @@ void SV_WritePlayersToClient (client_t *client, client_frame_t *frame, edict_t *
 				continue;
 
 			// ignore if not touching a PV leaf
-			if (cameras && !sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
+#ifdef TEMPORALCORTEX
+			if (cameras && !sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
+#else
+			if (cameras && !sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
+#endif
 				continue;
 
 			if (!((int)clent->xv->dimension_see & ((int)ent->xv->dimension_seen | (int)ent->xv->dimension_ghost)))
@@ -2988,8 +3031,11 @@ void SV_WritePlayersToClient (client_t *client, client_frame_t *frame, edict_t *
 			clst.ezext1 = client->ezprotocolextensions1;
 			clst.zext = client->zquake_extensions;
 			clst.cl = cl;
-
-			if (ent != vent || host_client->viewent == j+MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+			if (ent != vent || host_client->viewent == j+tc_sv_loaded_bsps)
+#else
+			if (ent != vent || host_client->viewent == j+1)
+#endif
 				clst.modelindex = 0;
 
 #ifdef SERVER_DEMO_PLAYBACK
@@ -3310,7 +3356,22 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 {
 	int i;
 	gibfilter_t *gf;
+#ifdef TEMPORALCORTEX
+	int t;
 
+	for (t = 0; t < tc_sv_loaded_bsps; t++)
+	{
+		for (i=1; sv.strings.model_precache[t][i] ; i++)
+			if (!strcmp(sv.strings.model_precache[t][i], modelname))
+				break;
+		if (!sv.strings.model_precache[t][i])
+		{
+			if (allowwarn)
+				Con_Printf("Filtered model \"%s\" was not precached\n", modelname);
+			return;	//model not in use.
+		}
+	}
+#else
 	for (i=1; sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], modelname))
 			break;
@@ -3320,6 +3381,7 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 			Con_Printf("Filtered model \"%s\" was not precached\n", modelname);
 		return;	//model not in use.
 	}
+#endif
 
 	gf = Z_Malloc(sizeof(gibfilter_t));
 	gf->modelindex = i;
@@ -3471,12 +3533,24 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	VectorCopy (ent->v->angles, state->angles);
 
 	state->u.q1.weaponframe = 0;
-	if ((state->number-MAX_TIME_PERIODS) < (unsigned int)sv.allocated_client_slots && (client == &svs.clients[state->number-MAX_TIME_PERIODS] || client == svs.clients[state->number-MAX_TIME_PERIODS].controller || (client && (!client->edict || client->spec_track == state->number))))
+#ifdef TEMPORALCORTEX
+	if ((state->number) < (unsigned int)sv.allocated_client_slots && (client == &svs.clients[state->number] || client == svs.clients[state->number].controller || (client && (!client->edict || client->spec_track == state->number))))
+#else
+	if ((state->number) < (unsigned int)sv.allocated_client_slots && (client == &svs.clients[state->number] || client == svs.clients[state->number].controller || (client && (!client->edict || client->spec_track == state->number))))
+#endif
 		if (!client || !(client->fteprotocolextensions2 & PEXT2_PREDINFO))
 			state->u.q1.weaponframe = ent->v->weaponframe;
-	if ((state->number-MAX_TIME_PERIODS) < (unsigned int)sv.allocated_client_slots && ent->v->movetype && client)
+#ifdef TEMPORALCORTEX
+	if ((state->number-tc_sv_loaded_bsps) < (unsigned int)sv.allocated_client_slots + tc_sv_loaded_bsps - 1 && ent->v->movetype && client)
+#else
+	if ((state->number-1) < (unsigned int)sv.allocated_client_slots && ent->v->movetype && client)
+#endif
 	{
-		client_t *cl = &svs.clients[state->number-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		client_t *cl = &svs.clients[state->number];
+#else
+		client_t *cl = &svs.clients[state->number];
+#endif
 		extern cvar_t sv_nqplayerphysics;
 		if (cl->isindependant || sv_nqplayerphysics.ival==2)
 		{
@@ -3630,7 +3704,11 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	if (((int)ent->v->flags & FL_CLASS_DEPENDENT) && client && client->playerclass)	//hexen2 wierdness.
 	{
 		char modname[MAX_QPATH];
+#ifdef TEMPORALCORTEX
+		Q_strncpyz(modname, sv.strings.model_precache[sv_current_bsp_index][state->modelindex], sizeof(modname));
+#else
 		Q_strncpyz(modname, sv.strings.model_precache[state->modelindex], sizeof(modname));
+#endif
 		if (strlen(modname)>5)
 		{
 			modname[strlen(modname)-5] = client->playerclass+'0';
@@ -3672,20 +3750,32 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	{
 		if (progstype == PROG_TENEBRAE)
 		{
+#ifdef TEMPORALCORTEX
+			//tenebrae has some hideous hacks
+			if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/w_light.spr") ||
+				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/b_light.spr") ||
+				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/s_light.spr") ||
+				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/flame.mdl") ||
+				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/flame2.mdl"))
+#else
 			//tenebrae has some hideous hacks
 			if (!strcmp(sv.strings.model_precache[state->modelindex], "progs/w_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/b_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/s_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame.mdl") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame2.mdl"))
+#endif
 			{
 				//fixme: add some default colours
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				if (!state->light[3])
 					state->light[3] = 350;
 			}
-
+#ifdef TEMPORALCORTEX
+			if (!strcmp (sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/lavaball.mdl"))
+#else
 			if (!strcmp (sv.strings.model_precache[state->modelindex], "progs/lavaball.mdl"))
+#endif
 			{
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				state->skinnum = 17;
@@ -3862,9 +3952,11 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 			pack->num_entities++;
 
 			SV_Snapshot_BuildStateQ1(state, clent, seat, pack);
-
-			state->number = seat - svs.clients + MAX_TIME_PERIODS;
-
+#ifdef TEMPORALCORTEX
+			state->number = seat - svs.clients + tc_sv_loaded_bsps;
+#else
+			state->number = seat - svs.clients + 1;
+#endif
 			//yeah, I doubt anyone will need this
 			if (progstype == PROG_QW)
 			{
@@ -3895,14 +3987,26 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 
 	/*legacy qw clients get their players separately*/
 	if (ISQWCLIENT(client) && !(client->fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
-		e = min(sv.allocated_client_slots+FINAL_TIME_PERIOD, client->max_net_clients);
+#ifdef TEMPORALCORTEX
+		e = min(sv.allocated_client_slots+tc_sv_loaded_bsps, client->max_net_clients+tc_sv_loaded_bsps);
+#else
+		e = min(sv.allocated_client_slots+1, client->max_net_clients);
+#endif
 	else
-		e = MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		e = tc_sv_loaded_bsps;
+#else
+		e = 1;
+#endif
 
 	if (client->penalties & BAN_BLIND)
 	{
 		e = client->edict->entnum;
-		limit = e+MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+		limit = e+tc_sv_loaded_bsps;
+#else
+		limit = e+1;
+#endif
 	}
 
 	if (sv_cullentities_trace.ival && client->lastseen_count < limit)
@@ -3959,7 +4063,10 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 				!((int)ent->xv->pflags & PFLAGS_FULLDYNAMIC) &&	//needs to be networked if its giving off realtime lights, even when it has no model.
 				ent->v->skin >= 0)	//ents with negative skins are networked too. eg ladder volumes.
 				continue;
-
+#ifdef TEMPORALCORTEX
+			if ( ent->bspnum != sv_current_bsp_index )
+				continue;
+#endif
 			if (cameras)	//self doesn't get a pvs test, to cover teleporters
 			{
 				if ((int)ent->v->effects & EF_NODEPTHTEST)
@@ -3986,34 +4093,61 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 						}
 						else
 						{
-							if (!sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#ifdef TEMPORALCORTEX
+							if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#else
+							if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#endif
 								continue;
 						}
 					}
 					else
 					{
-						if (!sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#ifdef TEMPORALCORTEX
+						if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#else
+						if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+#endif
 							continue;
 						tracecullent = ent;
 					}
 				}
-				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel[sv_current_time_period]->fromgame == fg_quake)
+#ifdef TEMPORALCORTEX
+				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake)
+#else
+				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel->fromgame == fg_quake)
+#endif
 				{
 					int cluster;
 					unsigned char *mask;
-					qbyte *phs = sv.world.worldmodel[sv_current_time_period]->phs;
+#ifdef TEMPORALCORTEX
+					qbyte *phs = sv.world.worldmodel[sv_current_bsp_index]->phs;
+#else
+					qbyte *phs = sv.world.worldmodel->phs;
+#endif
 					if (phs)
 					{
 						//FIXME: this lookup should be cachable or something.
 						if (client->edict)
-							cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], client->edict->v->origin, NULL);	//ignore areas, can hear through doors.
+#ifdef TEMPORALCORTEX
+							cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], client->edict->v->origin, NULL);
+#else
+							cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, client->edict->v->origin, NULL);
+#endif
+						//ignore areas, can hear through doors.
 						else
 							cluster = -1;	//mvd
 						if (cluster >= 0)
 						{
-							mask = phs + cluster * 4*((sv.world.worldmodel[sv_current_time_period]->numclusters+31)>>5);
+#ifdef TEMPORALCORTEX
+							mask = phs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
 
-							cluster = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_time_period], ent->v->origin, NULL);
+							cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], ent->v->origin, NULL);
+#else
+							mask = phs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
+
+							cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, ent->v->origin, NULL);
+#endif
 							if (cluster >= 0 && !(mask[cluster>>3] & (1<<(cluster&7)) ) )
 							{
 								continue;
@@ -4068,7 +4202,11 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 		if (cameras && tracecullent && !((unsigned int)ent->v->effects & (EF_DIMLIGHT|EF_BLUE|EF_RED|EF_BRIGHTLIGHT|EF_BRIGHTFIELD|EF_NODEPTHTEST)))
 		{	//more expensive culling
 			if (!(pvsflags & PVSF_MODE_MASK))
+#ifdef TEMPORALCORTEX
+				if ((e < sv.allocated_client_slots + tc_sv_loaded_bsps && sv_cullplayers_trace.value) || sv_cullentities_trace.value)
+#else
 				if ((e <= sv.allocated_client_slots && sv_cullplayers_trace.value) || sv_cullentities_trace.value)
+#endif
 					if (Cull_Traceline(e < client->lastseen_count?&client->lastseen_time[e]:NULL, cameras, tracecullent))
 						continue;
 		}
@@ -4174,8 +4312,11 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 	}
 	else
 		VectorCopy (viewofs, org);
-
-	sv.world.worldmodel[sv_current_time_period]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_time_period], org, &area);
+#ifdef TEMPORALCORTEX
+	sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], org, &area);
+#else
+	sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, org, &area);
+#endif
 	for (i = 1; ; i++)
 	{
 		if (i > cameras->area[0])
@@ -4186,7 +4327,11 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 		if (cameras->area[i] == area)
 			break;	//already have a camera in this area, don't make stuff slow with dupes.
 	}
-	sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org, &cameras->pvs, cameras->numents!=0);
+#ifdef TEMPORALCORTEX
+	sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, &cameras->pvs, cameras->numents!=0);
+#else
+	sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &cameras->pvs, cameras->numents!=0);
+#endif
 	if (cameras->numents < SV_PVS_CAMERAS)
 	{
 		cameras->ent[cameras->numents] = ent;
@@ -4263,7 +4408,11 @@ void SV_WriteEntitiesToClient (client_t *client, sizebuf_t *msg, qboolean ignore
 	client_frame_t	*frame;
 	pvscamera_t camerasbuf;
 	pvscamera_t *cameras = &camerasbuf;
-	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel[sv_current_time_period]->pvsbytes);
+#ifdef TEMPORALCORTEX
+	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel[sv_current_bsp_index]->pvsbytes);
+#else
+	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel->pvsbytes);
+#endif
 
 	// this is the frame we are creating
 	frame = &client->frameunion.frames[client->netchan.incoming_sequence & UPDATE_MASK];
@@ -4355,7 +4504,11 @@ void SV_WriteEntitiesToClient (client_t *client, sizebuf_t *msg, qboolean ignore
 			int e;
 			for (e = 0; e < pack->num_entities; e++)
 			{
+#ifdef TEMPORALCORTEX
+				if (pack->entities[e].number >= sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 				if (pack->entities[e].number > sv.allocated_client_slots)
+#endif
 					break;
 				if (msg->cursize + 32 > msg->maxsize)
 					break;
@@ -4436,7 +4589,11 @@ void SV_ProcessSendFlags(client_t *c)
 	unsigned int e, h = 0;
 	if (!c->csqcactive || !c->pendingcsqcbits)
 		return;
-	for (e=MAX_TIME_PERIODS ; e<sv.world.num_edicts && e < c->max_net_ents; e++)
+#ifdef TEMPORALCORTEX
+	for (e=tc_sv_loaded_bsps ; e<sv.world.num_edicts && e < c->max_net_ents; e++)
+#else
+	for (e=1 ; e<sv.world.num_edicts && e < c->max_net_ents; e++)
+#endif
 	{
 		ent = EDICT_NUM_PB(svprogfuncs, e);
 		if (ED_ISFREE(ent))
@@ -4461,8 +4618,11 @@ void SV_CleanupEnts(void)
 		needcleanup = 0;
 		return;
 	}
-
-	for (e=MAX_TIME_PERIODS ; e<=needcleanup ; e++)
+#ifdef TEMPORALCORTEX
+	for (e=tc_sv_loaded_bsps ; e<=needcleanup ; e++)
+#else
+	for (e=1 ; e<=needcleanup ; e++)
+#endif
 	{
 		ent = EDICT_NUM_PB(svprogfuncs, e);
 		ent->xv->SendFlags = 0;

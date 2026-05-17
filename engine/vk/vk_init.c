@@ -2311,6 +2311,16 @@ void VK_SetupViewPortProjection(qboolean flipy, const float eyematrix[12], const
 			fovv_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * r_waterwarp.value);
 			fovv_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * r_waterwarp.value);
 		}
+#ifdef TEMPORALCORTEX
+		// Missi: Intentionally does not work with water warp (2026.1.8)
+		if ((r_refdef.flags & TCRDF_TIMETRAVEL) && !(r_refdef.flags & TCRDF_TIMETRAVELWARP))
+		{
+			fov_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+			fov_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+			fovv_x *= 1 + (((sin(cl.time * 4.7) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+			fovv_y *= 1 + (((sin(cl.time * 3.0) + 1) * 0.015) * tc_r_timetravel_warp_intensity.value);
+		}
+#endif
 		if (fovoverrides)
 		{
 			fov_l = fovoverrides[0];
@@ -2946,6 +2956,16 @@ void	VK_R_RenderView				(void)
 		else if (r_waterwarp.value > 0)
 			r_refdef.flags |= RDF_WATERWARP;	//try fullscreen warp instead if we can
 	}
+#ifdef TEMPORALCORTEX
+	if (r_refdef.flags & TCRDF_TIMETRAVEL)
+	{
+		extern cvar_t r_projection;
+		if (!tc_r_timetravel_warp_intensity.value || r_projection.ival)
+			r_refdef.flags &= ~TCRDF_TIMETRAVEL;	//no warp at all
+		else if (tc_r_timetravel_warp_intensity.value > 0)
+			r_refdef.flags |= TCRDF_TIMETRAVELWARP;	//try fullscreen warp instead if we can
+	}
+#endif
 
 	if (!r_refdef.globalfog.density)
 	{

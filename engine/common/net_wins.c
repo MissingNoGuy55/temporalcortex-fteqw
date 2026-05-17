@@ -4708,8 +4708,11 @@ static void * NET_KexLobby_CreateContext(const dtlscred_t *credinfo, void *cbctx
 		peer->plidx[1] = 2;
 		peer->plidx[2] = 3;
 		peer->plidx[3] = 4;
-
+#ifdef TEMPORALCORTEX
+		NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBYRULE, va("map\\%s", sv.mapname[sv_current_bsp_index]));
+#else
 		NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBYRULE, va("map\\%s", sv.mapname));
+#endif
 		// NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBDYRULE, "_savedgamename\\");
 		// NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBDYRULE, "_savedgame\\0");
 		if (deathmatch.value)

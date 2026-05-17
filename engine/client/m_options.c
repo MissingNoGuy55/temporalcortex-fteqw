@@ -4363,12 +4363,20 @@ void M_Modelviewer_Reset(struct menu_s *cmenu)
 {
 	emenu_t *menu = (emenu_t*)cmenu;
 	modelview_t *mv = menu->data;
-	mv->ragworld.worldmodel[cl_current_time_period] = NULL;	//already went away
+#ifdef TEMPORALCORTEX
+	mv->ragworld.worldmodel[cl_current_bsp_index] = NULL;	//already went away
+#else
+	mv->ragworld.worldmodel = NULL;	//already went away
+#endif
 	rag_removedeltaent(&mv->ragent);
 	skel_reset(&mv->ragworld);
 	World_RBE_Shutdown(&mv->ragworld);
 	//we still want it.
-	mv->ragworld.worldmodel[cl_current_time_period] = NULL;//Mod_ForName("", MLV_SILENT);
+#ifdef TEMPORALCORTEX
+	mv->ragworld.worldmodel[cl_current_bsp_index] = NULL;//Mod_ForName("", MLV_SILENT);
+#else
+	mv->ragworld.worldmodel = NULL;//Mod_ForName("", MLV_SILENT);
+#endif
 //	World_RBE_Start(&mv->ragworld);
 }
 static void M_Modelviewer_Shutdown(struct emenu_s *menu)
@@ -4434,8 +4442,11 @@ void M_Menu_ModelViewer_f(void)
 	VectorSet(mv->ragworld.edicts->v->mins, -1000, -1000, -1000);
 	VectorSet(mv->ragworld.edicts->v->maxs, 1000, 1000, -100);
 	mv->ragworld.edicts->xv->dimension_hit = mv->ragworld.edicts->xv->dimension_solid = 0xff;
-
-	mv->ragworld.worldmodel[cl_current_time_period] = Mod_ForName("", MLV_SILENT);
+#ifdef TEMPORALCORTEX
+	mv->ragworld.worldmodel[cl_current_bsp_index] = Mod_ForName("", MLV_SILENT);
+#else
+	mv->ragworld.worldmodel = Mod_ForName("", MLV_SILENT);
+#endif
 	World_RBE_Start(&mv->ragworld);
 #endif
 }

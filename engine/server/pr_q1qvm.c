@@ -528,10 +528,17 @@ static edict_t *QDECL Q1QVMPF_EntAlloc(pubprogfuncs_t *pf, pbool object, size_t 
 	return (struct edict_s *)e;
 }
 
+#ifdef TEMPORALCORTEX
+static int QDECL Q1QVMPF_LoadEnts(pubprogfuncs_t *pf, const char *mapstring, void *ctx,
+								  void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx),
+								  void (PDECL *ent_callback) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend),
+								  pbool (PDECL *ext_callback)(pubprogfuncs_t *pf, void *ctx, const char **str), int timeperiod)
+#else
 static int QDECL Q1QVMPF_LoadEnts(pubprogfuncs_t *pf, const char *mapstring, void *ctx,
 								  void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx),
 								  void (PDECL *ent_callback) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend),
 								  pbool (PDECL *ext_callback)(pubprogfuncs_t *pf, void *ctx, const char **str))
+#endif
 {
 	//the qvm calls the spawn functions itself.
 	//no saved-games.
@@ -885,7 +892,11 @@ static qintptr_t QVM_BPrint (void *offset, quintptr_t mask, const qintptr_t *arg
 }
 static qintptr_t QVM_SPrint (void *offset, quintptr_t mask, const qintptr_t *arg)
 {
+#ifdef TEMPORALCORTEX
+	unsigned int clnum = VM_LONG(arg[0])-tc_sv_loaded_bsps;
+#else
 	unsigned int clnum = VM_LONG(arg[0])-1;
+#endif
 	int level = VM_LONG(arg[1]);
 	const char *text = VM_POINTER(arg[2]);
 	unsigned int flags = VM_LONG(arg[3]);
@@ -1026,7 +1037,11 @@ static qintptr_t QVM_DropToFloor (void *offset, quintptr_t mask, const qintptr_t
 		end[2] -= 256;
 
 	VectorCopy (ent->v->origin, start);
+#ifdef TEMPORALCORTEX
+	trace = World_Move (&sv.world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, sv_current_bsp_index);
+#else
 	trace = World_Move (&sv.world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent);
+#endif
 
 	if (trace.fraction == 1 || trace.allsolid)
 		return false;
@@ -1050,7 +1065,11 @@ static qintptr_t QVM_PointContents (void *offset, quintptr_t mask, const qintptr
 	v[0] = VM_FLOAT(arg[0]);
 	v[1] = VM_FLOAT(arg[1]);
 	v[2] = VM_FLOAT(arg[2]);
-	return sv.world.worldmodel[sv_current_time_period]->funcs.PointContents(sv.world.worldmodel[sv_current_time_period], NULL, v);
+#ifdef TEMPORALCORTEX
+	return sv.world.worldmodel[sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[sv_current_bsp_index], NULL, v);
+#else
+	return sv.world.worldmodel->funcs.PointContents(sv.world.worldmodel, NULL, v);
+#endif
 }
 static qintptr_t QVM_NextEnt (void *offset, quintptr_t mask, const qintptr_t *arg)
 {	//input output are entity numbers
@@ -1666,7 +1685,11 @@ static qintptr_t QVM_RedirectCmd (void *offset, quintptr_t mask, const qintptr_t
 	task = Z_Malloc(sizeof(*task)+strlen(s));
 	task->callback = QVM_RedirectCmdCallback;
 	strcpy(task->data, s);
+#ifdef TEMPORALCORTEX
+	task->ctxint = entnum-tc_sv_loaded_bsps;
+#else
 	task->ctxint = entnum-1;
+#endif
 	for(link = &svs.frameendtasks; *link; link = &(*link)->next)
 		;	//add them on the end, so they're execed in order
 	*link = task;
@@ -1697,8 +1720,11 @@ static qintptr_t QVM_Add_Bot (void *offset, quintptr_t mask, const qintptr_t *ar
 			cl->netchan.message.maxsize = 0;
 			cl->datagram.allowoverflow = true;
 			cl->datagram.maxsize = 0;
-
-			cl->edict = EDICT_NUM_PB(sv.world.progs, i+MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+			cl->edict = EDICT_NUM_PB(sv.world.progs, i+tc_sv_loaded_bsps);
+#else
+			cl->edict = EDICT_NUM_PB(sv.world.progs, i+1);
+#endif
 
 			InfoBuf_SetKey(&cl->userinfo, "name", name);
 			InfoBuf_SetKey(&cl->userinfo, "topcolor", va("%i", top));
@@ -1727,9 +1753,17 @@ static qintptr_t QVM_Remove_Bot (void *offset, quintptr_t mask, const qintptr_t 
 {
 	//kicks NOW. which generally makes it unsafe for players (calling from StartFrame should be okay).
 	int entnum = VM_LONG(arg[0]);
-	if (entnum > FINAL_TIME_PERIOD && entnum <= svs.allocated_client_slots + MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+	if (entnum >= tc_sv_loaded_bsps && entnum < svs.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (entnum > 1 && entnum <= svs.allocated_client_slots + 1)
+#endif
 	{
-		client_t *cl = &svs.clients[entnum-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		client_t *cl = &svs.clients[entnum-tc_sv_loaded_bsps];
+#else
+		client_t *cl = &svs.clients[entnum-1];
+#endif
 		SV_DropClient(cl);
 	}
 
@@ -1748,10 +1782,17 @@ static qintptr_t QVM_SetBotCMD (void *offset, quintptr_t mask, const qintptr_t *
 	int upmove = VM_LONG(arg[7]);
 	int buttons = VM_LONG(arg[8]);
 	int impulse = VM_LONG(arg[9]);
-
-	if (edn > FINAL_TIME_PERIOD && edn <= svs.allocated_client_slots + MAX_TIME_PERIODS)
+#ifdef TEMPORALCORTEX
+	if (edn >= tc_sv_loaded_bsps && edn < svs.allocated_client_slots + tc_sv_loaded_bsps)
+#else
+	if (edn > 1 && edn <= svs.allocated_client_slots + 1)
+#endif
 	{
-		client_t *cl = &svs.clients[edn-MAX_TIME_PERIODS];
+#ifdef TEMPORALCORTEX
+		client_t *cl = &svs.clients[edn-tc_sv_loaded_bsps];
+#else
+		client_t *cl = &svs.clients[edn-1];
+#endif
 		cl->lastcmd.msec = msec;
 		cl->lastcmd.angles[0] = ANGLE2SHORT(angles_x);
 		cl->lastcmd.angles[1] = ANGLE2SHORT(angles_y);
@@ -1848,10 +1889,18 @@ static qintptr_t QVM_MakeVectors (void *offset, quintptr_t mask, const qintptr_t
 static qintptr_t QVM_NextClient (void *offset, quintptr_t mask, const qintptr_t *arg)
 {
 	unsigned int start = ((char*)VM_POINTER(arg[0]) - (char*)evars) / sv.world.edict_size;
+#ifdef TEMPORALCORTEX
+	while (start < sv.allocated_client_slots + tc_sv_loaded_bsps)
+#else
 	while (start < sv.allocated_client_slots)
+#endif
 	{
 		if (svs.clients[start].state == cs_spawned)
-			return (qintptr_t)(vevars + (start+MAX_TIME_PERIODS) * sv.world.edict_size);
+#ifdef TEMPORALCORTEX
+			return (qintptr_t)(vevars + (start+tc_sv_loaded_bsps) * sv.world.edict_size);
+#else
+			return (qintptr_t)(vevars + (start+1) * sv.world.edict_size);
+#endif
 		start++;
 	}
 	return 0;
@@ -1889,16 +1938,28 @@ static qintptr_t QVM_VisibleTo (void *offset, quintptr_t mask, const qintptr_t *
 
 		//FIXME: make a FatPVS that uses a pvscache_t
 		VectorAdd(viewer->v->origin, viewer->v->view_ofs, org);
-		sv.world.worldmodel[sv_current_time_period]->funcs.FatPVS(sv.world.worldmodel[sv_current_time_period], org, &pvs, false);
+#ifdef TEMPORALCORTEX
+		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, &pvs, false);
+#else
+		sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &pvs, false);
+#endif
 		for (e = first; e < last; e++)
 		{
 			ed = q1qvmprogfuncs.edicttable[e];
 			if (ED_ISFREE(ed))
 				continue;	//free ents can't be visible (should not be linked, but oh well)
-			if (e >= FINAL_TIME_PERIOD && e <= sv.allocated_client_slots + FINAL_TIME_PERIOD && svs.clients[e - MAX_TIME_PERIODS].state != cs_spawned)
+#ifdef TEMPORALCORTEX
+			if (e >= tc_sv_loaded_bsps && e < sv.allocated_client_slots + tc_sv_loaded_bsps && svs.clients[e - tc_sv_loaded_bsps].state != cs_spawned)
 				continue;	//player ents are weird, skip them for mods that do weird stuff.
-
-			if (sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], &ed->pvsinfo, pvs.buffer, areas))
+#else
+			if (e >= 1 && e <= sv.allocated_client_slots && svs.clients[e - 1].state != cs_spawned)
+				continue;	//player ents are weird, skip them for mods that do weird stuff.
+#endif
+#ifdef TEMPORALCORTEX
+			if (sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &ed->pvsinfo, pvs.buffer, areas))
+#else
+			if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ed->pvsinfo, pvs.buffer, areas))
+#endif
 			{	//one of the viewer's clusters can see the viewee.
 				results[e - first] = true;
 				ret+=1;
@@ -2103,8 +2164,13 @@ static qintptr_t QVM_VisibleTo_FTE (void *offset, quintptr_t mask, const qintptr
 			int areas[] = {2,viewer->areanum, viewer->areanum2};
 			for (i = 0; i < viewer->num_leafs; i++)
 			{
-				qbyte *pvs = sv.world.worldmodel[sv_current_time_period]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_time_period], viewer->leafnums[i], NULL, PVM_FAST);
-				if (sv.world.worldmodel[sv_current_time_period]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_time_period], viewee, pvs, areas))
+#ifdef TEMPORALCORTEX
+				qbyte *pvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], viewer->leafnums[i], NULL, PVM_FAST);
+				if (sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], viewee, pvs, areas))
+#else
+				qbyte *pvs = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, viewer->leafnums[i], NULL, PVM_FAST);
+				if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, viewee, pvs, areas))
+#endif
 					return true;	//viewer can see viewee
 			}
 		}
@@ -2384,7 +2450,11 @@ static void QDECL Q1QVM_Event_Touch(world_t *w, wedict_t *s, wedict_t *o, trace_
 static void QDECL Q1QVM_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, w->edicts);
+#ifdef TEMPORALCORTEX
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+#else
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts);
+#endif
 	VM_Call(q1qvm, GAME_EDICT_THINK, 0, 0, 0);
 }
 
@@ -2541,7 +2611,7 @@ qboolean PR_LoadQ1QVM(void)
 		wasted_edict_t_size = 114;
 	}
 
-	sv.world.num_edicts = 1;
+	sv.world.num_edicts = 3;
 	sv.world.max_edicts = bound(64, gd.maxedicts, MAX_EDICTS);
 	q1qvmprogfuncs.edicttable = Z_Malloc(sizeof(*q1qvmprogfuncs.edicttable) * sv.world.max_edicts);
 	q1qvmprogfuncs.edicttable_length = sv.world.max_edicts;
@@ -2674,7 +2744,13 @@ qboolean PR_LoadQ1QVM(void)
 
 
 	sv.world.progs = &q1qvmprogfuncs;
-	sv.world.edicts = (wedict_t*)Q1QVMPF_EdictNum(svprogfuncs, 0);
+#ifdef TEMPORALCORTEX
+	sv.world.edicts[0] = *(wedict_t*)Q1QVMPF_EdictNum(svprogfuncs, TIME_PERIOD_PRESENT);
+	sv.world.edicts[1] = *(wedict_t*)Q1QVMPF_EdictNum(svprogfuncs, TIME_PERIOD_PAST);
+	sv.world.edicts[2] = *(wedict_t*)Q1QVMPF_EdictNum(svprogfuncs, TIME_PERIOD_FUTURE);
+#else
+	sv.world.edicts[0] = *(wedict_t*)Q1QVMPF_EdictNum(svprogfuncs, 0);
+#endif
 	sv.world.usesolidcorpse = true;
 
 	if (qvm_api_version >= 15)

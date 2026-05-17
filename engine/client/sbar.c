@@ -112,6 +112,11 @@ static apic_t	*sb_face_invis;
 static apic_t	*sb_face_quad;
 static apic_t	*sb_face_invuln;
 static apic_t	*sb_face_invis_invuln;
+#ifdef TEMPORALCORTEX
+static apic_t	*sb_face_quad_invuln;
+static apic_t	*sb_face_quad_invis;
+static apic_t	*sb_face_psychosis;
+#endif
 
 //rogue pictures.
 static qboolean	sbar_rogue;
@@ -387,9 +392,17 @@ char *Get_Q2ConfigString(int i)
 		return cl.levelname;
 
 	if (i >= Q2CS_MODELS && i < Q2CS_MODELS	+ Q2MAX_MODELS)
+#ifdef TEMPORALCORTEX
+		return cl.model_name [cl_current_bsp_index][i-Q2CS_MODELS];
+#else
 		return cl.model_name [i-Q2CS_MODELS];
+#endif
 	if (i >= Q2CS_SOUNDS && i < Q2CS_SOUNDS	+ Q2MAX_SOUNDS)
+#ifdef TEMPORALCORTEX
+		return cl.sound_name [cl_current_bsp_index][i-Q2CS_SOUNDS];
+#else
 		return cl.sound_name [i-Q2CS_SOUNDS];
+#endif
 	if (i == Q2CS_AIRACCEL)
 		return cl.q2airaccel;
 	if (i >= Q2CS_PLAYERSKINS && i < Q2CS_GENERAL+Q2MAX_GENERAL)
@@ -1123,6 +1136,11 @@ void Sbar_Start (void)	//if one of these fails, skip the entire status bar.
 	sb_face_invuln = Sbar_PicFromWad ("face_invul2");
 	sb_face_invis_invuln = Sbar_PicFromWad ("face_inv2");
 	sb_face_quad = Sbar_PicFromWad ("face_quad");
+#ifdef TEMPORALCORTEX
+	sb_face_quad_invuln = Sbar_PicFromWad ("face_quad_inv");
+	sb_face_quad_invis = Sbar_PicFromWad ("face_inv3");
+	sb_face_psychosis = Sbar_PicFromWad ("face_psych");
+#endif
 
 	sb_ibar = Sbar_PicFromWad ("ibar");
 	sb_sbar = Sbar_PicFromWad ("sbar");
@@ -2237,6 +2255,26 @@ void Sbar_DrawFace (playerview_t *pv)
 		Sbar_DrawPic (112, 0, 24, 24, sb_face_invis_invuln);
 		return;
 	}
+#ifdef TEMPORALCORTEX
+	if ( (pv->stats[STAT_ITEMS] & (IT_QUAD | IT_INVULNERABILITY) )
+	== (IT_QUAD | IT_INVULNERABILITY) )
+	{
+		Sbar_DrawPic (112, 0, 24, 24, sb_face_quad_invuln);
+		return;
+	}
+	if ( (pv->stats[STAT_ITEMS] & (IT_QUAD | IT_INVISIBILITY) )
+	== (IT_QUAD | IT_INVISIBILITY) )
+	{
+		Sbar_DrawPic (112, 0, 24, 24, sb_face_quad_invis);
+		return;
+	}
+	if ( (pv->stats[STAT_ITEMS] & IT2_PSYCHOSIS )
+	== IT2_PSYCHOSIS )
+	{
+		Sbar_DrawPic (112, 0, 24, 24, sb_face_psychosis);
+		return;
+	}
+#endif
 	if (pv->stats[STAT_ITEMS] & IT_QUAD)
 	{
 		Sbar_DrawPic (112, 0, 24, 24, sb_face_quad );
@@ -3071,7 +3109,7 @@ void Sbar_Draw (playerview_t *pv)
 		R2D_ImageColours(1, 1, 1, 1);
 		if (*cl.q2statusbar)
 			Sbar_ExecuteLayoutString(cl.q2statusbar, seat);
-		if (*cl.q2layout && (cl.q2frame.seat[seat].playerstate.stats[Q2STAT_LAYOUTS] & 1))
+		if (*cl.q2layout[0] && (cl.q2frame.seat[seat].playerstate.stats[Q2STAT_LAYOUTS] & 1))
 			Sbar_ExecuteLayoutString(cl.q2layout[seat], seat);
 		if (cl.q2frame.seat[seat].playerstate.stats[Q2STAT_LAYOUTS] & 2)
 			Sbar_Q2DrawInventory(seat);

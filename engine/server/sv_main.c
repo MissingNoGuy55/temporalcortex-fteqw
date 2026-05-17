@@ -100,8 +100,6 @@ cvar_t	allow_download_other		= CVARD("allow_download_other", "0", "0 blocks down
 
 extern cvar_t sv_allow_splitscreen;
 
-timeperiod_t sv_current_time_period;
-
 #if defined(SUPPORT_ICE) || defined(FTE_TARGET_WEB)
 static void QDECL SV_Public_Callback(struct cvar_s *var, char *oldvalue)
 {
@@ -215,6 +213,12 @@ char cvargroup_serverphysics[] = "server physics variables";
 char cvargroup_servercontrol[] = "server control variables";
 
 vfsfile_t	*sv_fraglogfile;
+
+#ifdef TEMPORALCORTEX
+	#ifdef SERVERONLY
+		qboolean rewinding;
+	#endif
+#endif
 
 void PRH2_SetPlayerClass(client_t *cl, int classnum, qboolean fromqc);
 void SV_DeDupeName(const char *val, client_t *cl, char *newname, size_t newnamesize);
@@ -570,8 +574,11 @@ void SV_DropClient (client_t *drop)
 #ifdef SVCHAT
 	SV_WipeChat(drop);
 #endif
-
-	if (sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
+#ifdef TEMPORALCORTEX
+	if (sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
+#else
+	if (sv.world.worldmodel->loadstate != MLS_LOADED)
+#endif
 		Con_Printf(CON_WARNING "Warning: not notifying gamecode about client disconnection due to invalid worldmodel\n");
 	else
 	switch(svs.gametype)
@@ -2587,7 +2594,11 @@ client_t *SV_AddSplit(client_t *controller, char *info, int id)
 	{
 #ifdef Q2SERVER
 	case GT_QUAKE2:
-		cl->q2edict = Q2EDICT_NUM(i+MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		cl->q2edict = Q2EDICT_NUM(i+tc_sv_loaded_bsps);
+#else
+		cl->q2edict = Q2EDICT_NUM(i+1);
+#endif
 
 		if (!ge->ClientConnect(cl->q2edict, info))
 		{
@@ -2604,7 +2615,11 @@ client_t *SV_AddSplit(client_t *controller, char *info, int id)
 		break;
 #endif
 	default:
-		cl->edict = EDICT_NUM_PB(svprogfuncs, i+MAX_TIME_PERIODS);
+#ifdef TEMPORALCORTEX
+		cl->edict = EDICT_NUM_PB(svprogfuncs, i+tc_sv_loaded_bsps);
+#else
+		cl->edict = EDICT_NUM_PB(svprogfuncs, i+1);
+#endif
 		break;
 	}
 
@@ -3020,7 +3035,11 @@ void SV_DoDirectConnect(svconnectinfo_t *fte_restrict info)
 	}
 
 	//set up the gamecode for this player, optionally drop them here
-	edictnum = (newcl-svs.clients)+MAX_TIME_PERIODS;
+#ifdef TEMPORALCORTEX
+	edictnum = (newcl-svs.clients)+tc_sv_loaded_bsps;
+#else
+	edictnum = (newcl-svs.clients)+1;
+#endif
 	switch (svs.gametype)
 	{
 #ifdef HLSERVER
@@ -5634,8 +5653,11 @@ float SV_Frame (void)
 #ifdef SQL
 	SQL_ServerCycle();
 #endif
-
-	if (sv.state < ss_active || !sv.world.worldmodel[sv_current_time_period])
+#ifdef TEMPORALCORTEX
+	if (sv.state < ss_active || !sv.world.worldmodel[sv_current_bsp_index])
+#else
+	if (sv.state < ss_active || !sv.world.worldmodel)
+#endif
 	{
 #ifdef SUBSERVERS
 		if (sv.state == ss_clustermode)
@@ -5761,8 +5783,13 @@ float SV_Frame (void)
 			return delay;
 
 		//make sure the worldmodel is actually valid...
-		if (sv.world.worldmodel[sv_current_time_period] && sv.world.worldmodel[sv_current_time_period]->loadstate != MLS_LOADED)
-			Mod_LoadModel(sv.world.worldmodel[sv_current_time_period], MLV_ERROR);
+#ifdef TEMPORALCORTEX
+		if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
+			Mod_LoadModel(sv.world.worldmodel[sv_current_bsp_index], MLV_ERROR);
+#else
+		if (sv.world.worldmodel && sv.world.worldmodel->loadstate != MLS_LOADED)
+			Mod_LoadModel(sv.world.worldmodel, MLV_ERROR);
+#endif
 
 		SV_CheckVars ();
 
@@ -5784,6 +5811,11 @@ float SV_Frame (void)
 		idletime = 0;
 	}
 	idletime += timedelta;
+
+#ifdef TEMPORALCORTEX
+	//if ( sv_player && sv_player->v->deadflag == 2 )
+		//rewinding = true;
+#endif
 
 // collect timing statistics
 	end = Sys_DoubleTime ();

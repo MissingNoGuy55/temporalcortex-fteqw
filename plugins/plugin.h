@@ -469,8 +469,11 @@ typedef struct	//for huds and menus alike
 	F(int,			TagNumForName,		(struct model_s *model, const char *name, int firsttag));
 	F(qboolean,		GetTag,				(struct model_s *model, int tagnum, framestate_t *framestate, float *transforms));
 	F(void,			ClipDecal,			(struct model_s *mod, vec3_t center, vec3_t normal, vec3_t tangent1, vec3_t tangent2, float size, unsigned int surfflagmask, unsigned int surflagmatch, void (*callback)(void *ctx, vec3_t *fte_restrict points, size_t numpoints, shader_t *shader), void *ctx));
-
+#ifdef TEMPORALCORTEX
+	F(void,			NewMap,				(model_t *worldmode, int worldnum));
+#else
 	F(void,			NewMap,				(model_t *worldmode));
+#endif
 	F(void,			ClearScene,			(void));
 	F(void,			AddEntity,			(struct entity_s *ent));
 	F(unsigned int,	AddPolydata,		(struct shader_s *s, unsigned int befflags, size_t numverts, size_t numidx, vecV_t **vertcoord, vec2_t **texcoord, vec4_t **colour, index_t **indexes));	//allocates space for some polygons
