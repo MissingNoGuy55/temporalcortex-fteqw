@@ -928,11 +928,7 @@ static int	VARGS SVQ2_AreaEdicts (vec3_t mins, vec3_t maxs, q2edict_t **list,	in
 static model_t *QDECL SVQ2_GetCModel(world_t *w, int modelindex)
 {
 	if ((unsigned int)modelindex < MAX_PRECACHE_MODELS)
-#ifdef TEMPORALCORTEX
-		return sv.models[sv_current_bsp_index][modelindex];
-#else
 		return sv.models[modelindex];
-#endif
 	else
 		return NULL;
 }

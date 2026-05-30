@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Missi: Separated from the rest. Cannot run this with -j$(nproc) as it uses wget,
+# which does not handle multithreading well.
+make makelibs FTE_TARGET=win64 FTE_CONFIG=fteqwtc && make FTE_CONFIG=fteqwtc makelibs
+
 make $@ m-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && make $@ m-rel FTE_CONFIG=fteqwtc && \
 make $@ mcl-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && make $@ mcl-rel FTE_CONFIG=fteqwtc && \
 make $@ sv-rel FTE_CONFIG=fteqwtc && make $@ sv-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && \
@@ -17,4 +21,4 @@ cp ./release/fteqwtc-cl.db ../../game_files && \
 cp ./release/fteqwtccl64.exe ../../game_files && \
 cp ./release/fteqwtccl64.exe.db ../../game_files
 
-make $@ plugins-rel FTE_CONFIG=fteqwtc && cp ./release/*.so ../../game_files && make $@ plugins-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && cp ./release/*.dll ../../game_files
+make plugins-rel FTE_CONFIG=fteqwtc && cp ./release/*.so ../../game_files && make plugins-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && cp ./release/*.dll ../../game_files

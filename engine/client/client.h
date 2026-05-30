@@ -932,17 +932,10 @@ typedef struct
 	char				*model_name_vwep[MAX_VWEP_MODELS];
 	struct model_s		*model_precache_vwep[MAX_VWEP_MODELS];
 #endif
-#ifdef TEMPORALCORTEX
-	char				*model_name[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
-	struct model_s		*model_precache[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
-	char				*sound_name[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];
-	struct sfx_s		*sound_precache[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];
-#else
 	char				*model_name[MAX_PRECACHE_MODELS];
 	struct model_s		*model_precache[MAX_PRECACHE_MODELS];
 	char				*sound_name[MAX_PRECACHE_SOUNDS];
 	struct sfx_s		*sound_precache[MAX_PRECACHE_SOUNDS];
-#endif
 	char				*particle_ssname[MAX_SSPARTICLESPRE];
 	int					particle_ssprecache[MAX_SSPARTICLESPRE];	//these are actually 1-based, so 0 can be used to lazy-init them. I cheat.
 
@@ -986,6 +979,7 @@ typedef struct
 // refresh related state
 #ifdef TEMPORALCORTEX
 	struct model_s	*worldmodel[MAX_TIME_PERIODS];	// cl_entitites[0].model
+	int			worldmodel_indices[MAX_TIME_PERIODS];
 #else
 	struct model_s	*worldmodel;	// cl_entitites[0].model
 #endif

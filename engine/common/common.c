@@ -2511,7 +2511,11 @@ vec3_t	bytedirs[Q2NUMVERTEXNORMALS] =
 };
 #endif
 #ifdef HAVE_CLIENT
-void MSG_ReadDir (float *dir)
+#ifdef TEMPORALCORTEX
+void MSG_ReadDir (float* dir)
+#else
+void MSG_ReadDir (vec3_t dir)
+#endif
 {
 	int		b;
 

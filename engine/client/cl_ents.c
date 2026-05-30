@@ -2335,13 +2335,9 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 			ang = le->angles;
 		}
 
-#ifdef TEMPORALCORTEX
-		if (ps->modelindex <= countof(cl.model_precache[cl_current_bsp_index]) && cl.model_precache[cl_current_bsp_index][ps->modelindex] && cl.model_precache[cl_current_bsp_index][ps->modelindex]->loadstate == MLS_LOADED)
-			model = cl.model_precache[cl_current_bsp_index][ps->modelindex];
-#else
+
 		if (ps->modelindex <= countof(cl.model_precache) && cl.model_precache[ps->modelindex] && cl.model_precache[ps->modelindex]->loadstate == MLS_LOADED)
 			model = cl.model_precache[ps->modelindex];
-#endif
 		else
 			model = NULL;
 		if (model && model->type == mod_alias)
@@ -2399,11 +2395,7 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 				org = cl.inframes[parsecountmod].playerstate[parenttagent-1].origin;
 				ang = cl.inframes[parsecountmod].playerstate[parenttagent-1].viewangles;
 			}
-#ifdef TEMPORALCORTEX
-			model = cl.model_precache[cl_current_bsp_index][cl.inframes[parsecountmod].playerstate[parenttagent-tc_cl_loaded_bsps].modelindex];
-#else
-			model = cl.model_precache[cl_current_bsp_index][cl.inframes[parsecountmod].playerstate[parenttagent-1].modelindex];
-#endif
+			model = cl.model_precache[cl.inframes[parsecountmod].playerstate[parenttagent-1].modelindex];
 
 			CL_LerpNetFrameState(&fstate, &cl.lerpplayers[parenttagent-1]);
 		}
@@ -3160,22 +3152,12 @@ void CLQ1_AddVisibleBBoxes(void)
 				{	/*bsp model size*/
 					if (state->modelindex <= 0)
 						continue;
-#ifdef TEMPORALCORTEX
-					if (!cl.model_precache[cl_current_bsp_index][state->modelindex])
-#else
 					if (!cl.model_precache[state->modelindex])
-#endif
 						continue;
 					/*this makes non-inline bsp objects non-solid for prediction*/
-#ifdef TEMPORALCORTEX
-					if ((cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS) || ((*cl.model_precache[cl_current_bsp_index][state->modelindex]->name == '*' || cl.model_precache[cl_current_bsp_index][state->modelindex]->numsubmodels) && cl.model_precache[cl_current_bsp_index][state->modelindex]->hulls[1].firstclipnode))
-					{
-						mod = cl.model_precache[cl_current_bsp_index][state->modelindex];
-#else
 					if ((cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS) || ((*cl.model_precache[state->modelindex]->name == '*' || cl.model_precache[state->modelindex]->numsubmodels) && cl.model_precache[state->modelindex]->hulls[1].firstclipnode))
 					{
 						mod = cl.model_precache[state->modelindex];
-#endif
 						VectorAdd(state->origin, mod->mins, min);
 						VectorAdd(state->origin, mod->maxs, max);
 						CLQ1_AddOrientedCube(s, min, max, NULL, 0.1, 0, 0, 1);
@@ -3717,11 +3699,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 			else
 			{
 				if (stat->mdlidx < MAX_PRECACHE_MODELS)
-#ifdef TEMPORALCORTEX
-					clmodel = cl.model_precache[cl_current_bsp_index][stat->mdlidx];
-#else
 					clmodel = cl.model_precache[stat->mdlidx];
-#endif
 			}
 			if (!clmodel || clmodel->loadstate == MLS_LOADING)
 				continue;
@@ -4568,11 +4546,7 @@ void CL_LinkPacketEntities (void)
 		{
 			if (CL_FilterModelindex(state->modelindex, state->frame))
 				continue;
-#ifdef TEMPORALCORTEX
-			model = cl.model_precache[cl_current_bsp_index][state->modelindex];
-#else
 			model = cl.model_precache[state->modelindex];
-#endif
 			if (!model)
 			{
 				Con_DPrintf("Bad modelindex (%i)\n", state->modelindex);
@@ -4608,11 +4582,7 @@ void CL_LinkPacketEntities (void)
 		else
 #endif
 			if (state->modelindex2 && state->modelindex2 < MAX_PRECACHE_MODELS)
-#ifdef TEMPORALCORTEX
-			model2 = cl.model_precache[cl_current_bsp_index][state->modelindex2];
-#else
 			model2 = cl.model_precache[state->modelindex2];
-#endif
 		else
 			model2 = NULL;
 
@@ -4670,11 +4640,7 @@ void CL_LinkPacketEntities (void)
 		ent->keynum = state->number;
 
 		if (cl_r2g.value && state->modelindex == cl_rocketindex && cl_rocketindex != -1 && cl_grenadeindex != -1)
-#ifdef TEMPORALCORTEX
-			model = cl.model_precache[cl_current_bsp_index][cl_grenadeindex];
-#else
 			model = cl.model_precache[cl_grenadeindex];
-#endif
 		ent->model = model;
 
 		ent->flags = 0;
@@ -5029,11 +4995,7 @@ void CL_LinkProjectiles (void)
 		cl_numvisedicts++;
 		memset(ent, 0, sizeof(*ent));
 
-#ifdef TEMPORALCORTEX
-		ent->model = cl.model_precache[cl_current_bsp_index][pr->modelindex];
-#else
 		ent->model = cl.model_precache[pr->modelindex];
-#endif
 		ent->playerindex = -1;
 		ent->topcolour = TOP_DEFAULT;
 		ent->bottomcolour = BOTTOM_DEFAULT;
@@ -5171,11 +5133,7 @@ void CLQW_ParsePlayerinfo (void)
 #ifdef QUAKESTATS
 		i = cl.players[num].stats[STAT_WEAPONMODELI];
 		if (i>0&&i<MAX_PRECACHE_MODELS && cl.model_name_vwep[0])
-#ifdef TEMPORALCORTEX
-			viewmodel = cl.model_name[cl_current_bsp_index][i];
-#else
 			viewmodel = cl.model_name[i];
-#endif
 		if(viewmodel)
 		{
 			for (i = 0; i < countof(vwep_mapping); i++)
@@ -5627,11 +5585,7 @@ void CL_AddFlagModels (entity_t *ent, int team)
 	}
 
 	newent = CL_NewTempEntity ();
-#ifdef TEMPORALCORTEX
-	newent->model = cl.model_precache[cl_current_bsp_index][cl_flagindex];
-#else
 	newent->model = cl.model_precache[cl_flagindex];
-#endif
 	newent->skinnum = team;
 	newent->keynum = ent->keynum;
 	newent->flags |= ent->flags;
@@ -5751,11 +5705,7 @@ void CL_LinkPlayers (void)
 			continue;
 #endif
 
-#ifdef TEMPORALCORTEX
-		if (info->spectator || state->modelindex >= countof(cl.model_precache[cl_current_bsp_index]))
-#else
 		if (info->spectator || state->modelindex >= countof(cl.model_precache))
-#endif
 			continue;
 
 		//the extra modelindex check is to stop lame mods from using vweps with rings
@@ -5768,11 +5718,7 @@ void CL_LinkPlayers (void)
 		else
 #endif
 		{
-#ifdef TEMPORALCORTEX
-			model = cl.model_precache[cl_current_bsp_index][state->modelindex];
-#else
 			model = cl.model_precache[state->modelindex];
-#endif
 #ifdef HAVE_LEGACY
 			modelindex2 = 0;
 #endif
@@ -6116,11 +6062,7 @@ void CL_LinkViewModel(void)
 	else
 		ent.model = NULL;
 	if (!ent.model)
-#ifdef TEMPORALCORTEX
-		ent.model = cl.model_precache[cl_current_bsp_index][pv->stats[STAT_WEAPONMODELI]];
-#else
 		ent.model = cl.model_precache[pv->stats[STAT_WEAPONMODELI]];
-#endif
 	if (!ent.model)
 	{
 		pv->vm.oldmodel = NULL;
@@ -6272,11 +6214,7 @@ void CL_SetSolidEntities (void)
 		{	/*bsp model size*/
 			if (state->modelindex <= 0)
 				continue;
-#ifdef TEMPORALCORTEX
-			mod = cl.model_precache[cl_current_bsp_index][state->modelindex];
-#else
 			mod = cl.model_precache[state->modelindex];
-#endif
 			if (!mod || mod->loadstate != MLS_LOADED)
 				continue;
 			/*vanilla protocols have no 'solid' information. all entities get assigned ES_SOLID_BSP, even if its not actually solid.

@@ -2394,22 +2394,14 @@ void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
 	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
 #endif
 
-#ifdef TEMPORALCORTEX
-	for (i = 1; cl.model_name[cl_current_bsp_index][i] && i < MAX_PRECACHE_MODELS; i++)
-		MSG_WriteString (buf, cl.model_name[cl_current_bsp_index][i]);
-#else
 	for (i = 1; cl.model_name[i] && i < MAX_PRECACHE_MODELS; i++)
 		MSG_WriteString (buf, cl.model_name[i]);
-#endif
+
 	MSG_WriteByte (buf, 0);
 
-#ifdef TEMPORALCORTEX
-	for (i = 1; cl.sound_name[cl_current_bsp_index][i] && i < MAX_PRECACHE_SOUNDS ; i++)
-		MSG_WriteString (buf, cl.sound_name[cl_current_bsp_index][i]);
-#else
 	for (i = 1; cl.sound_name[i] && i < MAX_PRECACHE_SOUNDS ; i++)
 		MSG_WriteString (buf, cl.sound_name[i]);
-#endif
+
 	MSG_WriteByte (buf, 0);
 }
 #endif
@@ -3289,11 +3281,8 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, 0);
 
 		n = 0;
-#ifdef TEMPORALCORTEX
-		s = cl.sound_name[cl_current_bsp_index][n+1];
-#else
 		s = cl.sound_name[n+1];
-#endif
+
 		while (s && *s)
 		{
 			MSG_WriteString (&buf, s);
@@ -3315,11 +3304,7 @@ void CL_Record_f (void)
 				}
 			}
 			n++;
-#ifdef TEMPORALCORTEX
-			s = cl.sound_name[cl_current_bsp_index][n+1];
-#else
 			s = cl.sound_name[n+1];
-#endif
 		}
 		if (buf.cursize)
 		{
@@ -3335,11 +3320,8 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, 0);
 
 		n = 0;
-#ifdef TEMPORALCORTEX
-		s = cl.model_name[cl_current_bsp_index][n+1];
-#else
 		s = cl.model_name[n+1];
-#endif
+
 		while (s && *s)
 		{
 			MSG_WriteString (&buf, s);
@@ -3361,11 +3343,7 @@ void CL_Record_f (void)
 				}
 			}
 			n++;
-#ifdef TEMPORALCORTEX
-			s = cl.model_name[cl_current_bsp_index][n+1];
-#else
 			s = cl.model_name[n+1];
-#endif
 		}
 		if (buf.cursize)
 		{

@@ -603,6 +603,7 @@ ifeq ($(NOCOMPAT),1)
 	NCCFLAGS=-DNOLEGACY -DOMIT_QCC
 	NCDIRPREFIX=nc
 endif
+
 ALL_CFLAGS=$(HAVECONFIG) $(VISIBILITY_FLAGS) $(BRANDFLAGS) $(CFLAGS) $(BASE_CFLAGS) $(WCFLAGS) $(ARCH_CFLAGS) $(NCCFLAGS) -I$(ARCHLIBS)
 ALL_CXXFLAGS=$(subst -Wno-pointer-sign,,$(ALL_CFLAGS))
 
@@ -1952,6 +1953,10 @@ ifeq ($(FTE_TARGET),web)
 	#DEPCXX=
 endif
 
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
+        BASE_CFLAGS+=-DTEMPORALCORTEX -DTEMPORALCORTEX_QCC
+endif
+
 SV_DIR?=sv_sdl
 DEPCC?=$(CC)
 DEPCXX?=$(CXX)
@@ -2013,7 +2018,20 @@ $(OUT_DIR)/fteqcc.o : fteqcc.rc
 #	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 #	rm -f $@.$$$$
 
-$(OUT_DIR)/%.o $(OUT_DIR)/%.d : %.c
+# Missi: The following rules needed to not be implicit to prevent "warning: pattern recipe did not update peer target"
+# in GNU make.
+#
+# The old recipe looked like this:
+# $(OUT_DIR)/%.o $(OUT_DIR)/%.d: %.c
+#ifneq ($(DEPCC),)
+#	@-set -e; rm -f $@.d; \
+#	 $(DEPCC) -MM $(ALL_CFLAGS) $< > $@.d.$$$$; \
+#	 sed 's,\($*\)\.o[ :]*,$@ $@.d : ,g' < $@.d.$$$$ > $@.d; \
+#	 sed -e 's/.*://' -e 's/\\$$//' < $@.d.$$$$ | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $@.d; \
+#	 rm -f $@.d.$$$$
+#endif
+
+$(OUT_DIR)/%.o: %.c
 ifneq ($(DEPCC),)
 	@-set -e; rm -f $@.d; \
 	 $(DEPCC) -MM $(ALL_CFLAGS) $< > $@.d.$$$$; \
@@ -2023,7 +2041,7 @@ ifneq ($(DEPCC),)
 endif
 	$(DO_CC) -I$(OUT_DIR)
 
-$(OUT_DIR)/%.o $(OUT_DIR)/%.d : %.cpp
+$(OUT_DIR)/%.o: %.cpp
 ifneq ($(DEPCXX),)
 	@-set -e; rm -f $@.d; \
 	$(DEPCXX) -MM $(ALL_CXXFLAGS) $< > $@.d.$$$$; \
@@ -2033,7 +2051,7 @@ ifneq ($(DEPCXX),)
 endif
 	$(DO_CXX) -I$(OUT_DIR)
 
-$(OUT_DIR)/%.o $(OUT_DIR)/%.d : %.cxx
+$(OUT_DIR)/%.o: %.cxx
 ifneq ($(DEPCXX),)
 	@-set -e; rm -f $@.d; \
 	$(DEPCXX) -MM $(ALL_CXXFLAGS) $< > $@.d.$$$$; \
@@ -2043,7 +2061,7 @@ ifneq ($(DEPCXX),)
 endif
 	$(DO_CXX) -I$(OUT_DIR)
 
-$(OUT_DIR)/%.oo $(OUT_DIR)/%.d : %.c
+$(OUT_DIR)/%.oo: %.c
 ifneq ($(DEPCC),)
 	@-set -e; rm -f $@.d; \
 	 $(DEPCC) -MM $(ALL_CFLAGS) $< > $@.d.$$$$; \
@@ -2053,7 +2071,7 @@ ifneq ($(DEPCC),)
 endif
 	$(DO_CC) -I$(OUT_DIR)
 
-$(OUT_DIR)/%.mo $(OUT_DIR)/%.d : %.m
+$(OUT_DIR)/%.mo: %.m
 	@-set -e; rm -f $@.d; \
 	 $(DEPCC) -MM $(ALL_CFLAGS) $< > $@.d.$$$$; \
 	 sed 's,\($*\)\.mo[ :]*,$@ $@.d : ,g' < $@.d.$$$$ > $@.d; \
@@ -2336,6 +2354,8 @@ help:
 	@-echo "android targets explicitly cross compile, and should generally not be given an FTE_TARGET."
 
 clean:
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
+endif
 	-rm -f -r $(RELEASE_DIR)
 	-rm -f -r $(DEBUG_DIR)
 	-rm -f -r $(PROFILE_DIR)

@@ -704,17 +704,10 @@ static int CS_FindModel(const char *name, int *free)
 	}
 	for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 	{
-#ifdef TEMPORALCORTEX
-		if (!cl.model_name[cl_current_bsp_index][i])
-			break;
-		if (!strcmp(cl.model_name[cl_current_bsp_index][i], name))
-			return i;
-#else
 		if (!cl.model_name[i])
 			break;
 		if (!strcmp(cl.model_name[i], name))
 			return i;
-#endif
 	}
 	return 0;
 }
@@ -724,11 +717,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 	if (index == 0)
 		return NULL;
 	else if (index > 0 && index < MAX_PRECACHE_MODELS)
-#ifdef TEMPORALCORTEX
-		return cl.model_precache[cl_current_bsp_index][index];
-#else
 		return cl.model_precache[index];
-#endif
 	else if (index < 0 && index > -MAX_CSMODELS)
 	{
 		if (!cl.model_csqcprecache[-index])
@@ -3186,19 +3175,10 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 	}
 	else
 	{
-#ifdef TEMPORALCORTEX
-		if (modelindex >= MAX_PRECACHE_MODELS || !cl.model_name[cl_current_bsp_index][modelindex])
-#else
 		if (modelindex >= MAX_PRECACHE_MODELS || !cl.model_name[modelindex])
-#endif
 			return NULL;
-#ifdef TEMPORALCORTEX
-		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_name[cl_current_bsp_index][modelindex], true);
-		model = cl.model_precache[cl_current_bsp_index][modelindex];
-#else
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_name[modelindex], true);
 		model = cl.model_precache[modelindex];
-#endif
 	}
 	if (model)
 	{
@@ -3283,23 +3263,14 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 
 	for (i = 1; i < MAX_PRECACHE_MODELS; i++)	//Make sure that the server specified model is loaded..
 	{
-#ifdef TEMPORALCORTEX
-		if (!cl.model_name[cl_current_bsp_index][i])
-#else
 		if (!cl.model_name[i])
-#endif
 			break;
-#ifdef TEMPORALCORTEX
-		if (!strcmp(cl.model_name[cl_current_bsp_index][i], modelname))
-#else
 		if (!strcmp(cl.model_name[i], modelname))
-#endif
 		{
-#ifdef TEMPORALCORTEX
-			if (!cl.model_precache[cl_current_bsp_index][i])
-				cl.model_precache[cl_current_bsp_index][i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[cl_current_bsp_index]->publicname), MLV_WARN);
-#else
 			if (!cl.model_precache[i])
+#ifdef TEMPORALCORTEX
+				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[cl_current_bsp_index]->publicname), MLV_WARN);
+#else
 				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel->publicname), MLV_WARN);
 #endif
 			break;
@@ -3357,11 +3328,7 @@ static void QCBUILTIN PF_cs_getsoundindex (pubprogfuncs_t *prinst, struct global
 		if (!cl.sound_name[i])
 #endif
 			break;
-#ifdef TEMPORALCORTEX
-		if (!strcmp(cl.sound_name[cl_current_bsp_index][i], s))
-#else
 		if (!strcmp(cl.sound_name[i], s))
-#endif
 		{
 			G_FLOAT(OFS_RETURN) = i;
 			return;
@@ -3393,13 +3360,8 @@ static void QCBUILTIN PF_cs_ModelnameForIndex(pubprogfuncs_t *prinst, struct glo
 
 	if (modelindex < 0 && (-modelindex) < MAX_CSMODELS)
 		G_INT(OFS_RETURN) = (int)PR_SetString(prinst, cl.model_csqcname[-modelindex]);
-#ifdef TEMPORALCORTEX
-	else if (modelindex >= 0 && modelindex < MAX_PRECACHE_MODELS && cl.model_name[cl_current_bsp_index][modelindex])
-		G_INT(OFS_RETURN) = (int)PR_SetString(prinst, cl.model_name[cl_current_bsp_index][modelindex]);
-#else
 	else if (modelindex >= 0 && modelindex < MAX_PRECACHE_MODELS && cl.model_name[modelindex])
 		G_INT(OFS_RETURN) = (int)PR_SetString(prinst, cl.model_name[modelindex]);
-#endif
 	else
 		G_INT(OFS_RETURN) = 0;
 }
@@ -3408,13 +3370,8 @@ static void QCBUILTIN PF_cs_SoundnameForIndex(pubprogfuncs_t *prinst, struct glo
 	int soundindex = G_FLOAT(OFS_PARM0);
 
 	//FIXME: no private indexes. still useful for sending sound names from the ssqc via indexes.
-#ifdef TEMPORALCORTEX
-	if (soundindex >= 0 && soundindex < MAX_PRECACHE_SOUNDS && cl.sound_name[cl_current_bsp_index][soundindex])
-		G_INT(OFS_RETURN) = (int)PR_SetString(prinst, cl.sound_name[cl_current_bsp_index][soundindex]);
-#else
 	if (soundindex >= 0 && soundindex < MAX_PRECACHE_SOUNDS && cl.sound_name[soundindex])
 		G_INT(OFS_RETURN) = (int)PR_SetString(prinst, cl.sound_name[soundindex]);
-#endif
 	else
 		G_INT(OFS_RETURN) = 0;
 }
@@ -5680,11 +5637,7 @@ void CSQC_EntStateToCSQC(unsigned int flags, float lerptime, entity_state_t *src
 
 	CSQC_LerpStateToCSQC(le, ent, flags & RSES_NOLERP);
 
-#ifdef TEMPORALCORTEX
-	model = cl.model_precache[cl_current_bsp_index][src->modelindex];
-#else
 	model = cl.model_precache[src->modelindex];
-#endif
 	if (!(flags & RSES_NOTRAILS))
 	{
 		//use entnum as a test to see if its new (if the old origin isn't usable)
@@ -6001,17 +5954,9 @@ static void QCBUILTIN PF_DeltaListen(pubprogfuncs_t *prinst, struct globalvars_s
 	{
 		for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 		{
-#ifdef TEMPORALCORTEX
-			if (!cl.model_name[cl_current_bsp_index][i])
-#else
 			if (!cl.model_name[i])
-#endif
 				break;
-#ifdef TEMPORALCORTEX
-			if (!strcmp(cl.model_name[cl_current_bsp_index][i], mname))
-#else
 			if (!strcmp(cl.model_name[i], mname))
-#endif
 			{
 				deltafunction[i] = func;
 				deltaflags[i] = flags;
@@ -6650,23 +6595,13 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		{
 			mod = cl.model_csqcprecache[-idx];
 			if (!cl.model_csqcprecache[-idx] && doload && cl.model_csqcname[-idx][0])
-#ifdef TEMPORALCORTEX
-				mod = cl.model_csqcprecache[-idx] = Mod_ForName(Mod_FixName(cl.model_csqcname[-idx], cl.model_name[cl_current_bsp_index][1]), MLV_WARN);
-#else
 				mod = cl.model_csqcprecache[-idx] = Mod_ForName(Mod_FixName(cl.model_csqcname[-idx], cl.model_name[1]), MLV_WARN);
-#endif
 		}
 		else if (idx > 0)
 		{
-#ifdef TEMPORALCORTEX
-			mod = cl.model_precache[cl_current_bsp_index][idx];
-			if (!cl.model_precache[cl_current_bsp_index][idx] && doload && cl.model_name[cl_current_bsp_index][idx])
-				mod = cl.model_precache[cl_current_bsp_index][idx] = Mod_ForName(Mod_FixName(cl.model_name[cl_current_bsp_index][idx], cl.model_name[cl_current_bsp_index][1]), MLV_WARN);
-#else
 			mod = cl.model_precache[idx];
 			if (!cl.model_precache[idx] && doload && cl.model_name[idx])
 				mod = cl.model_precache[idx] = Mod_ForName(Mod_FixName(cl.model_name[idx], cl.model_name[1]), MLV_WARN);
-#endif
 		}
 		else
 			return;
@@ -6699,19 +6634,11 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		sfx = NULL;
 		for (idx=1 ; idx<MAX_PRECACHE_SOUNDS; idx++)
 		{
-#ifdef TEMPORALCORTEX
-			if (!strcmp(cl.sound_name[cl_current_bsp_index][idx], resname))
-			{
-				sfx = cl.sound_precache[cl_current_bsp_index][idx];
-				break;
-			}
-#else
 			if (!strcmp(cl.sound_name[idx], resname))
 			{
 				sfx = cl.sound_precache[idx];
 				break;
 			}
-#endif
 		}
 		if (!sfx)
 			sfx = S_FindName(resname, doload, false);
@@ -8346,9 +8273,9 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 	csqcprogparms.edicts = (struct edict_s **)&csqc_world.edicts;
 	csqcprogparms.num_edicts = &csqc_world.num_edicts;
-
+#ifdef TEMPORALCORTEX
 	csqcprogparms.loaded_bsps = &tc_cl_loaded_bsps;
-
+#endif
 	csqcprogparms.useeditor = QCEditor;//void (*useeditor) (char *filename, int line, int nump, char **parms);
 	csqcprogparms.user = &csqc_world;
 	csqc_world.keydestmask = kdm_game;
@@ -8366,9 +8293,13 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 		csqc_world.usesolidcorpse = true;
 		PR_Configure(csqcprogs, PR_ReadBytesString(pr_csqc_memsize.string), MAX_PROGS, pr_enable_profiling.ival);
 #ifdef TEMPORALCORTEX
-		csqc_world.worldmodel[0] = cl.worldmodel[0];
-		csqc_world.worldmodel[1] = cl.worldmodel[1];
-		csqc_world.worldmodel[2] = cl.worldmodel[2];
+		for (t = 0; t < MAX_TIME_PERIODS; t++)
+		{
+			if (!cl.worldmodel[t])
+				continue;
+
+			csqc_world.worldmodel[t] = cl.worldmodel[t];
+		}
 #else
 		csqc_world.worldmodel = cl.worldmodel;
 #endif
@@ -8509,11 +8440,7 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 			{
 				char *s = InfoBuf_ValueForKey(&cl.serverinfo, "map");
 				if (!*s)
-#ifdef TEMPORALCORTEX
-					s = cl.model_name[t][1];
-#else
 					s = cl.model_name[1];
-#endif
 				if (!s || !*s)
 					s = "unknown";
 				*str = PR_NewString(csqcprogs, s);

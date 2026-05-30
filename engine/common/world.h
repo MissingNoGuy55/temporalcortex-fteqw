@@ -222,6 +222,11 @@ struct world_s
 	qboolean		usesolidcorpse;	//to disable SOLID_CORPSE when running hexen2 due to conflict.
 #ifdef TEMPORALCORTEX
 	model_t			*worldmodel[MAX_TIME_PERIODS];
+
+	// Missi: Boolean arrays are usually a terrible idea, but in the general scope of FTEQW, and the numerous model_t derivatives,
+	// this is the better solution. (2026.5.17)
+	qboolean		disabled_levels[MAX_TIME_PERIODS];
+	int				worldmodel_indices[MAX_TIME_PERIODS];
 #else
 	model_t			*worldmodel;
 #endif

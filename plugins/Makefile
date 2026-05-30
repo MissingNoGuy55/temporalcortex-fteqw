@@ -140,7 +140,8 @@ help:
 AV_VER=ffmpeg-master-latest
 
 ifeq ($(findstring win,$(FTE_TARGET)),win)
-	AV_BASE=$(abspath $(OUT_DIR)/../fte-libav-$(AV_VER))/
+	# Missi: Was prefixed with fte-libav instead of libs-, but we really want this to match other patterns for .gitignore (2026.5.25)
+	AV_BASE=$(abspath $(OUT_DIR)/../libs-$(ARCH)/$(AV_VER))/
 else
 	ifeq ($(FTE_TARGET),bsd)
 		AV_BASE=/usr/local/include/

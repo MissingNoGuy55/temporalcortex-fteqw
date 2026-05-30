@@ -1364,29 +1364,16 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
-#ifdef TEMPORALCORTEX
-			&& sv.strings.sound_precache[sv_current_bsp_index][ctx.sampleidx] ; ctx.sampleidx++)
-			if (!strcmp(sample, sv.strings.sound_precache[sv_current_bsp_index][ctx.sampleidx]))
-#else
 			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
 			if (!strcmp(sample, sv.strings.sound_precache[ctx.sampleidx]))
-#endif
 				break;
-#ifdef TEMPORALCORTEX
-		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[sv_current_bsp_index][ctx.sampleidx] )
-#else
 		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[ctx.sampleidx] )
-#endif
 		{
 			if (ctx.sampleidx < MAX_PRECACHE_SOUNDS)
 			{
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
 				//late precache it. use multicast to ensure that its sent NOW (and to all). normal reliables would mean it would arrive after the svc_sound
-#ifdef TEMPORALCORTEX
-				sv.strings.sound_precache[sv_current_bsp_index][ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
-#else
 				sv.strings.sound_precache[ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
-#endif
 				Con_DPrintf("Delayed sound precache: %s\n", sample);
 				MSG_WriteByte(&sv.multicast, svcfte_precache);
 				MSG_WriteShort(&sv.multicast, ctx.sampleidx+PC_SOUND);
@@ -1584,25 +1571,14 @@ void SV_FindModelNumbers (void)
 
 	for (i=0 ; i<MAX_PRECACHE_MODELS ; i++)
 	{
-#ifdef TEMPORALCORTEX
-		if (!sv.strings.model_precache[sv_current_bsp_index][i])
-			break;
-		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i],"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
-			sv_nailmodel = i;
-		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i],"progs/s_spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
-			sv_supernailmodel = i;
-		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i],"progs/player.mdl"))
-			sv_playermodel = i;
-#else
 		if (!sv.strings.model_precache[i])
 			break;
-		if (!strcmp(sv.strings.model_precache[sv_current][i],"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
+		if (!strcmp(sv.strings.model_precache[i],"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
 			sv_nailmodel = i;
 		if (!strcmp(sv.strings.model_precache[i],"progs/s_spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
 			sv_supernailmodel = i;
 		if (!strcmp(sv.strings.model_precache[i],"progs/player.mdl"))
 			sv_playermodel = i;
-#endif
 	}
 }
 
@@ -3742,7 +3718,6 @@ void SV_SendClientMessages (void)
 		}
 		//qw servers will set send_message on packet reception.
 #endif
-
 		SV_ProcessSendFlags(c);
 
 		if (!c->send_message)

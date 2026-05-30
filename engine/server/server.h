@@ -158,17 +158,9 @@ typedef struct server_s
 #ifdef HAVE_LEGACY
 			const char	*vw_model_precache[32];
 #endif
-#ifdef TEMPORALCORTEX
-			const char	*model_precache[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];	// NULL terminated
-#else
 			const char	*model_precache[MAX_PRECACHE_MODELS];	// NULL terminated
-#endif
 			const char	*particle_precache[MAX_SSPARTICLESPRE];	// NULL terminated
-#ifdef TEMPORALCORTEX
-			const char	*sound_precache[MAX_TIME_PERIODS][MAX_PRECACHE_SOUNDS];	// NULL terminated
-#else
 			const char	*sound_precache[MAX_PRECACHE_SOUNDS];	// NULL terminated
-#endif
 		};
 		const char *ptrs[1];
 	} strings;
@@ -191,11 +183,8 @@ typedef struct server_s
 	int			allocated_client_slots;	//number of slots available. (used mostly to stop single player saved games cacking up)
 	int			spawned_client_slots; //number of PLAYER slots which are active (ie: putclientinserver was called)
 	int			spawned_observer_slots;
-#ifdef TEMPORALCORTEX
-	model_t	*models[MAX_TIME_PERIODS][MAX_PRECACHE_MODELS];
-#else
+
 	model_t	*models[MAX_PRECACHE_MODELS];
-#endif
 
 	struct client_s	*skipbprintclient;	//SV_BroadcastPrint skips this client
 

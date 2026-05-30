@@ -2386,9 +2386,6 @@ static void SV_Status_f (void)
 	const char	*p;
 	char		adr[MAX_ADR_SIZE];
 	float pi, po, bi, bo;
-#ifdef TEMPORALCORTEX
-	int			t;
-#endif
 
 	int columns = 80;
 	extern cvar_t sv_listen_qw;
@@ -2568,27 +2565,13 @@ static void SV_Status_f (void)
 			count++;
 		}
 		Con_TPrintf("entities         : %i/%i/%i (mem: %.1f%%)\n", count, sv.world.num_edicts, sv.world.max_edicts, 100.0*(sv.world.progs->stringtablesize/(double)sv.world.progs->stringtablemaxsize));
-#ifdef TEMPORALCORTEX
-		for (t = 0; t < tc_sv_loaded_bsps; t++)
-			for (count = 1; count < MAX_PRECACHE_MODELS; count++)
-				if (!sv.strings.model_precache[t][count])
-					break;
-#else
 		for (count = 1; count < MAX_PRECACHE_MODELS; count++)
 			if (!sv.strings.model_precache[count])
 				break;
-#endif
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
-#ifdef TEMPORALCORTEX
-		for (t = 0; t < tc_sv_loaded_bsps; t++)
-			for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
-				if (!sv.strings.sound_precache[t][count])
-					break;
-#else
 		for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
 			if (!sv.strings.sound_precache[count])
 				break;
-#endif
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 
 		for (count = 1; count < MAX_SSPARTICLESPRE; count++)
@@ -3552,9 +3535,6 @@ void SV_ReallyEvilHack_f(void)
 void SV_PrecacheList_f(void)
 {
 	unsigned int i;
-#ifdef TEMPORALCORTEX
-	int t;
-#endif
 	char *group = Cmd_Argv(1);
 	if (sv.state != ss_active)
 	{
@@ -3573,41 +3553,19 @@ void SV_PrecacheList_f(void)
 #endif
 	if (!*group || !strncmp(group, "model", 5))
 	{
-#ifdef TEMPORALCORTEX
-		for (t = 0; t < tc_sv_loaded_bsps; t++)
-		{
-			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
-			{
-				if (sv.strings.model_precache[t][i])
-					Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[t][i], Mod_FixName(sv.strings.model_precache[t][i], sv.strings.model_precache[t][1]));
-			}
-		}
-#else
 		for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 		{
 			if (sv.strings.model_precache[i])
 				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[i], Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 		}
-#endif
 	}
 	if (!*group || !strncmp(group, "sound", 5))
 	{
-#ifdef TEMPORALCORTEX
-		for (t = 0; t < tc_sv_loaded_bsps; t++)
-		{
-			for (i = 0; i < MAX_PRECACHE_SOUNDS; i++)
-			{
-				if (sv.strings.sound_precache[t][i])
-					Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sv.strings.sound_precache[t][i], sv.strings.sound_precache[t][i]);
-			}
-		}
-#else
 		for (i = 0; i < MAX_PRECACHE_SOUNDS; i++)
 		{
 			if (sv.strings.sound_precache[i])
 				Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sv.strings.sound_precache[i], sv.strings.sound_precache[i]);
 		}
-#endif
 	}
 	if (!*group || !strncmp(group, "part", 4))
 	{
@@ -3730,8 +3688,9 @@ void SV_ChangeTimePeriod( int bspindex )
 		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 		pEdict->v->enemy = pr_global_struct->world;
 
-		if ( pEdict->bspnum == sv_current_bsp_index )
+		/*if ( pEdict->bspnum == sv_current_bsp_index )
 			World_LinkEdict( &sv.world, (wedict_t*)pEdict, true );	// Missi: Allow collision and interactions again (2025.9.23)
+		*/
 	}
 
 	track = pWorldEdict->v->sounds;
@@ -3826,7 +3785,7 @@ void SV_ChangeTimePeriod_f()
 			if ( !pClientEdict )
 				break;
 
-			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, 0, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
+			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, 0, (wedict_t*)pClientEdict, atoi(pszArg) );
 
 			if ( tTrace.fraction != 1 )
 			{
@@ -3886,7 +3845,7 @@ void SV_ChangeTimePeriod_f()
 	}
 
 	if ( !bStuck )
-		SV_ChangeTimePeriod( (timeperiod_t)atoi(pszArg) );
+		SV_ChangeTimePeriod( atoi(pszArg) );
 }
 #endif
 /*

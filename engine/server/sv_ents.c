@@ -3356,22 +3356,7 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 {
 	int i;
 	gibfilter_t *gf;
-#ifdef TEMPORALCORTEX
-	int t;
 
-	for (t = 0; t < tc_sv_loaded_bsps; t++)
-	{
-		for (i=1; sv.strings.model_precache[t][i] ; i++)
-			if (!strcmp(sv.strings.model_precache[t][i], modelname))
-				break;
-		if (!sv.strings.model_precache[t][i])
-		{
-			if (allowwarn)
-				Con_Printf("Filtered model \"%s\" was not precached\n", modelname);
-			return;	//model not in use.
-		}
-	}
-#else
 	for (i=1; sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], modelname))
 			break;
@@ -3381,7 +3366,6 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 			Con_Printf("Filtered model \"%s\" was not precached\n", modelname);
 		return;	//model not in use.
 	}
-#endif
 
 	gf = Z_Malloc(sizeof(gibfilter_t));
 	gf->modelindex = i;
@@ -3704,11 +3688,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	if (((int)ent->v->flags & FL_CLASS_DEPENDENT) && client && client->playerclass)	//hexen2 wierdness.
 	{
 		char modname[MAX_QPATH];
-#ifdef TEMPORALCORTEX
-		Q_strncpyz(modname, sv.strings.model_precache[sv_current_bsp_index][state->modelindex], sizeof(modname));
-#else
 		Q_strncpyz(modname, sv.strings.model_precache[state->modelindex], sizeof(modname));
-#endif
 		if (strlen(modname)>5)
 		{
 			modname[strlen(modname)-5] = client->playerclass+'0';
@@ -3750,32 +3730,19 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	{
 		if (progstype == PROG_TENEBRAE)
 		{
-#ifdef TEMPORALCORTEX
-			//tenebrae has some hideous hacks
-			if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/w_light.spr") ||
-				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/b_light.spr") ||
-				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/s_light.spr") ||
-				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/flame.mdl") ||
-				!strcmp(sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/flame2.mdl"))
-#else
 			//tenebrae has some hideous hacks
 			if (!strcmp(sv.strings.model_precache[state->modelindex], "progs/w_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/b_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/s_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame.mdl") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame2.mdl"))
-#endif
 			{
 				//fixme: add some default colours
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				if (!state->light[3])
 					state->light[3] = 350;
 			}
-#ifdef TEMPORALCORTEX
-			if (!strcmp (sv.strings.model_precache[sv_current_bsp_index][state->modelindex], "progs/lavaball.mdl"))
-#else
 			if (!strcmp (sv.strings.model_precache[state->modelindex], "progs/lavaball.mdl"))
-#endif
 			{
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				state->skinnum = 17;

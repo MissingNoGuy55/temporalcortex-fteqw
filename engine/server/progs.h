@@ -37,7 +37,7 @@ enum initprogs_e
 };
 void Q_InitProgs(enum initprogs_e flags);
 #ifdef TEMPORALCORTEX
-void PR_SpawnInitialEntities(const char *file, int bspnum);
+void PR_SpawnInitialEntities(const char *file, int bspnum, int skippedbsps);
 extern int tc_edictnums[MAX_EDICTS];
 #else
 void PR_SpawnInitialEntities(const char *file);

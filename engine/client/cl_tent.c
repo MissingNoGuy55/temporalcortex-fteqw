@@ -2615,11 +2615,7 @@ void CL_ParseEffect (qboolean effect2)
 
 	framecount = MSG_ReadByte();
 	framerate = MSG_ReadByte();
-#ifdef TEMPORALCORTEX
-	mod = cl.model_precache[cl_current_bsp_index][modelindex];
-#else
 	mod = cl.model_precache[modelindex];
-#endif
 	CL_SpawnSpriteEffect(org, NULL, NULL, mod, startframe, framecount, framerate, mod->type==mod_sprite?-1:1, 1, 0, 0, P_INVALID, 0, 0, 1.0f, 1.0f, 1.0f);
 }
 

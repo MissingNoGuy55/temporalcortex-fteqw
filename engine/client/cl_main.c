@@ -2268,9 +2268,6 @@ void CL_ClearState (qboolean gamestart)
 {
 	extern cvar_t cfg_save_auto;
 	int			i, j;
-#ifdef TEMPORALCORTEX
-	int			t;
-#endif
 	downloadlist_t *pendingdownloads, *faileddownloads;
 #ifdef HAVE_SERVER
 #define serverrunning (sv.state != ss_dead)
@@ -2343,31 +2340,17 @@ void CL_ClearState (qboolean gamestart)
 			if (cl.particle_csname[i])
 				free(cl.particle_csname[i]);
 	}
-#ifdef TEMPORALCORTEX
-	for (t = 0; t < tc_cl_loaded_bsps; t++)
-		for (i = 0; i < countof(cl.model_name[t]); i++)
-			if (cl.model_name[t][i])
-				BZ_Free(cl.model_name[t][i]);
-#else
 	for (i = 0; i < countof(cl.model_name); i++)
 		if (cl.model_name[i])
 			BZ_Free(cl.model_name[i]);
-#endif
 #ifdef HAVE_LEGACY
 	for (i = 0; i < countof(cl.model_name_vwep); i++)
 		if (cl.model_name_vwep[i])
 			BZ_Free(cl.model_name_vwep[i]);
 #endif
-#ifdef TEMPORALCORTEX
-	for (t = 0; t < tc_cl_loaded_bsps; t++)
-		for (i = 0; i < countof(cl.sound_name[t]); i++)
-			if (cl.sound_name[t][i])
-				BZ_Free(cl.sound_name[t][i]);
-#else
 	for (i = 0; i < countof(cl.sound_name); i++)
 		if (cl.sound_name[i])
 			BZ_Free(cl.sound_name[i]);
-#endif
 #ifdef Q2CLIENT
 	for (i = 0; i < Q2MAX_IMAGES; i++)
 		if (cl.image_name[i])
@@ -2586,7 +2569,7 @@ void CL_Disconnect (const char *reason)
 	}
 	Cam_Reset();
 #ifdef TEMPORALCORTEX
-	for ( int t = 0; t < tc_cl_loaded_bsps; t++ )
+	for ( int t = 0; t < MAX_TIME_PERIODS; t++ )
 		if ( cl.worldmodel[t] )
 #else
 		if ( cl.worldmodel )
@@ -2595,9 +2578,7 @@ void CL_Disconnect (const char *reason)
 #ifdef TEMPORALCORTEX
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( i = 0; i < MAX_TIME_PERIODS; i++ )
-	{
 		cl.worldmodel[i] = NULL;
-	}
 
 	tc_cl_loaded_bsps = 0;
 #else

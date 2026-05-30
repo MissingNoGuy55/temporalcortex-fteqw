@@ -3381,9 +3381,8 @@ qboolean MP_Init (void)
 		//'world' edict
 //		EDICT_NUM_PB(menu_world.progs, 0)->readonly = true;
 #ifdef TEMPORALCORTEX
-		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PRESENT)->ereftype = ER_ENTITY;
-		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_PAST)->ereftype = ER_ENTITY;
-		EDICT_NUM_PB(menu_world.progs, TIME_PERIOD_FUTURE)->ereftype = ER_ENTITY;
+		for (int t = 0; t < tc_cl_loaded_bsps; t++)
+			EDICT_NUM_PB(menu_world.progs, t)->ereftype = ER_ENTITY;
 #else
 		EDICT_NUM_PB(menu_world.progs, 0)->ereftype = ER_ENTITY;
 #endif

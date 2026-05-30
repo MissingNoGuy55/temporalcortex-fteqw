@@ -6761,11 +6761,7 @@ void CL_Parse_BrushEdit(void)
 	unsigned int	modelindex		= MSG_ReadShort();
 	int				cmd				= MSG_ReadByte();
 
-#ifdef TEMPORALCORTEX
-	model_t			*mod			= (modelindex<countof(cl.model_precache[cl_current_bsp_index]))?cl.model_precache[cl_current_bsp_index][modelindex]:NULL;
-#else
 	model_t			*mod			= (modelindex<countof(cl.model_precache))?cl.model_precache[modelindex]:NULL;
-#endif
 	heightmap_t		*hm				= mod?mod->terrain:NULL;
 
 #ifdef HAVE_SERVER
@@ -6888,11 +6884,7 @@ qboolean SV_Prespawn_Brushes(sizebuf_t *msg, unsigned int *modelindex, unsigned 
 	while(1)
 	{
 		if (*modelindex < MAX_PRECACHE_MODELS)
-#ifdef TEMPORALCORTEX
-			mod = sv.models[sv_current_bsp_index][*modelindex];
-#else
 			mod = sv.models[*modelindex];
-#endif
 		else
 			mod = NULL;
 		if (!mod)
@@ -6957,11 +6949,7 @@ qboolean SV_Parse_BrushEdit(void)
 	qboolean authorise = (host_client->penalties & BAN_MAPPER) || (host_client->netchan.remote_address.type == NA_LOOPBACK);
 	unsigned int	modelindex		= MSG_ReadShort();
 	int				cmd				= MSG_ReadByte();
-#ifdef TEMPORALCORTEX
-	model_t			*mod			= (modelindex<countof(sv.models))?sv.models[sv_current_bsp_index][modelindex]:NULL;
-#else
 	model_t			*mod			= (modelindex<countof(sv.models))?sv.models[modelindex]:NULL;
-#endif
 	heightmap_t		*hm				= mod?mod->terrain:NULL;
 	if (cmd == hmcmd_brush_delete)
 	{	//delete

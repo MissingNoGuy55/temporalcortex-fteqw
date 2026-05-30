@@ -166,19 +166,14 @@ struct pubprogfuncs_s
 
 	void	(PDECL *ED_Print)					(pubprogfuncs_t *prinst, struct edict_s *ed);
 	char	*(PDECL *save_ents)					(pubprogfuncs_t *prinst, char *buf, size_t *size, size_t maxsize, int mode);	//dump the entire progs info into one big self allocated string
-#ifdef TEMPORALCORTEX
-	int		(PDECL *load_ents)					(pubprogfuncs_t *prinst, const char *s, void *ctx,
-														void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx),
-														void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend),
-														pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline), int timeperiod
-												); //restore the entire progs state (or just add some more ents) (returns edict size)
-#else
 	int		(PDECL *load_ents)					(pubprogfuncs_t *prinst, const char *s, void *ctx,
 														void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx),
 														void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend),
 														pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline)
-												); //restore the entire progs state (or just add some more ents) (returns edict size)
+#ifdef TEMPORALCORTEX_QCC
+														, int timeperiod, int skippedbsps
 #endif
+												); //restore the entire progs state (or just add some more ents) (returns edict size)
 	char	*(PDECL *saveent)					(pubprogfuncs_t *prinst, char *buf, size_t *size, size_t maxsize, struct edict_s *ed);	//will save just one entities vars
 	struct edict_s	*(PDECL *restoreent)		(pubprogfuncs_t *prinst, const char *buf, size_t *size, struct edict_s *ed);	//will restore the entity that had it's values saved (can use NULL for ed)
 
@@ -349,7 +344,7 @@ typedef union eval_s
 #define ED_Clear(pf, ed)									(*pf->EntClear)				(pf, ed)
 
 #ifdef TEMPORALCORTEX
-#define PR_LoadEnts(pf, s, ctx, memreset, entcb, extcb, bspnum)		(*pf->load_ents)			(pf, s, ctx, memreset, entcb, extcb, bspnum)
+#define PR_LoadEnts(pf, s, ctx, memreset, entcb, extcb, timeperiod, skippedbsps)		(*pf->load_ents)			(pf, s, ctx, memreset, entcb, extcb, timeperiod, skippedbsps)
 #else
 #define PR_LoadEnts(pf, s, ctx, memreset, entcb, extcb)		(*pf->load_ents)			(pf, s, ctx, memreset, entcb, extcb)
 #endif

@@ -32,8 +32,6 @@
 //#undef HEADLESSQUAKE			//no-op renderer...
 //#undef WAYLANDQUAKE			//linux only
 
-#define TEMPORALCORTEX
-
 //Misc Renderer stuff
 #define PSET_CLASSIC			//support the 'classic' particle system, for that classic quake feel.
 #define PSET_SCRIPT				//scriptable particles (both fte's and importing effectinfo)

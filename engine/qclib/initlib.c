@@ -587,6 +587,9 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 		e2->fieldsize = prinst.fields_size;
 		e2->entnum = i;
 		e2->ereftype = ER_ENTITY;
+#ifdef TEMPORALCORTEX_QCC
+		e2->bspnum = i;
+#endif
 
 		progfuncs->funcs.edicttable[i] = (struct edict_s *)e2;
 		e2->fields = PRAddressableExtend(progfuncs, NULL, e2->fieldsize, prinst.max_fields_size-e2->fieldsize);

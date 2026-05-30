@@ -71,39 +71,22 @@ int SV_ModelIndex (const char *name)
 	if (!name || !name[0])
 		return 0;
 
-#ifdef TEMPORALCORTEX
-	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[sv_current_bsp_index][i] ; i++)
-		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i], name))
-#else
 	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], name))
-#endif
 			return i;
-#ifdef TEMPORALCORTEX
-	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[sv_current_bsp_index][i])
-#else
 	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i])
-#endif
 	{
 		if (i!=MAX_PRECACHE_MODELS)
 		{
 #ifdef VM_Q1
 			if (svs.gametype == GT_Q1QVM)
-#ifdef TEMPORALCORTEX
-				sv.strings.model_precache[sv_current_bsp_index][i] = name;
-#else
 				sv.strings.model_precache[i] = name;
-#endif
 			else
 #endif
-#ifdef TEMPORALCORTEX
-				sv.strings.model_precache[sv_current_bsp_index][i] = PR_AddString(svprogfuncs, name, 0, false);
-#else
 				sv.strings.model_precache[i] = PR_AddString(svprogfuncs, name, 0, false);
-#endif
 			if (!strcmp(name + strlen(name) - 4, ".bsp"))
 #ifdef TEMPORALCORTEX
-				sv.models[sv_current_bsp_index][i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[sv_current_bsp_index][i], sv.strings.model_precache[sv_current_bsp_index][1]));
+				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv.world.worldmodel_indices[sv_current_bsp_index]]));
 #else
 				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 #endif
@@ -114,19 +97,11 @@ int SV_ModelIndex (const char *name)
 			{
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i);
-#ifdef TEMPORALCORTEX
-				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[sv_current_bsp_index][i]);
-#else
 				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i]);
-#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
-#ifdef TEMPORALCORTEX
-				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[sv_current_bsp_index][i]);
-#else
 				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i]);
-#endif
 #endif
 			}
 		}
@@ -142,19 +117,10 @@ int SV_SafeModelIndex (char *name)
 	if (!name || !name[0])
 		return 0;
 
-#ifdef TEMPORALCORTEX
-	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[sv_current_bsp_index][i] ; i++)
-		if (!strcmp(sv.strings.model_precache[sv_current_bsp_index][i], name))
-#else
 	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], name))
-#endif
 			return i;
-#ifdef TEMPORALCORTEX
-	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[sv_current_bsp_index][i])
-#else
 	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i])
-#endif
 	{
 		return 0;
 	}
@@ -310,7 +276,7 @@ void SVQ1_CreateBaseline (void)
 	//
 		SV_Snapshot_BuildStateQ1(&svent->baseline, svent, NULL, NULL);
 #ifdef TEMPORALCORTEX
-		if (entnum > tc_sv_loaded_bsps && entnum < sv.allocated_client_slots + tc_sv_loaded_bsps)
+		if (entnum > tc_sv_loaded_bsps && entnum <= sv.allocated_client_slots + tc_sv_loaded_bsps)
 #else
 		if (entnum > 1 && entnum <= sv.allocated_client_slots)
 #endif
@@ -924,7 +890,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #endif
 	int			i, j;
 #ifdef TEMPORALCORTEX
-	int			t;
+	int			t, l, o;
 #endif
 	extern int sv_allow_cheats;
 	size_t fsz;
@@ -1085,7 +1051,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		Q_strncpyz (svs.name, server, sizeof(svs.name));
 #ifdef TEMPORALCORTEX
 		// Missi: Iterate through each time period (2025.9.20)
-		for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 #endif
 #ifdef TEMPORALCORTEX
@@ -1256,6 +1222,12 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 			}
 
 			sv.world.worldmodel[t] = Mod_ForName (sv.modelname[t], MLV_ERROR);
+
+			if (t > 0)	// Missi: Everything but the present is disabled at start by default. (2026.5.17)
+				sv.world.disabled_levels[t] = true;
+
+			if (!sv.world.worldmodel[t])
+				continue;
 #else
 			sv.world.worldmodel = Mod_ForName (sv.modelname, MLV_ERROR);
 #endif
@@ -1287,9 +1259,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #endif
 			}
 #ifdef TEMPORALCORTEX
-			if (sv.world.worldmodel[t])
-				tc_sv_loaded_bsps++;
-
 			if (!sv.world.worldmodel[t] || sv.world.worldmodel[t]->loadstate != MLS_LOADED)
 				Sys_Error("\"%s\" is missing or corrupt\n", sv.modelname[t]);
 	//	if (sv.world.worldmodel[t]->type != mod_brush && sv.world.worldmodel[t]->type != mod_heightmap)
@@ -1297,7 +1266,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 				Sys_Error("\"%s\" is not a bsp model\n", sv.modelname[t]);
 			else if (!Mod_GetEntitiesString(sv.world.worldmodel[t]))
 				Sys_Error("\"%s\" has no entity data\n", sv.modelname[t]);
-	}
+		}
 #else
 			if (!sv.world.worldmodel || sv.world.worldmodel->loadstate != MLS_LOADED)
 				Sys_Error("\"%s\" is missing or corrupt\n", sv.modelname);
@@ -1311,15 +1280,20 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 	sv.state = ss_dead;
 #ifdef TEMPORALCORTEX
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!sv.world.worldmodel[t])
+			continue;
+
 		//make sure our map's package is loaded.
-		if (sv.world.worldmodel[t])
-			FS_LoadMapPackFile(sv.world.worldmodel[t]->name, sv.world.worldmodel[t]->archive);
+		FS_LoadMapPackFile(sv.world.worldmodel[t]->name, sv.world.worldmodel[t]->archive);
 
 		//reset the map's areaportal state... it might be dirty from a restart or so.
-		if (sv.world.worldmodel[t]->funcs.LoadAreaPortalBlob)
+		if (sv.world.worldmodel[t] && sv.world.worldmodel[t]->funcs.LoadAreaPortalBlob)
 			sv.world.worldmodel[t]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[t], NULL, 0);
+
+		// Missi: Finally increment the number of loaded BSPs on the server (2026.5.17)
+		tc_sv_loaded_bsps++;
 	}
 #else
 		//make sure our map's package is loaded.
@@ -1345,9 +1319,23 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	SCR_SetLoadingFile("gamecode");
 #endif
 #ifdef TEMPORALCORTEX
+	char* oldkey = NULL;
+	char* newkey = NULL;
+
 	// Missi: Iterate through each time period (2025.9.20)
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!sv.world.worldmodel[t])
+			continue;
+
+		if ((oldkey && newkey) && strcmp(oldkey, newkey))
+		{
+			Host_EndGame("TEMPORAL CORTEX ERROR: Cannot mix BSP versions with time travel! Found \"%s\" for \"*bspversion\" infobuf key, expected \"%s\"\n", newkey, oldkey );
+			return;
+		}
+
+		oldkey = InfoBuf_ValueForKey(&svs.info, "bspversion");
+
 		if (sv.world.worldmodel[t]->type != mod_brush)
 			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
 		else if (sv.world.worldmodel[t]->fromgame == fg_doom)
@@ -1361,6 +1349,9 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		else
 			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
 		InfoBuf_SetStarKey(&svs.info, "*startspot", (startspot?startspot:""));
+
+		newkey = InfoBuf_ValueForKey(&svs.info, "*bspversion");
+
 	}
 #else
 	if (sv.world.worldmodel->type != mod_brush)
@@ -1453,9 +1444,9 @@ MSV_OpenUserDatabase();
 #endif
 #ifdef Q2SERVER
 #ifdef TEMPORALCORTEX
-	else for (t = 0; t < tc_sv_loaded_bsps; t++)
-		if ((sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake2 || sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake3) && sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
-			newgametype = GT_QUAKE2;	//we loaded the dll
+	else if ((sv.world.worldmodel[0]->fromgame == fg_quake2 || sv.world.worldmodel[0]->fromgame == fg_quake3) && sv.world.worldmodel[0]->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
+
+	newgametype = GT_QUAKE2;	//we loaded the dll
 #else
 	else if ((sv.world.worldmodel->fromgame == fg_quake2 || sv.world.worldmodel->fromgame == fg_quake3) && sv.world.worldmodel->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
 
@@ -1503,19 +1494,22 @@ MSV_OpenUserDatabase();
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
 #ifdef TEMPORALCORTEX
-	// Missi (2025.9.19)
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+	sv.strings.sound_precache[0] = "";
+	sv.strings.model_precache[0] = "";
+
+	// Missi: HACK: sv.models cannot have any NULL entries, or
+	// else the logic behind the whole array collapses. (2026.5.29)
+	// Missi: FIXME:  Fix this when re-writing the precaching.
+	for (t = 0, j = 0, o = 1; t < MAX_TIME_PERIODS; t++)
 	{
-		sv.strings.model_precache[t][0] = PR_AddString(svprogfuncs, "", 0, false);
+		if (!sv.world.worldmodel[t])
+			continue;
 
-		sv.models[t][1] = sv.world.worldmodel[t];
-
+		sv.models[j+o] = sv.world.worldmodel[t];
 #ifdef VM_Q1
 		if (svs.gametype == GT_Q1QVM)
 		{
 			int subs;
-			sv.strings.sound_precache[t][0] = "";
-			sv.strings.model_precache[t][0] = "";
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
 			if (subs > MAX_PRECACHE_MODELS-2)
@@ -1524,15 +1518,21 @@ MSV_OpenUserDatabase();
 				subs = MAX_PRECACHE_MODELS-2;
 			}
 
-			sv.strings.model_precache[t][1] = sv.modelname[t];	//the qvm doesn't have access to this array
+			sv.strings.model_precache[i+j+o] = sv.modelname[t];	//the qvm doesn't have access to this array
 			for (i=1 ; i<subs ; i++)
 			{
 				char *z, *s = va("*%u", i);
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
-				sv.strings.model_precache[t][1+i] = z;
-				sv.models[t][i+1] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
+				sv.strings.model_precache[i+j+o] = z;
+				sv.models[i+j+o] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
 			}
+
+			if (o > 0)
+				o--;
+
+			j += subs;
+
 			//check player/eyes models for hacks
 			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
 			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
@@ -1545,10 +1545,10 @@ MSV_OpenUserDatabase();
 #endif
 			)
 		{
-			int subs = 0;
+			int subs;
 
-			sv.strings.model_precache[t][1] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
-			// Missi (2025.9.19)
+			sv.strings.model_precache[1+j] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
+			sv.world.worldmodel_indices[t] = 1+j;
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
 			if (subs > MAX_PRECACHE_MODELS-2)
@@ -1557,13 +1557,16 @@ MSV_OpenUserDatabase();
 				subs = MAX_PRECACHE_MODELS-2;
 			}
 
-			// Missi: Also the reason why brush entities were not showing (2026.1.3)
 			for (i=1 ; i<subs ; i++)
 			{
-				sv.strings.model_precache[t][1+i] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-				sv.models[t][i+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[t][1+i], sv.strings.model_precache[t][1]), MLV_WARN);
+				sv.strings.model_precache[i+j+o] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j+o], sv.modelname[t]), MLV_WARN);
 			}
 
+			if (o > 0)
+				o--;
+
+			j += subs;
 
 			//check player/eyes models for hacks
 			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
@@ -1597,111 +1600,116 @@ MSV_OpenUserDatabase();
 			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
 			{
 				sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
-				sv.models[t][i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname[t]), MLV_WARN);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname[t]), MLV_WARN);
 			}
 			for ( ; i<subs; i++)
 			{
 				sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
-				sv.models[t][i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname[t]), MLV_WARN);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname[t]), MLV_WARN);
+			}
+
+			j += i;
+		}
+#endif
+		o++;
+	}
+#else
+		sv.models[1] = sv.world.worldmodel;
+#ifdef VM_Q1
+		if (svs.gametype == GT_Q1QVM)
+		{
+			int subs;
+			sv.strings.sound_precache[0] = "";
+			sv.strings.model_precache[0] = "";
+
+			subs = sv.world.worldmodel->numsubmodels;
+			if (subs > MAX_PRECACHE_MODELS-2)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-2;
+			}
+
+			sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
+			for (i=1 ; i<subs ; i++)
+			{
+				char *z, *s = va("*%u", i);
+				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
+				strcpy(z, s);
+				sv.strings.model_precache[1+i] = z;
+				sv.models[i+1] = Mod_ForName (Mod_FixName(z, sv.modelname), MLV_WARN);
+			}
+
+			//check player/eyes models for hacks
+			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
+			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
+		}
+		else
+#endif
+		if (svs.gametype == GT_PROGS
+#ifdef VM_LUA
+			|| svs.gametype == GT_LUA
+#endif
+			)
+		{
+			int subs;
+			sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
+			sv.strings.model_precache[1] = PR_AddString(svprogfuncs, sv.modelname, 0, false);
+
+			subs = sv.world.worldmodel->numsubmodels;
+			if (subs > MAX_PRECACHE_MODELS-2)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-2;
+			}
+			for (i=1 ; i<subs ; i++)
+			{
+				sv.strings.model_precache[1+i] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[1+i], sv.modelname), MLV_WARN);
+			}
+
+			//check player/eyes models for hacks
+			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
+			sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
+		}
+#ifdef Q2SERVER
+		else if (svs.gametype == GT_QUAKE2)
+		{
+			int subs;
+			extern cvar_t sv_airaccelerate;
+
+			sv.stringsalloced = true;
+			memset(&sv.strings, 0, sizeof(sv.strings));
+
+			if (deathmatch.value)
+				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDupf("%g", sv_airaccelerate.value);
+			else
+				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
+
+			// init map checksum config string but only for Q2/Q3 maps
+			sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel->checksum, sv.world.worldmodel->checksum2);
+			subs = sv.world.worldmodel->numsubmodels;
+
+			if (subs > MAX_PRECACHE_MODELS-1)
+			{
+				Con_Printf("Warning: worldmodel has too many submodels\n");
+				subs = MAX_PRECACHE_MODELS-1;
+			}
+
+			sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname);
+
+			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
+			{
+				sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname), MLV_WARN);
+			}
+			for ( ; i<subs; i++)
+			{
+				sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
+				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname), MLV_WARN);
 			}
 		}
 #endif
-	}
-#else
-	sv.models[1] = sv.world.worldmodel;
-#ifdef VM_Q1
-	if (svs.gametype == GT_Q1QVM)
-	{
-		int subs;
-		sv.strings.sound_precache[0] = "";
-		sv.strings.model_precache[0] = "";
 
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-2)
-		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-2;
-		}
-
-		sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
-		for (i=1 ; i<subs ; i++)
-		{
-			char *z, *s = va("*%u", i);
-			z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
-			strcpy(z, s);
-			sv.strings.model_precache[1+i] = z;
-			sv.models[i+1] = Mod_ForName (Mod_FixName(z, sv.modelname), MLV_WARN);
-		}
-
-		//check player/eyes models for hacks
-		sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
-		sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
-	}
-	else
-#endif
-	if (svs.gametype == GT_PROGS
-#ifdef VM_LUA
-		|| svs.gametype == GT_LUA
-#endif
-		)
-	{
-		int subs;
-		sv.strings.model_precache[0] = PR_AddString(svprogfuncs, "", 0, false);
-		sv.strings.model_precache[1] = PR_AddString(svprogfuncs, sv.modelname, 0, false);
-
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-2)
-		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-2;
-		}
-		for (i=1 ; i<subs ; i++)
-		{
-			sv.strings.model_precache[1+i] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.model_precache[1+i], sv.modelname), MLV_WARN);
-		}
-
-		//check player/eyes models for hacks
-		sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
-		sv.eyes_player_checksum = SV_CheckModel("progs/eyes.mdl");
-	}
-#ifdef Q2SERVER
-	else if (svs.gametype == GT_QUAKE2)
-	{
-		int subs;
-		extern cvar_t sv_airaccelerate;
-
-		sv.stringsalloced = true;
-		memset(&sv.strings, 0, sizeof(sv.strings));
-
-		if (deathmatch.value)
-			sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDupf("%g", sv_airaccelerate.value);
-		else
-			sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
-
-		// init map checksum config string but only for Q2/Q3 maps
-		sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel->checksum, sv.world.worldmodel->checksum2);
-
-		subs = sv.world.worldmodel->numsubmodels;
-		if (subs > MAX_PRECACHE_MODELS-1)
-		{
-			Con_Printf("Warning: worldmodel has too many submodels\n");
-			subs = MAX_PRECACHE_MODELS-1;
-		}
-
-		sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname);
-		for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
-		{
-			sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname), MLV_WARN);
-		}
-		for ( ; i<subs; i++)
-		{
-			sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
-			sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname), MLV_WARN);
-		}
-	}
-#endif
 #endif
 
 #ifndef SERVERONLY
@@ -1734,11 +1742,19 @@ MSV_OpenUserDatabase();
 		// Missi: Iterate through each time period (2025.9.20)
 		// Missi: NOTE: Better to allocate by index considering
 		// how the edict list is initialized (2025.12.19)
-		for ( i = 0; i < tc_sv_loaded_bsps; i++ )
+		for ( i = 0, j = 0; i < MAX_TIME_PERIODS; i++ )
 		{
-			//ent = ED_Alloc(svprogfuncs, false, 0);
-			ent = svprogfuncs->EntAllocIndex( svprogfuncs, i, false, 0 );
+			if (!sv.world.worldmodel[i])
+			{
+				j++;
+				continue;
+			}
+
+			// Missi: Decrement based on how many we skipped. Ensures that there
+			// are no null entries (2026.5.24)
+			ent = svprogfuncs->EntAllocIndex( svprogfuncs, i-j, false, 0 );
 			ent->ereftype = ER_ENTITY;
+			ent->bspnum = i;
 		}
 #else
 		ent = EDICT_NUM_PB(svprogfuncs, 0);
@@ -1857,19 +1873,26 @@ MSV_OpenUserDatabase();
 	sv.state = ss_loading;
 #ifdef TEMPORALCORTEX
 	// Missi: Iterate through each time period (2025.9.20)
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+	for ( t = 0, l = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!sv.world.worldmodel[t])
+		{
+			l++;
+			continue;
+		}
+
 		if (svprogfuncs)
 		{
 			//world entity is hackily spawned
 			extern cvar_t coop, pr_imitatemvdsv;
-			ent = EDICT_NUM_PB(svprogfuncs, t);
+			ent = EDICT_NUM_PB(svprogfuncs, t-l);
 			ent->ereftype = ER_ENTITY;
+			ent->bspnum = t;
 #ifdef VM_Q1
 			if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
 #endif
-			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[t][1], true);
-			ent->v->modelindex = 1+t;		// world model
+			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[sv.world.worldmodel_indices[t]], true);
+			ent->v->modelindex = sv.world.worldmodel_indices[t];		// world model
 			ent->v->solid = SOLID_BSP;
 			ent->v->movetype = MOVETYPE_PUSH;
 			VectorCopy(sv.world.worldmodel[t]->mins, ent->v->mins);
@@ -1953,22 +1976,14 @@ MSV_OpenUserDatabase();
 	{
 		//world entity is hackily spawned
 		extern cvar_t coop, pr_imitatemvdsv;
-#ifdef TEMPORALCORTEX
-		ent = EDICT_NUM_PB(svprogfuncs, j);
-#else
+
 		ent = EDICT_NUM_PB(svprogfuncs, 0);
-#endif
 		ent->ereftype = ER_ENTITY;
 #ifdef VM_Q1
 		if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
 #endif
-#ifdef TEMPORALCORTEX
-		svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[1+j], true);
-		ent->v->modelindex = 1+j;		// world model
-#else
 		svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, sv.strings.model_precache[1], true);
 		ent->v->modelindex = 1;		// world model
-#endif
 		ent->v->solid = SOLID_BSP;
 		ent->v->movetype = MOVETYPE_PUSH;
 		VectorCopy(sv.world.worldmodel->mins, ent->v->mins);
@@ -2055,8 +2070,14 @@ MSV_OpenUserDatabase();
 //do this and get the precaches/start up the game
 #ifdef TEMPORALCORTEX
 	// Missi: Iterate through each time period (2025.9.20)
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+	for ( t = 0, j = 0, o = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!sv.world.worldmodel[t])
+		{
+			o++;
+			continue;
+		}
+
 		if (sv.world.worldmodel[t]->entitiescrc)
 		{
 			char crc[12];
@@ -2076,7 +2097,7 @@ MSV_OpenUserDatabase();
 		switch(svs.gametype)
 		{
 		default:
-			PR_SpawnInitialEntities(file, t);
+			PR_SpawnInitialEntities(file, t, o);
 			break;
 #ifdef Q2SERVER
 		case GT_QUAKE2:
@@ -2091,23 +2112,12 @@ MSV_OpenUserDatabase();
 			break;
 #endif
 		}
-
-#ifdef TEMPORALCORTEX
-#ifdef HAVE_SERVER
-		sv_current_bsp_index++;
-#endif
-#ifdef HAVE_CLIENT
-		cl_current_bsp_index++;
-#endif
-#endif
 	}
-#ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
 	sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #ifdef HAVE_CLIENT
 	cl_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
 #endif
 #else
 	if (sv.world.worldmodel->entitiescrc)
@@ -2152,23 +2162,30 @@ MSV_OpenUserDatabase();
 	SCR_ImageName(server);
 #endif
 
-	// Missi: Iterate through each time period (2025.9.20)
 #ifdef TEMPORALCORTEX
-	for ( j = 0; j < tc_sv_loaded_bsps; j++ )
+	// Missi: Normally I would use MAX_TIME_PERIODS here, but entities are allocated with the assumption that
+	// the players come after the number of loaded BSPs. This is by design, as this is a sort of level streaming
+	// system. (2026.5.17)
+	for ( t = 0, l = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!sv.world.worldmodel[t])
+		{
+			l++;
+			continue;
+		}
 #endif
 		if (svprogfuncs)
 		{
 			eval_t *val;
 #ifdef TEMPORALCORTEX
-			ent = EDICT_NUM_PB(svprogfuncs, j);
+			ent = EDICT_NUM_PB(svprogfuncs, t-l);
 #else
 			ent = EDICT_NUM_PB(svprogfuncs, 0);
 #endif
 			ent->v->angles[0] = ent->v->angles[1] = ent->v->angles[2] = 0;
 			if ((val = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "message", ev_string, NULL)))
 #ifdef TEMPORALCORTEX
-				snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", PR_GetString(svprogfuncs, val->string));
+				snprintf(sv.mapname[t], sizeof(sv.mapname[t]), "%s", PR_GetString(svprogfuncs, val->string));
 #else
 				snprintf(sv.mapname, sizeof(sv.mapname), "%s", PR_GetString(svprogfuncs, val->string));
 #endif
@@ -2178,13 +2195,13 @@ MSV_OpenUserDatabase();
 				//if its 0 or negative, fall back on netname instead (for custom maps).
 				if (val->_float <= 0)
 #ifdef TEMPORALCORTEX
-					snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", PR_GetString(svprogfuncs, ent->v->netname));
+					snprintf(sv.mapname[t], sizeof(sv.mapname[t]), "%s", PR_GetString(svprogfuncs, ent->v->netname));
 #else
 					snprintf(sv.mapname, sizeof(sv.mapname), "%s", PR_GetString(svprogfuncs, ent->v->netname));
 #endif
 				else
 #ifdef TEMPORALCORTEX
-					snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", T_GetString(val->_float-1));
+					snprintf(sv.mapname[t], sizeof(sv.mapname[t]), "%s", T_GetString(val->_float-1));
 #else
 					snprintf(sv.mapname, sizeof(sv.mapname), "%s", T_GetString(val->_float-1));
 #endif
@@ -2192,7 +2209,7 @@ MSV_OpenUserDatabase();
 #endif
 			else
 #ifdef TEMPORALCORTEX
-				snprintf(sv.mapname[j], sizeof(sv.mapname[j]), "%s", svs.name);
+				snprintf(sv.mapname[t], sizeof(sv.mapname[t]), "%s", svs.name);
 #else
 				snprintf(sv.mapname, sizeof(sv.mapname), "%s", svs.name);
 #endif
@@ -2213,7 +2230,9 @@ MSV_OpenUserDatabase();
 		cl_current_bsp_index++;
 #endif
 #endif
+#ifdef TEMPORALCORTEX
 	}
+#endif
 
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
@@ -2335,8 +2354,10 @@ MSV_OpenUserDatabase();
 		}
 #ifdef TEMPORALCORTEX
 		// Missi: Iterate through each time period (2025.9.20)
-		for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
+			if (!sv.world.worldmodel[t])
+				continue;
 #endif
 			if (extent > (1u<<15)/8
 #ifdef TERRAIN
@@ -2440,6 +2461,4 @@ MSV_OpenUserDatabase();
 		malloc_trim(0);
 #endif
 }
-
 #endif
-

@@ -4222,11 +4222,7 @@ TRACE(("dbg: Surf_NewMap: tp\n"));
 		vec3_t mins, maxs;
 		//fixme: no rotation
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < countof(cl.model_precache))
-#ifdef TEMPORALCORTEX
-			cl_static_entities[i].ent.model = cl.model_precache[num][cl_static_entities[i].mdlidx];
-#else
 			cl_static_entities[i].ent.model = cl.model_precache[cl_static_entities[i].mdlidx];
-#endif
 		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < countof(cl.model_csqcprecache))
 			cl_static_entities[i].ent.model = cl.model_csqcprecache[-cl_static_entities[i].mdlidx];
 		if (cl_static_entities[i].ent.model)

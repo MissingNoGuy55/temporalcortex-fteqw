@@ -2042,8 +2042,8 @@ char *PDECL PR_SaveEnts(pubprogfuncs_t *ppf, char *buf, size_t *bufofs, size_t b
 }
 
 //if 'general' block is found, this is a compleate state, otherwise, we should spawn entities like
-#ifdef TEMPORALCORTEX
-int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline), int bspnum)
+#ifdef TEMPORALCORTEX_QCC
+int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline), int bspnum, int skippedbsps)
 #else
 int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline))
 #endif
@@ -2176,15 +2176,15 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 				}
 			}
 			ed->ereftype = ER_ENTITY;
+#ifdef TEMPORALCORTEX_QCC
+			ed->bspnum = bspnum;
+#endif
 			if (externs->entspawn)
 				externs->entspawn((struct edict_s *) ed, true);
 			file = ED_ParseEdict(progfuncs, file, ed, &maphacks);
 
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
-#ifdef TEMPORALCORTEX
-			ed->bspnum = bspnum;
-#endif
 		}
 		else if (!strcmp(qcc_token, "progs"))
 		{
@@ -2245,7 +2245,9 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 						ed = (edictrun_t *)ED_AllocIndex(&progfuncs->funcs, num, false, 0);
 						ed->ereftype = ER_FREE;
 					}
-
+#ifdef TEMPORALCORTEX_QCC
+					ed->bspnum = bspnum;
+#endif
 					if (externs->entspawn)
 						externs->entspawn((struct edict_s *) ed, true);
 				}
@@ -2425,6 +2427,9 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 						externs->entspawn((struct edict_s *) ed, true);
 
 					ed->ereftype = ER_ENTITY;
+#ifdef TEMPORALCORTEX_QCC
+					ed->bspnum = bspnum;
+#endif
 					file = ED_ParseEdict (progfuncs, file, ed, &maphacks);
 				}
 				sv_num_edicts = ++numents;
@@ -2450,8 +2455,8 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 			if (!ed)	//first entity
 			{
-#ifdef TEMPORALCORTEX
-				ed = (edictrun_t *)EDICT_NUM(progfuncs, bspnum);
+#ifdef TEMPORALCORTEX_QCC
+				ed = (edictrun_t *)EDICT_NUM(progfuncs, bspnum-skippedbsps);
 #else
 				ed = (edictrun_t *)EDICT_NUM(progfuncs, 0);
 #endif
@@ -2462,15 +2467,15 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 			}
 
 			ed->ereftype = ER_ENTITY;
+#ifdef TEMPORALCORTEX_QCC
+			ed->bspnum = bspnum;
+#endif
 			if (externs->entspawn)
 				externs->entspawn((struct edict_s *) ed, true);
 			file = ED_ParseEdict(progfuncs, file, ed, &maphacks);
 
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
-#ifdef TEMPORALCORTEX
-			ed->bspnum = bspnum;
-#endif
 		}
 		else if (extendedterm && extendedterm(ppf, ctx, &datastart))
 			file = datastart;

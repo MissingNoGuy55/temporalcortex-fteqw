@@ -3819,7 +3819,7 @@ static void QDECL R_ParticleDesc_Callback(struct cvar_s *var, char *oldvalue)
 			if (failure)
 			P_LoadParticleSet("high", true, true);
 #ifdef TEMPORALCORTEX
-		if (cls.state && cl.model_name[cl_current_bsp_index][1])
+		if (cls.state && cl.model_name[1+cl_current_bsp_index])
 #else
 		if (cls.state && cl.model_name[1])
 #endif
@@ -3827,7 +3827,7 @@ static void QDECL R_ParticleDesc_Callback(struct cvar_s *var, char *oldvalue)
 			//per-map configs. because we can.
 			memcpy(token, "map_", 4);
 #ifdef TEMPORALCORTEX
-			COM_FileBase(cl.model_name[cl_current_bsp_index][1], token+4, sizeof(token)-4);
+			COM_FileBase(cl.model_name[1+cl_current_bsp_index], token+4, sizeof(token)-4);
 #else
 			COM_FileBase(cl.model_name[1], token+4, sizeof(token)-4);
 #endif
@@ -4830,14 +4830,14 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 
 			if (ctx.entity)
 			{
+#ifdef TEMPORALCORTEX
+				if (ctx.entity>=tc_cl_loaded_bsps && (unsigned)ctx.entity < (unsigned)cl.maxlerpents)
+#else
 				if (ctx.entity>0 && (unsigned)ctx.entity < (unsigned)cl.maxlerpents)
+#endif
 				{
 					lerpents_t *le = cl.lerpents+ctx.entity;
-#ifdef TEMPORALCORTEX
-					ctx.model = cl.model_precache[cl_current_bsp_index][le->entstate->modelindex];
-#else
 					ctx.model = cl.model_precache[le->entstate->modelindex];
-#endif
 					if (le->entstate)
 						VectorSubtract(ctx.center, le->origin, ctx.center);
 					else
@@ -7594,11 +7594,7 @@ static void PScript_DrawParticleTypes (void)
 								else if ((unsigned)ctx.entity < (unsigned)cl.maxlerpents)
 								{	//this trace hit a door or something.
 									lerpents_t *le = cl.lerpents+ctx.entity;
-#ifdef TEMPORALCORTEX
-									model = cl.model_precache[cl_current_bsp_index][le->entstate->modelindex];
-#else
 									model = cl.model_precache[le->entstate->modelindex];
-#endif
 									VectorSubtract(p->org, le->origin, ctx.center);
 									//FIXME: rotate center+normal around entity.
 								}

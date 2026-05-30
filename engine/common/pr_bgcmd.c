@@ -4260,14 +4260,6 @@ void QCBUILTIN PF_Spawn (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals
 {
 	struct edict_s	*ed;
 	ed = ED_Alloc(prinst, false, 0);
-#ifdef TEMPORALCORTEX
-#ifdef HAVE_SERVER
-	ed->bspnum = sv_current_bsp_index;
-#endif
-#ifdef HAVE_CLIENT
-	ed->bspnum = cl_current_bsp_index;
-#endif
-#endif
 	pr_globals = PR_globals(prinst, PR_CURRENT);
 	RETURN_EDICT(prinst, ed);
 }

@@ -392,17 +392,9 @@ char *Get_Q2ConfigString(int i)
 		return cl.levelname;
 
 	if (i >= Q2CS_MODELS && i < Q2CS_MODELS	+ Q2MAX_MODELS)
-#ifdef TEMPORALCORTEX
-		return cl.model_name [cl_current_bsp_index][i-Q2CS_MODELS];
-#else
 		return cl.model_name [i-Q2CS_MODELS];
-#endif
 	if (i >= Q2CS_SOUNDS && i < Q2CS_SOUNDS	+ Q2MAX_SOUNDS)
-#ifdef TEMPORALCORTEX
-		return cl.sound_name [cl_current_bsp_index][i-Q2CS_SOUNDS];
-#else
 		return cl.sound_name [i-Q2CS_SOUNDS];
-#endif
 	if (i == Q2CS_AIRACCEL)
 		return cl.q2airaccel;
 	if (i >= Q2CS_PLAYERSKINS && i < Q2CS_GENERAL+Q2MAX_GENERAL)

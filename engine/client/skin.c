@@ -490,31 +490,17 @@ void Skin_NextDownload (void)
 				CL_CheckOrEnqueDownloadFile(va("players/%s/tris.md2", skinname), NULL, 0);
 				for (j = 1; j < MAX_PRECACHE_MODELS; j++)
 				{
-#ifdef TEMPORALCORTEX
-					if (!cl.model_name[cl_current_bsp_index][j])
-						break;
-					if (cl.model_name[cl_current_bsp_index][j][0] == '#')
-						CL_CheckOrEnqueDownloadFile(va("players/%s/%s", skinname, cl.model_name[cl_current_bsp_index][j]+1), NULL, 0);
-#else
 					if (!cl.model_name[j])
 						break;
 					if (cl.model_name[j][0] == '#')
 						CL_CheckOrEnqueDownloadFile(va("players/%s/%s", skinname, cl.model_name[j]+1), NULL, 0);
-#endif
 				}
 				for (j = 1; j < MAX_PRECACHE_SOUNDS; j++)
 				{
-#ifdef TEMPORALCORTEX
-					if (!cl.sound_name[cl_current_bsp_index][j])
-						break;
-					if (cl.sound_name[cl_current_bsp_index][j][0] == '*')
-						CL_CheckOrEnqueDownloadFile(va("players/%s/%s", skinname, cl.sound_name[cl_current_bsp_index][j]+1), NULL, 0);
-#else
 					if (!cl.sound_name[j])
 						break;
 					if (cl.sound_name[j][0] == '*')
 						CL_CheckOrEnqueDownloadFile(va("players/%s/%s", skinname, cl.sound_name[j]+1), NULL, 0);
-#endif
 				}
 				*slash = '/';
 				CL_CheckOrEnqueDownloadFile(va("players/%s.pcx", skinname), NULL, 0);
