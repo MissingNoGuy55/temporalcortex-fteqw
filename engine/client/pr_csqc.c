@@ -9953,6 +9953,20 @@ void CSQC_ParseEntities(qboolean sized)
 #endif
 
 #ifdef TEMPORALCORTEX
+qboolean CSQC_TC_ChangeLevelName(const char* newname)
+{
+	eval_t* eval;
+
+	eval = PR_FindGlobal(csqcprogs, "levelname", 0, NULL);
+
+	if (!eval)
+		return false;
+
+	eval->string = PR_SetString(csqcprogs, newname);
+
+	return true;
+}
+
 //void (float width, float height, vector pos1, vector pos2, vector rgb, float alpha) drawline3d;
 void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {

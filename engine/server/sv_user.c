@@ -869,6 +869,7 @@ void SVNQ_New_f (void)
 #ifdef TEMPORALCORTEX
 	// Missi: Write the number of worlds loaded. (2026.1.14)
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_loaded_bsps);
+	MSG_WriteShort (&host_client->netchan.message, tc_sv_unloaded_bsps);
 
 	for (i = 0; i < MAX_TIME_PERIODS; i++)
 	{
@@ -1596,7 +1597,10 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 #ifdef TEMPORALCORTEX
 						for (t = 0; t < MAX_TIME_PERIODS; t++)
+						{
 							MSG_WriteShort (&client->netchan.message, sv.world.worldmodel_indices[t]);
+							MSG_WriteShort (&client->netchan.message, sv.world.world_indices[t]);
+						}
 #endif
 					}
 					else
@@ -1607,7 +1611,10 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 #ifdef TEMPORALCORTEX
 						for (t = 0; t < MAX_TIME_PERIODS; t++)
+						{
 							MSG_WriteShort (&client->netchan.message, sv.world.worldmodel_indices[t]);
+							MSG_WriteShort (&client->netchan.message, sv.world.world_indices[t]);
+						}
 #endif
 					}
 				}

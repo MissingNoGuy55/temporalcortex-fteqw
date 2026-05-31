@@ -45,6 +45,7 @@ int sv_max_staticsounds;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
 int tc_sv_loaded_bsps;
+int tc_sv_unloaded_bsps;
 int sv_current_bsp_index;
 #endif
 #endif
@@ -1283,7 +1284,10 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		if (!sv.world.worldmodel[t])
+		{
+			tc_sv_unloaded_bsps++;
 			continue;
+		}
 
 		//make sure our map's package is loaded.
 		FS_LoadMapPackFile(sv.world.worldmodel[t]->name, sv.world.worldmodel[t]->archive);
@@ -1755,6 +1759,7 @@ MSV_OpenUserDatabase();
 			ent = svprogfuncs->EntAllocIndex( svprogfuncs, i-j, false, 0 );
 			ent->ereftype = ER_ENTITY;
 			ent->bspnum = i;
+			sv.world.world_indices[i] = i-j;
 		}
 #else
 		ent = EDICT_NUM_PB(svprogfuncs, 0);

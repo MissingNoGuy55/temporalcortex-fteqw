@@ -980,6 +980,7 @@ typedef struct
 #ifdef TEMPORALCORTEX
 	struct model_s	*worldmodel[MAX_TIME_PERIODS];	// cl_entitites[0].model
 	int			worldmodel_indices[MAX_TIME_PERIODS];
+	int			world_indices[MAX_TIME_PERIODS];
 #else
 	struct model_s	*worldmodel;	// cl_entitites[0].model
 #endif
@@ -1514,6 +1515,9 @@ qboolean CSQC_UnconnectedOkay(qboolean inprinciple);
 qboolean CSQC_UnconnectedInit(void);
 qboolean CSQC_CheckDownload(const char *name, unsigned int checksum, size_t checksize);	//reports whether we already have a usable csprogs.dat
 qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int checksum, size_t progssize);
+#ifdef TEMPORALCORTEX
+qboolean CSQC_TC_ChangeLevelName(const char* newname);
+#endif
 qboolean CSQC_ConsoleLink(char *text, char *info);
 void	 CSQC_RegisterCvarsAndThings(void);
 qboolean CSQC_SetupToRenderPortal(int entnum);

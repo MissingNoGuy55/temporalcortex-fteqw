@@ -3607,7 +3607,8 @@ static void CLQW_ParseServerData (void)
 
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
-	tc_cl_loaded_bsps = MSG_ReadLong();
+	tc_cl_loaded_bsps = MSG_ReadShort();
+	tc_cl_unloaded_bsps = MSG_ReadShort();
 #endif
 
 #ifndef CLIENTONLY
@@ -3933,7 +3934,8 @@ static void CLQ2_ParseServerData (void)
 
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
-	tc_cl_loaded_bsps = MSG_ReadLong();
+	tc_cl_loaded_bsps = MSG_ReadShort();
+	tc_cl_unloaded_bsps = MSG_ReadShort();
 #endif
 
 	Cvar_Get("timescale", "1", 0, "Q2Admin hacks");	//Q2Admin will kick players who have a timescale set to something other than 1
@@ -4334,6 +4336,7 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 #ifdef TEMPORALCORTEX
 		// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 		tc_cl_loaded_bsps = MSG_ReadShort();
+		tc_cl_unloaded_bsps = MSG_ReadShort();
 #endif
 	}
 	if (cl.allocated_client_slots > MAX_CLIENTS)
@@ -4921,6 +4924,7 @@ static void CL_ParseModellist (qboolean lots)
 	for (t = 0; t < MAX_TIME_PERIODS; t++)
 	{
 		cl.worldmodel_indices[t] = MSG_ReadShort();
+		cl.world_indices[t] = MSG_ReadShort();
 	}
 #endif
 	for (;;)
@@ -8639,10 +8643,27 @@ void CLQW_ParseServerMessage (void)
 			track = MSG_ReadLong();
 			Media_NumberedTrack( track, track );
 
+			memset(cl.levelname, 0, sizeof(cl.levelname));
+
+			Q_strcpy(cl.levelname, MSG_ReadString());
+
+			switch(cl_current_bsp_index)
+			{
+				case TIME_PERIOD_PRESENT:
+					Q_strcat(cl.levelname, " (present)");
+					break;
+				case TIME_PERIOD_PAST:
+					Q_strcat(cl.levelname, " (past)");
+					break;
+				case TIME_PERIOD_FUTURE:
+					Q_strcat(cl.levelname, " (future)");
+					break;
+			}
+
+			CSQC_TC_ChangeLevelName(cl.levelname);
+
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
 			MSG_WriteLong( &cls.netchan.message, cl_current_bsp_index );
-
-			// CL_RefreshModels( cl_current_bsp_index );
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:
@@ -10522,6 +10543,8 @@ void CLNQ_ParseServerMessage (void)
 			cl_current_bsp_index = MSG_ReadLong();
 			track = MSG_ReadLong();
 			Media_NumberedTrack( track, track );
+
+			Q_strcpy(cl.levelname, MSG_ReadString());
 
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
 			MSG_WriteLong( &cls.netchan.message, cl_current_bsp_index );

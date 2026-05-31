@@ -3656,9 +3656,9 @@ void SV_ChangeTimePeriod( int bspindex )
 	sizebuf_t buf;
 	qbyte bufmem[1024];
 	int i, track;
-	edict_t *pWorldEdict, *pEdict;
+	edict_t *worldEdict, *ed;
 
-	if ( !sv.world.worldmodel[bspindex] || bspindex == sv_current_bsp_index )
+	if ( bspindex == sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
 		return;
 
 	if ( bspindex < TIME_PERIOD_PRESENT || bspindex > TIME_PERIOD_FUTURE )
@@ -3667,43 +3667,43 @@ void SV_ChangeTimePeriod( int bspindex )
 		return;
 	}
 
-	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
+	worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
 
-	if ( !pWorldEdict )
+	if ( !worldEdict )
 		return;
 
 	sv_current_bsp_index = bspindex;
 
 	for ( i = 0; i < sv.allocated_client_slots; i++ )
 	{
-		pEdict = svs.clients[i].edict;
-		pEdict->bspnum = bspindex;
+		ed = svs.clients[i].edict;
+		ed->bspnum = bspindex;
 	}
 
 	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
 	// It works as intended though, as sv_current_bsp_index and cl_current_bsp_index need to stay in-sync. (2025.9.22)
 	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
 	{
-		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
-		pEdict->v->enemy = pr_global_struct->world;
+		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 
-		/*if ( pEdict->bspnum == sv_current_bsp_index )
-			World_LinkEdict( &sv.world, (wedict_t*)pEdict, true );	// Missi: Allow collision and interactions again (2025.9.23)
-		*/
+		// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
+		if ((int)ed->v->flags & FL_MONSTER)
+			ed->v->enemy = pr_global_struct->world;
 	}
 
-	track = pWorldEdict->v->sounds;
+	track = worldEdict->v->sounds;
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 10;
+	buf.cursize = 10 + sizeof(sv.modelname[0]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
 	MSG_WriteLong (&sv.reliable_datagram, sv_current_bsp_index);
-	MSG_WriteLong (&sv.reliable_datagram, track );
+	MSG_WriteLong (&sv.reliable_datagram, track);
+	MSG_WriteString (&sv.reliable_datagram, sv.mapname[sv_current_bsp_index]);
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
@@ -3748,11 +3748,12 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 10;
+	buf.cursize = 10 + sizeof(sv.modelname[0]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&buf, svctc_timeperiod);
 	MSG_WriteLong (&buf, bspindex);
 	MSG_WriteLong (&buf, track );
+	MSG_WriteString (&buf, sv.modelname[bspindex]);
 }
 
 void SV_ChangeTimePeriod_f()

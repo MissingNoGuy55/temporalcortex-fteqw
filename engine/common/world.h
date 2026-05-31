@@ -227,6 +227,7 @@ struct world_s
 	// this is the better solution. (2026.5.17)
 	qboolean		disabled_levels[MAX_TIME_PERIODS];
 	int				worldmodel_indices[MAX_TIME_PERIODS];
+	int				world_indices[MAX_TIME_PERIODS];
 #else
 	model_t			*worldmodel;
 #endif

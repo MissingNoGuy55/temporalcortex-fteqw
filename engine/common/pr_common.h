@@ -1089,6 +1089,15 @@ enum
 	globalfloatdep (trace_endcontentsf,			"Does not support all mod-specific contents.")				/*float		written by traceline EXT_CSQC_1, for mods that lack ints*/	\
 	ENDLIST
 #endif
+
+#ifdef TEMPORALCORTEX
+#define temporalcortexcsqcglobals \
+	globalfunction(CSQC_TC_ChangeLevelName, "void(string newname)") \
+	ENDLIST
+#else
+#define temporalcortexcsqcglobals
+#endif
+
 #define csqcglobals	\
 	globalfunction(CSQC_Init,				"void(float apilevel, string enginename, float engineversion)")	\
 	globalfunction(CSQC_WorldLoaded,		"void()")	\
@@ -1224,8 +1233,8 @@ enum
 	globalfloat (autocvar_vid_conwidth)		/*float		hackfix for dp mods*/	\
 	globalfloat (autocvar_vid_conheight)	/*float		hackfix for dp mods*/	\
 	globalfloat (cycle_wrapped)	\
+	temporalcortexcsqcglobals \
 	ENDLIST
-
 
 //note: doesn't even have to match the clprogs.dat :)
 typedef struct {
