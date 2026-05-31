@@ -747,6 +747,12 @@ void SV_Map_f (void)
 	char* suffix;
 	qboolean legacy = false;
 	int t;
+#ifdef HAVE_CLIENT
+		tc_cl_loaded_bsps = 0;
+#endif
+#ifdef HAVE_SERVER
+		tc_sv_loaded_bsps = 0;
+#endif
 #endif
 #ifndef SERVERONLY
 	if (!Renderer_Started() && !isDedicated)
@@ -865,8 +871,7 @@ void SV_Map_f (void)
 					suffix = "_future";
 					break;
 			}
-#endif
-#ifdef TEMPORALCORTEX
+
 			snprintf (expanded, sizeof(expanded), "maps/%s%s.bsp", level, suffix); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
 #else
 			snprintf (expanded, sizeof(expanded), "maps/%s.bsp", level); // this function and the if statement below, is a quake bugfix which stopped a map called "dm6++.bsp" from loading because of the + sign, quake2 map syntax interprets + character as "intro.cin+base1.bsp", to play a cinematic then load a map after
@@ -984,14 +989,8 @@ void SV_Map_f (void)
 #endif
 		char *exts[] = {"%s", "maps/%s", "maps/%s.bsp", "maps/%s.bsp.gz", "maps/%s.bsp.xz", "maps/%s.d3dbsp", "maps/%s.cm", "maps/%s.hmp", /*"maps/%s.map",*/ /*"maps/%s.ent",*/ NULL};
 		int i, j;
-#ifdef TEMPORALCORTEX
-#ifdef HAVE_CLIENT
-		tc_cl_loaded_bsps = 0;
-#endif
-#ifdef HAVE_SERVER
-		tc_sv_loaded_bsps = 0;
-#endif
 
+#ifdef TEMPORALCORTEX
 		// Missi: Attempt to find a BSP for each time period (2025.9.20)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{

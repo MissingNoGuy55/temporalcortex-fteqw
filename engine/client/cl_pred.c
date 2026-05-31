@@ -1115,7 +1115,11 @@ void CL_PredictMovePNum (int seat)
 	}
 
 	if (pv->cam_state == CAM_WALLCAM)
+#ifdef TEMPORALCORTEX
+		trackent = pv->cam_spec_track+tc_cl_loaded_bsps;
+#else
 		trackent = pv->cam_spec_track+1;
+#endif
 	else
 		trackent = pv->viewentity;
 
@@ -1203,8 +1207,11 @@ void CL_PredictMovePNum (int seat)
 	}
 
 //	Con_DPrintf("sim%f, %i(%i-%i): old%f, cur%f\n", simtime, cl.ackedmovesequence, fromframe, toframe, fromtime, totime);
-
+#ifdef TEMPORALCORTEX
+	if ((pv->cam_state == CAM_WALLCAM || pv->cam_state == CAM_EYECAM) && trackent && trackent <= cl.allocated_client_slots+tc_cl_loaded_bsps)
+#else
 	if ((pv->cam_state == CAM_WALLCAM || pv->cam_state == CAM_EYECAM) && trackent && trackent <= cl.allocated_client_slots)
+#endif
 	{
 #ifdef TEMPORALCORTEX
 		from.state = &cl.inframes[from.frame & UPDATE_MASK].playerstate[trackent-tc_cl_loaded_bsps];

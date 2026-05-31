@@ -1499,7 +1499,7 @@ MSV_OpenUserDatabase();
 
 	// Missi: HACK: sv.models cannot have any NULL entries, or
 	// else the logic behind the whole array collapses. (2026.5.29)
-	// Missi: FIXME:  Fix this when re-writing the precaching.
+	// Missi: FIXME: Fix this when re-writing the precaching.
 	for (t = 0, j = 0, o = 1; t < MAX_TIME_PERIODS; t++)
 	{
 		if (!sv.world.worldmodel[t])
@@ -1599,16 +1599,16 @@ MSV_OpenUserDatabase();
 			sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname[t]);
 			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
 			{
-				sv.strings.configstring[Q2CS_MODELS+1+i] = Z_StrDupf("*%u", i);
-				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+1+i], sv.modelname[t]), MLV_WARN);
+				sv.strings.configstring[Q2CS_MODELS+i+j+o] = Z_StrDupf("*%u", i);
+				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j+o], sv.modelname[t]), MLV_WARN);
 			}
 			for ( ; i<subs; i++)
 			{
-				sv.strings.q2_extramodels[1+i] = Z_StrDupf("*%u", i);
-				sv.models[i+1] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[1+i], sv.modelname[t]), MLV_WARN);
+				sv.strings.q2_extramodels[i+j+o] = Z_StrDupf("*%u", i);
+				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j+o], sv.modelname[t]), MLV_WARN);
 			}
 
-			j += i;
+			j += subs;
 		}
 #endif
 		o++;
