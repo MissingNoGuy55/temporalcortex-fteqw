@@ -621,7 +621,7 @@ ifneq ($(LTO),)
 endif
 
 #DO_ECHO=@echo $< && 
-DO_ECHO=@
+DO_ECHO=@echo $< &&
 #DO_ECHO=
 DO_CC=$(DO_ECHO) $(CC) $(LTO_CC) $(ALL_CFLAGS) -o $@ -c $<
 DO_CXX=$(DO_ECHO) $(CXX) $(LTO_CC) $(ALL_CXXFLAGS) -o $@ -c $<
