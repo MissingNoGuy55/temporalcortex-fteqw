@@ -2385,6 +2385,9 @@ static void SV_Status_f (void)
 	const char	*p;
 	char		adr[MAX_ADR_SIZE];
 	float pi, po, bi, bo;
+#ifdef TEMPORALCORTEX
+	const char*	str;
+#endif
 
 	int columns = 80;
 	extern cvar_t sv_listen_qw;
@@ -2543,8 +2546,24 @@ static void SV_Status_f (void)
 	Con_TPrintf("map uptime       : %s\n", ShowTime(sv.world.physicstime));
 	//show the current map+name (but hide name if its too long or would be ugly)
 #ifdef TEMPORALCORTEX
+	switch(sv_current_bsp_index)
+	{
+		case TIME_PERIOD_PRESENT:
+			str = "present";
+			break;
+		case TIME_PERIOD_PAST:
+			str = "past";
+			break;
+		case TIME_PERIOD_FUTURE:
+			str = "future";
+			break;
+		default:
+			str = "unknown";
+			break;
+	}
+
 	if (columns >= 80 && *sv.mapname[sv_current_bsp_index] && strlen(sv.mapname[sv_current_bsp_index]) < 45 && !strchr(sv.mapname[sv_current_bsp_index], '\n'))
-		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname[sv_current_bsp_index]);
+		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s) "S_COLOR_GREEN"(%s)\n", svs.name, sv.mapname[sv_current_bsp_index], str);
 #else
 	if (columns >= 80 && *sv.mapname && strlen(sv.mapname) < 45 && !strchr(sv.mapname, '\n'))
 		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname);
