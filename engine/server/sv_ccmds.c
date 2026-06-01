@@ -2569,7 +2569,11 @@ static void SV_Status_f (void)
 		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname);
 #endif
 	else
+#ifdef TEMPORALCORTEX
+		Con_TPrintf ("current map      : %s "S_COLOR_GREEN"(%s)\n", svs.name, str);
+#else
 		Con_TPrintf ("current map      : %s\n", svs.name);
+#endif
 
 	if (svs.gametype == GT_PROGS)
 	{
