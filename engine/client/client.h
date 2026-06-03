@@ -979,8 +979,8 @@ typedef struct
 // refresh related state
 #ifdef TEMPORALCORTEX
 	struct model_s	*worldmodel[MAX_TIME_PERIODS];	// cl_entitites[0].model
-	int			worldmodel_indices[MAX_TIME_PERIODS];
-	int			world_indices[MAX_TIME_PERIODS];
+	short			worldmodel_indices[MAX_TIME_PERIODS];
+	short			world_indices[MAX_TIME_PERIODS];
 #else
 	struct model_s	*worldmodel;	// cl_entitites[0].model
 #endif
@@ -1799,8 +1799,13 @@ const char *Media_Send_GetProperty(cin_t *cin, const char *key);
 
 void Media_SaveTracks(vfsfile_t *outcfg);
 void Media_Init(void);
+#ifdef TEMPORALCORTEX
+qboolean Media_NamedTrack(const char *initialtrack, const char *looptrack, short timeperiod);	//new background music interface
+void Media_NumberedTrack(unsigned int initialtrack, unsigned int looptrack, short timeperiod);	//legacy cd interface for protocols that only support numbered tracks.
+#else
 qboolean Media_NamedTrack(const char *initialtrack, const char *looptrack);	//new background music interface
 void Media_NumberedTrack(unsigned int initialtrack, unsigned int looptrack);				//legacy cd interface for protocols that only support numbered tracks.
+#endif
 void Media_EndedTrack(void);	//cd is no longer running, media code needs to pick a new track (cd track or faketrack)
 
 void MVD_Interpolate(void);
@@ -1872,9 +1877,6 @@ qboolean Media_RegisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *fun
 qboolean Media_UnregisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
 
 #ifdef TEMPORALCORTEX
-// Missi: Used for model precaching so the lists don't get out of sync between the server and client (2025.9.19)
-extern int msg_idx;
-
 void CLTC_WriteSetTemporalCacheMessage();
 void CL_WriteTemporalCache (sizebuf_t *msg, int payloadoffset);
 void CL_WriteTemporalCacheCmd (usercmd_t *pcmd);

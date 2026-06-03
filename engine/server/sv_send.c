@@ -1378,10 +1378,16 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				MSG_WriteByte(&sv.multicast, svcfte_precache);
 				MSG_WriteShort(&sv.multicast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.multicast, sample);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 		#ifdef NQPROT
 				MSG_WriteByte(&sv.nqmulticast, svcdp_precache);
 				MSG_WriteShort(&sv.nqmulticast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.nqmulticast, sample);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 		#endif
 				SV_MulticastProtExt(NULL, MULTICAST_ALL_R, FULLDIMENSIONMASK, PEXT_CSQC, 0);
 

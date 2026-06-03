@@ -1044,7 +1044,11 @@ Handles selection or creation of a clipping hull, and offseting (and
 eventually rotation) of the end points
 ==================
 */
+#ifdef TEMPORALCORTEX
+static trace_t World_ClipMoveToEntity (world_t *w, wedict_t *ent, vec3_t eorg, vec3_t eang, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hullnum, qboolean hitmodel, qboolean capsule, unsigned int hitcontentsmask, short timeperiod)	//hullnum overrides min/max for q1 style bsps
+#else
 static trace_t World_ClipMoveToEntity (world_t *w, wedict_t *ent, vec3_t eorg, vec3_t eang, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hullnum, qboolean hitmodel, qboolean capsule, unsigned int hitcontentsmask)	//hullnum overrides min/max for q1 style bsps
+#endif
 {
 	trace_t		trace;
 	model_t		*model;
@@ -1686,9 +1690,17 @@ static void World_ClipToEverything (world_t *w, moveclip_t *clip)
 		}
 
 		if ((int)touch->v->flags & FL_MONSTER)
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, timeperiod);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 		else
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, timeperiod);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 
 		if (trace.fraction < clip->trace.fraction)
 		{
@@ -1757,7 +1769,11 @@ void World_TouchAllLinks (world_t *w, wedict_t *ent)
 
 		if (solid == SOLID_BSPTRIGGER)
 		{
+#ifdef TEMPORALCORTEX
+			if (!World_ClipMoveToEntity(w, touch, touch->v->origin, touch->v->angles, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, false, (ent->xv->geomtype == GEOMTYPE_CAPSULE), MASK_WORLDSOLID, sv_current_bsp_index).startsolid)
+#else
 			if (!World_ClipMoveToEntity(w, touch, touch->v->origin, touch->v->angles, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, false, (ent->xv->geomtype == GEOMTYPE_CAPSULE), MASK_WORLDSOLID).startsolid)
+#endif
 				continue;
 		}
 
@@ -1878,9 +1894,17 @@ static void World_ClipToLinks (world_t *w, areagridlink_t *node, moveclip_t *cli
 		}
 
 		if ((int)touch->v->flags & FL_MONSTER)
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, sv_current_bsp_index);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins2, clip->maxs2, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 		else
+#ifdef TEMPORALCORTEX
+			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask, sv_current_bsp_index);
+#else
 			trace = World_ClipMoveToEntity (w, touch, touch->v->origin, touch->v->angles, clip->start, clip->mins, clip->maxs, clip->end, clip->hullnum, clip->type & MOVE_HITMODEL, clip->capsule, clip->hitcontentsmask);
+#endif
 
 		if (trace.fraction < clip->trace.fraction)
 		{
@@ -2493,6 +2517,9 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	moveclip_t	clip;
 	int			i;
 	int hullnum;
+#ifdef TEMPORALCORTEX
+	wedict_t* worldent = WEDICT_NUM_PB(svprogfuncs, sv.world.world_indices[timeperiod]);
+#endif
 
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
@@ -2626,18 +2653,30 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	if (type & MOVE_OTHERONLY)
 	{
 		wedict_t *other = WEDICT_NUM_UB(w->progs, *w->g.other);
+#ifdef TEMPORALCORTEX
+		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+#endif
 	}
 #ifdef HAVE_LEGACY
 	if ((type&MOVE_WORLDONLY) == MOVE_WORLDONLY)
 	{	//for compat with DP
 		wedict_t *other = w->edicts;
+#ifdef TEMPORALCORTEX
+		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 		return World_ClipMoveToEntity (w, other, other->v->origin, other->v->angles, start, mins, maxs, end, hullnum, type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+#endif
 	}
 #endif
 
 // clip to world
+#ifdef TEMPORALCORTEX
+	clip.trace = World_ClipMoveToEntity (w, worldent, w->edicts->v->origin, w->edicts->v->angles, start, mins, maxs, end, hullnum, false, clip.capsule, clip.hitcontentsmask, timeperiod);
+#else
 	clip.trace = World_ClipMoveToEntity (w, w->edicts, w->edicts->v->origin, w->edicts->v->angles, start, mins, maxs, end, hullnum, false, clip.capsule, clip.hitcontentsmask);
+#endif
 
 	clip.start = start;
 	clip.end = end;
@@ -2822,10 +2861,10 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 				if ((clip.type & MOVE_HITMODEL) && w->Event_Backdate)
 				{
 					w->Event_Backdate(w, touch, w->lagentstime);
-					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
 				}
 				else
-					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask);
+					trace = World_ClipMoveToEntity (w, touch, lp, la, clip.start, clip.mins, clip.maxs, clip.end, clip.hullnum, clip.type & MOVE_HITMODEL, clip.capsule, clip.hitcontentsmask, timeperiod);
 
 				if (trace.allsolid || trace.startsolid || trace.fraction < clip.trace.fraction)
 				{

@@ -17,7 +17,7 @@ struct wedict_s
 	unsigned int	fieldsize;
 	pbool			readonly;	//world
 #ifdef TEMPORALCORTEX
-	int				bspnum;
+	short			bspnum;
 #endif
 #ifdef VM_Q1
 	comentvars_t	*v;
@@ -1311,6 +1311,9 @@ typedef struct csqcedict_s
 	//add whatever you wish here
 	trailkey_t trailstate;
 	int		skinobject;
+#ifdef TEMPORALCORTEX
+	short	bspnum;
+#endif
 } csqcedict_t;
 
 typedef struct qcstate_s

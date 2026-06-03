@@ -5625,6 +5625,9 @@ void CL_Status_f(void)
 #endif
 	char adr[128];
 	float pi, po, bi, bo;
+#ifdef TEMPORALCORTEX
+	const char* str;
+#endif
 
 	NET_PrintAddresses(cls.sockets);
 	NET_PrintConnectionsStatus(cls.sockets);
@@ -5761,8 +5764,24 @@ void CL_Status_f(void)
 	{
 		Con_Printf("map uptime       : %s\n", ShowTime(cl.time));
 #ifdef TEMPORALCORTEX
+		switch(cl_current_bsp_index)
+		{
+			case TIME_PERIOD_PRESENT:
+				str = "present";
+				break;
+			case TIME_PERIOD_PAST:
+				str = "past";
+				break;
+			case TIME_PERIOD_FUTURE:
+				str = "future";
+				break;
+			default:
+				str = "unknown";
+				break;
+		}
+
 		COM_FileBase(cl.worldmodel[cl_current_bsp_index]->name, adr, sizeof(adr));
-		Con_Printf ("current map      : %s (%s)\n", adr, cl.levelname);
+		Con_Printf ("current map      : %s (%s) "S_COLOR_GREEN"(%s)\n", adr, cl.levelname, str);
 #else
 		COM_FileBase(cl.worldmodel->name, adr, sizeof(adr));
 		Con_Printf ("current map      : %s (%s)\n", adr, cl.levelname);

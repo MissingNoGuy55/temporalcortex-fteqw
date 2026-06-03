@@ -277,7 +277,11 @@ typedef struct
 	F(void,			StartSound,			(int entnum, int entchannel, struct sfx_s *sfx, vec3_t origin, vec3_t velocity, float fvol, float attenuation, float timeofs, float pitchadj, unsigned int flags));
 	F(float,		GetChannelLevel,	(int entnum, int entchannel));
 	F(int,			Voip_ClientLoudness,(unsigned int plno));
+#ifdef TEMPORALCORTEX
+	F(qboolean,		ChangeMusicTrack,	(const char *initialtrack, const char *looptrack, short timeperiod));
+#else
 	F(qboolean,		ChangeMusicTrack,	(const char *initialtrack, const char *looptrack));
+#endif
 
 #define plugaudiofuncs_name "Audio"
 } plugaudiofuncs_t;

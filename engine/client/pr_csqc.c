@@ -3015,7 +3015,7 @@ static void QCBUILTIN PF_cs_traceline(pubprogfuncs_t *prinst, struct globalvars_
 		maxs = vec3_origin;
 	}
 #ifdef TEMPORALCORTEX
-	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, cl_current_bsp_index);
+	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, ent->bspnum);
 #else
 	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
 #endif
@@ -3036,7 +3036,7 @@ static void QCBUILTIN PF_cs_tracebox(pubprogfuncs_t *prinst, struct globalvars_s
 	nomonsters = G_FLOAT(OFS_PARM4);
 	ent = (csqcedict_t*)G_EDICT(prinst, OFS_PARM5);
 #ifdef TEMPORALCORTEX
-	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, cl_current_bsp_index);
+	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, ent->bspnum);
 #else
 	trace = World_Move (&csqc_world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
 #endif
@@ -3071,7 +3071,7 @@ static trace_t CS_Trace_Toss (csqcedict_t *tossent, csqcedict_t *ignore)
 		VectorScale (velocity, 0.05, move);
 		VectorAdd (origin, move, end);
 #ifdef TEMPORALCORTEX
-		trace = World_Move (&csqc_world, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL|MOVE_IGNOREHULL, (wedict_t*)tossent, cl_current_bsp_index);
+		trace = World_Move (&csqc_world, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL|MOVE_IGNOREHULL, (wedict_t*)tossent, tossent->bspnum);
 #else
 		trace = World_Move (&csqc_world, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL|MOVE_IGNOREHULL, (wedict_t*)tossent);
 #endif
@@ -5364,7 +5364,7 @@ static void QCBUILTIN PF_cs_droptofloor (pubprogfuncs_t *prinst, struct globalva
 
 	VectorCopy (ent->v->origin, start);
 #ifdef TEMPORALCORTEX
-	trace = World_Move (&csqc_world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, cl_current_bsp_index);
+	trace = World_Move (&csqc_world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, ent->bspnum);
 #else
 	trace = World_Move (&csqc_world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent);
 #endif

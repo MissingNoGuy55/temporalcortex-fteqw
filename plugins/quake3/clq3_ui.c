@@ -1067,10 +1067,18 @@ static qintptr_t UI_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 		break;
 
 	case UI_S_STARTBACKGROUNDTRACK:
+#ifdef TEMPORALCORTEX
+		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]), 0);
+#else
 		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]));
+#endif
 		break;
 	case UI_S_STOPBACKGROUNDTRACK:
+#ifdef TEMPORALCORTEX
+		audiofuncs->ChangeMusicTrack(NULL, NULL, 0);
+#else
 		audiofuncs->ChangeMusicTrack(NULL, NULL);
+#endif
 		break;
 
 	//q3 shares insert mode between its ui and console. whereas fte doesn't support it (FIXME: add to Key_EntryInsert).

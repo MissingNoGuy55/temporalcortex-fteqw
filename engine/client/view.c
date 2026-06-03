@@ -2155,7 +2155,7 @@ void R_DrawNameTags(void)
 			int oldhit = csqc_world.edicts->xv->hitcontentsmaski;
 			csqc_world.edicts->xv->hitcontentsmaski = ~0;
 #ifdef TEMPORALCORTEX
-			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, csqc_world.edicts, cl_current_bsp_index);
+			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, &csqc_world.edicts[cl_current_bsp_index], cl_current_bsp_index);
 #else
 			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, csqc_world.edicts);
 #endif

@@ -165,7 +165,7 @@ extern "C" {
 #endif
 
 #ifdef TEMPORALCORTEX
-#include "../common/com_timetravel.h"
+#include "com_timetravel.h"
 #endif
 
 #include "../common/common.h"

@@ -1,13 +1,13 @@
 #pragma once
 
 #ifdef TEMPORALCORTEX
-enum timeperiod_t
+typedef enum
 {
 	TIME_PERIOD_PRESENT,
 	TIME_PERIOD_PAST,
 	TIME_PERIOD_FUTURE,
 	MAX_TIME_PERIODS	// Missi: This is what you want to use with arrays like sv.worldmodel and cl.worldmodel, etc. (2026.5.17)
-};
+} timeperiod_t;
 
 #ifdef HAVE_SERVER
 extern int tc_sv_loaded_bsps;	// Missi: Incremented as each BSP is found. Do NOT use this with arrays! (2026.2.7)

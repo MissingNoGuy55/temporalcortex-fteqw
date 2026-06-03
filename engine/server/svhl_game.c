@@ -89,6 +89,9 @@ int QDECL GHL_PrecacheModel(const char *name)
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, name);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
@@ -135,10 +138,16 @@ int QDECL GHL_PrecacheSound(char *name)
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, -i);
 				MSG_WriteString(&sv.reliable_datagram, name);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, -i);
 				MSG_WriteString(&sv.nqreliable_datagram, name);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #endif
 			}
 

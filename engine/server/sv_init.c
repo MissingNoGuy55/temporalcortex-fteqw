@@ -99,10 +99,16 @@ int SV_ModelIndex (const char *name)
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i]);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
 				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i]);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #endif
 			}
 		}
@@ -1504,12 +1510,12 @@ MSV_OpenUserDatabase();
 	// Missi: HACK: sv.models cannot have any NULL entries, or
 	// else the logic behind the whole array collapses. (2026.5.29)
 	// Missi: FIXME: Fix this when re-writing the precaching.
-	for (t = 0, j = 0, o = 1; t < MAX_TIME_PERIODS; t++)
+	for (i = 1, j = 1, t = 0; t < MAX_TIME_PERIODS; t++)
 	{
 		if (!sv.world.worldmodel[t])
 			continue;
 
-		sv.models[j+o] = sv.world.worldmodel[t];
+		sv.models[j] = sv.world.worldmodel[t];
 #ifdef VM_Q1
 		if (svs.gametype == GT_Q1QVM)
 		{
@@ -1522,20 +1528,17 @@ MSV_OpenUserDatabase();
 				subs = MAX_PRECACHE_MODELS-2;
 			}
 
-			sv.strings.model_precache[i+j+o] = sv.modelname[t];	//the qvm doesn't have access to this array
+			sv.strings.model_precache[j] = sv.modelname[t];	//the qvm doesn't have access to this array
 			for (i=1 ; i<subs ; i++)
 			{
 				char *z, *s = va("*%u", i);
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
-				sv.strings.model_precache[i+j+o] = z;
-				sv.models[i+j+o] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
+				sv.strings.model_precache[i+j] = z;
+				sv.models[i+j] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
 			}
 
-			if (o > 0)
-				o--;
-
-			j += subs;
+			j += i;
 
 			//check player/eyes models for hacks
 			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
@@ -1551,8 +1554,8 @@ MSV_OpenUserDatabase();
 		{
 			int subs;
 
-			sv.strings.model_precache[1+j] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
-			sv.world.worldmodel_indices[t] = 1+j;
+			sv.strings.model_precache[j] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
+			sv.world.worldmodel_indices[t] = j;
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
 			if (subs > MAX_PRECACHE_MODELS-2)
@@ -1563,14 +1566,11 @@ MSV_OpenUserDatabase();
 
 			for (i=1 ; i<subs ; i++)
 			{
-				sv.strings.model_precache[i+j+o] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j+o], sv.modelname[t]), MLV_WARN);
+				sv.strings.model_precache[i+j] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
+				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j], sv.modelname[t]), MLV_WARN);
 			}
 
-			if (o > 0)
-				o--;
-
-			j += subs;
+			j += i;
 
 			//check player/eyes models for hacks
 			sv.model_player_checksum = SV_CheckModel("progs/player.mdl");
@@ -1603,19 +1603,19 @@ MSV_OpenUserDatabase();
 			sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname[t]);
 			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
 			{
-				sv.strings.configstring[Q2CS_MODELS+i+j+o] = Z_StrDupf("*%u", i);
-				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j+o], sv.modelname[t]), MLV_WARN);
+				sv.strings.configstring[Q2CS_MODELS+i+j] = Z_StrDupf("*%u", i);
+				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j], sv.modelname[t]), MLV_WARN);
 			}
 			for ( ; i<subs; i++)
 			{
-				sv.strings.q2_extramodels[i+j+o] = Z_StrDupf("*%u", i);
-				sv.models[i+j+o] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j+o], sv.modelname[t]), MLV_WARN);
+				sv.strings.q2_extramodels[i+j] = Z_StrDupf("*%u", i);
+				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
 			}
 
 			j += subs;
 		}
 #endif
-		o++;
+		// o++;
 	}
 #else
 		sv.models[1] = sv.world.worldmodel;

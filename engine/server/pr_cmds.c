@@ -3171,6 +3171,9 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
 							ClientReliableWrite_Short (&svs.clients[j], i);
 							ClientReliableWrite_String (&svs.clients[j], m);
+#ifdef TEMPORALCORTEX
+							ClientReliableWrite_Short(&svs.clients[j], sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 						}
 						else
 						{
@@ -4641,10 +4644,16 @@ static int SV_ParticlePrecache_Add(const char *pname)
 				MSG_WriteByte(&sv.multicast, svcfte_precache);
 				MSG_WriteShort(&sv.multicast, i|PC_PARTICLE);
 				MSG_WriteString(&sv.multicast, pname);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqmulticast, svcdp_precache);
 				MSG_WriteShort(&sv.nqmulticast, i|PC_PARTICLE);
 				MSG_WriteString(&sv.nqmulticast, pname);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #endif
 
 				SV_MulticastProtExt(vec3_origin, MULTICAST_ALL_R, pr_global_struct->dimension_send, PEXT_CSQC, 0);
@@ -4740,10 +4749,16 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i+PC_SOUND);
 				MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i+PC_SOUND);
 				MSG_WriteString(&sv.nqreliable_datagram, s);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #endif
 			}
 			return i;
@@ -4794,6 +4809,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		Con_DPrintf ("precache_model: empty string\n");
 		return 0;
 	}
+
 	for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 	{
 		if (!sv.strings.model_precache[i])
@@ -4810,13 +4826,9 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				sv.strings.model_precache[i] = s;
 			else
 #endif
-#ifdef TEMPORALCORTEX
-				sv.strings.model_precache[i+tc_sv_loaded_bsps] = PR_AddString(prinst, s, 0, false);
-			s = sv.strings.model_precache[i+tc_sv_loaded_bsps];
-#else
-				sv.strings.model_precache[i+1] = PR_AddString(prinst, s, 0, false);
-			s = sv.strings.model_precache[i+1];
-#endif
+				sv.strings.model_precache[i] = PR_AddString(prinst, s, 0, false);
+			s = sv.strings.model_precache[i];
+
 			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
 #ifdef TEMPORALCORTEX
 				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[sv_current_bsp_index]), MLV_WARNSYNC);
@@ -4835,10 +4847,16 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
 				MSG_WriteString(&sv.nqreliable_datagram, s);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 #endif
 			}
 
@@ -11513,6 +11531,12 @@ void QCBUILTIN PF_TimePeriod_Queue(pubprogfuncs_t *prinst, struct globalvars_s *
 		tc_edictnums[i] = entnum;
 }
 
+#define CLEARLIST(list) \
+for (int i = 0; i < countof(list); i++) \
+{ \
+	list[i] = 0; \
+} \
+
 // void(float timeperiod) timeperiod_change
 void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
@@ -11522,17 +11546,16 @@ void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s 
 
 	for ( i = 0; i < current_sv_entity_count; i++ )
 	{
-		if ( tc_edictnums[i] != 0 )
-		{
-			ent = (edict_t*)EDICT_NUM_PB( svprogfuncs, tc_edictnums[i] );
-			ent->bspnum = bspnum;
-		}
+		ent = (edict_t*)EDICT_NUM_PB( svprogfuncs, tc_edictnums[i] );
+		ent->bspnum = bspnum;
 	}
 
-	memset( tc_edictnums, 0, sizeof(tc_edictnums) );
+	CLEARLIST(tc_edictnums);
 
 	SV_ChangeTimePeriod( bspnum );
 }
+
+#undef CLEARLIST
 
 void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {

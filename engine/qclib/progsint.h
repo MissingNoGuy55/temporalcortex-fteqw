@@ -322,7 +322,7 @@ typedef struct edictrun_s
 	unsigned int	fieldsize;
 	pbool			readonly;	//causes error when QC tries writing to it. (quake's world entity)
 #ifdef TEMPORALCORTEX_QCC
-	int				bspnum;
+	short			bspnum;
 #endif
 	void			*fields;
 

@@ -1709,6 +1709,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 4 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
 				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
 				ClientReliableWrite_String (client, sv.strings.particle_precache[client->prespawn_idx]);
+#ifdef TEMPORALCORTEX
+				ClientReliableWrite_Short(client, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 			}
 			client->prespawn_idx++;
 		}
@@ -8942,7 +8945,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 		// to send a network packet to the server that it can parse once everything
 		// is set up. (2025.12.6)
 		case clctc_timeperiod:
-			input = MSG_ReadLong();
+			input = MSG_ReadShort();
 			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
 				sv_current_bsp_index = input;
 			break;
@@ -9736,7 +9739,7 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 #ifdef TEMPORALCORTEX
 		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
 		case clctc_timeperiod:
-			input = MSG_ReadLong();
+			input = MSG_ReadShort();
 			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
 				sv_current_bsp_index = input;
 			break;

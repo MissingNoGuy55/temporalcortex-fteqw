@@ -155,7 +155,7 @@ static const char *svc_qwstrings[] =
 
 	"svcfte_csqcentities",
 
-	"svcfte_precache",
+	"",
 
 	"svcfte_updatestatstring",
 	"svcfte_updatestatfloat",
@@ -316,7 +316,6 @@ double	parsecounttime;
 int		cl_spikeindex, cl_playerindex, cl_h_playerindex, cl_flagindex, cl_rocketindex, cl_grenadeindex, cl_gib1index, cl_gib2index, cl_gib3index;
 
 #ifdef TEMPORALCORTEX
-int msg_idx;
 qboolean rewinding;
 static int bsp_offset;
 #endif
@@ -5186,7 +5185,11 @@ static void CLQ2_UpdateConfigString (unsigned int i, char *s)
 	}
 	else if (i == Q2EXCS_CDTRACK)
 	{
+#ifdef TEMPORALCORTEX
+		Media_NamedTrack (s, NULL, cl_current_bsp_index);
+#else
 		Media_NamedTrack (s, NULL);
+#endif
 	}
 	else if (i == Q2EXCS_AIRACCEL)
 		Q_strncpyz(cl.q2airaccel, s, sizeof(cl.q2airaccel));
@@ -7704,6 +7707,10 @@ static void CL_ParsePrecache(void)
 {
 	int i, code = (unsigned short)MSG_ReadShort();
 	char *s = MSG_ReadString();
+#ifdef TEMPORALCORTEX
+	int wmidx = MSG_ReadShort();
+#endif
+
 	i = code & ~PC_TYPE;
 	switch(code & PC_TYPE)
 	{
@@ -7715,7 +7722,7 @@ static void CL_ParsePrecache(void)
 
 			CL_CheckOrEnqueDownloadFile(s, s, DLLF_ALLOWWEB);
 #ifdef TEMPORALCORTEX
-			model = Mod_ForName(Mod_FixName(s, cl.model_name[1+i]), (!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
+			model = Mod_ForName(Mod_FixName(s, cl.model_name[wmidx]), (!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
 #else
 			model = Mod_ForName(Mod_FixName(s, cl.model_name[1+i]), (i == 1&&!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
 #endif
@@ -8438,7 +8445,11 @@ void CLQW_ParseServerMessage (void)
 				//quakeworld got a crippled svc_cdtrack.
 				unsigned int firsttrack;
 				firsttrack = MSG_ReadByte ();
+#ifdef TEMPORALCORTEX
+				Media_NumberedTrack (firsttrack, firsttrack, cl_current_bsp_index);
+#else
 				Media_NumberedTrack (firsttrack, firsttrack);
+#endif
 			}
 			break;
 
@@ -8639,9 +8650,9 @@ void CLQW_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			cl_current_bsp_index = MSG_ReadLong();
-			track = MSG_ReadLong();
-			Media_NumberedTrack( track, track );
+			cl_current_bsp_index = MSG_ReadShort();
+			track = MSG_ReadShort();
+			Media_NumberedTrack( track, track, cl_current_bsp_index );
 
 			memset(cl.levelname, 0, sizeof(cl.levelname));
 
@@ -8663,7 +8674,7 @@ void CLQW_ParseServerMessage (void)
 			CSQC_TC_ChangeLevelName(cl.levelname);
 
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteLong( &cls.netchan.message, cl_current_bsp_index );
+			MSG_WriteShort( &cls.netchan.message, cl_current_bsp_index );
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:
@@ -9958,8 +9969,11 @@ void CLNQ_ParseServerMessage (void)
 
 				if (cls.demotrack != -1)
 					firsttrack = looptrack = cls.demotrack;
-
+#ifdef TEMPORALCORTEX
+				Media_NumberedTrack (firsttrack, looptrack, cl_current_bsp_index);
+#else
 				Media_NumberedTrack (firsttrack, looptrack);
+#endif
 			}
 			break;
 
@@ -10540,9 +10554,9 @@ void CLNQ_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			cl_current_bsp_index = MSG_ReadLong();
-			track = MSG_ReadLong();
-			Media_NumberedTrack( track, track );
+			cl_current_bsp_index = MSG_ReadShort();
+			track = MSG_ReadShort();
+			Media_NumberedTrack( track, track, cl_current_bsp_index );
 
 			Q_strcpy(cl.levelname, MSG_ReadString());
 

@@ -73,7 +73,7 @@ typedef struct edict_s
 	unsigned int	fieldsize;
 	pbool			readonly;	//world
 #ifdef TEMPORALCORTEX
-	int				bspnum;
+	short			bspnum;
 #endif
 #ifdef VM_Q1
 	stdentvars_t	*v;

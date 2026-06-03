@@ -2445,6 +2445,9 @@ static int CL_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
 		MSG_WriteByte(buf, svcfte_precache);
 		MSG_WriteShort(buf, PC_PARTICLE | i);
 		MSG_WriteString(buf, cl.particle_ssname[i]);
+#ifdef TEMPORALCORTEX
+		MSG_WriteShort(buf, cl.worldmodel_indices[cl_current_bsp_index]);
+#endif
 
 		if (buf->cursize > buf->maxsize/2)
 			CL_WriteRecordDemoMessage (buf, seq++);
@@ -2770,6 +2773,9 @@ int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
 		MSG_WriteByte(buf, svcfte_precache);
 		MSG_WriteShort(buf, PC_PARTICLE | i);
 		MSG_WriteString(buf, cl.particle_ssname[i]);
+#ifdef TEMPORALCORTEX
+		MSG_WriteShort(buf, cl.worldmodel_indices[cl_current_bsp_index]);
+#endif
 
 		if (buf->cursize > buf->maxsize/2)
 			CL_WriteRecordTemporalCacheMessage (buf, seq++);

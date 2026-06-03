@@ -164,7 +164,11 @@ static int cdnumtracks;		//maximum cd track we can play.
 #endif
 
 
+#ifdef TEMPORALCORTEX
+static char media_playtrack[MAX_TIME_PERIODS][MAX_QPATH];		//name of track to play next/now
+#else
 static char media_playtrack[MAX_QPATH];		//name of track to play next/now
+#endif
 static char media_loopingtrack[MAX_QPATH];	//name of track to loop afterwards
 qboolean media_fadeout;
 float media_fadeouttime;
@@ -248,6 +252,26 @@ sfx_t *Media_NextTrack(int musicchannelnum, float *starttime)
 			return NULL;
 		}
 #endif
+#ifdef TEMPORALCORTEX
+		if (media_playtrack[cl_current_bsp_index][0] || *media_loopingtrack)
+		{
+			if (media_playtrack[cl_current_bsp_index][0])
+			{
+				Q_strncpyz(media_currenttrack, media_playtrack[cl_current_bsp_index], sizeof(media_currenttrack));
+				*media_playtrack[0] = 0;
+			}
+			else
+			{
+				if (!Media_CleanupTrackName(media_loopingtrack, NULL, media_currenttrack, sizeof(media_currenttrack)))
+					Q_strncpyz(media_currenttrack, "", sizeof(media_currenttrack));
+			}
+#ifdef HAVE_JUKEBOX
+			Q_strncpyz(media_friendlyname, "", sizeof(media_friendlyname));
+			media_playlistcurrent = MEDIA_GAMEMUSIC;
+#endif
+			s = S_PrecacheSound(media_currenttrack);
+		}
+#else
 		if (*media_playtrack || *media_loopingtrack)
 		{
 			if (*media_playtrack)
@@ -266,6 +290,7 @@ sfx_t *Media_NextTrack(int musicchannelnum, float *starttime)
 #endif
 			s = S_PrecacheSound(media_currenttrack);
 		}
+#endif
 	}
 	return s;
 }
@@ -369,7 +394,7 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 		NULL
 	};
 #ifdef TEMPORALCORTEX
-	static char *timeperiod[] =
+	static char *timeperiod[MAX_TIME_PERIODS] =
 	{
 		"present",
 		"past",
@@ -470,14 +495,22 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 
 //controls which music track should be playing right now
 //track and looptrack will usually be the same thing, track is what to play NOW, looptrack is what to keep re-playing after, or "-" for stop.
+#ifdef TEMPORALCORTEX
+qboolean Media_NamedTrack(const char *track, const char *looptrack, short timeperiod)
+#else
 qboolean Media_NamedTrack(const char *track, const char *looptrack)
+#endif
 {
 	unsigned int tracknum;
 	char trackname[MAX_QPATH];
 
 	if (!track && !looptrack)
 	{
+#ifdef TEMPORALCORTEX
+		**media_playtrack = *media_loopingtrack = 0;
+#else
 		*media_playtrack = *media_loopingtrack = 0;
+#endif
 		Media_Changed(MEDIA_GAMEMUSIC);
 		return true;
 	}
@@ -496,7 +529,11 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 #ifdef HAVE_CDPLAYER
 		cdplaytracknum = 0;
 #endif
+#ifdef TEMPORALCORTEX
+		Q_strncpyz(media_playtrack[timeperiod], trackname, sizeof(media_playtrack[timeperiod]));
+#else
 		Q_strncpyz(media_playtrack, trackname, sizeof(media_playtrack));
+#endif
 		Q_strncpyz(media_loopingtrack, looptrack, sizeof(media_loopingtrack));
 		Media_Changed(MEDIA_GAMEMUSIC);
 		return true;
@@ -523,7 +560,11 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 			return true;	//already playing, don't need to do anything
 
 		cdplaytracknum = tracknum;
+#ifdef TEMPORALCORTEX
+		Q_strncpyz(media_playtrack[cl_current_bsp_index], "", sizeof(media_playtrack[cl_current_bsp_index]));
+#else
 		Q_strncpyz(media_playtrack, "", sizeof(media_playtrack));
+#endif
 		Media_Changed(MEDIA_GAMEMUSIC);
 		return true;
 	}
@@ -534,23 +575,40 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 //for q3
 void Media_NamedTrack_f(void)
 {
+#ifdef TEMPORALCORTEX
+	if (Cmd_Argc() == 3)
+		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(2), cl_current_bsp_index);
+	else
+		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(1), cl_current_bsp_index);
+#else
 	if (Cmd_Argc() == 3)
 		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(2));
 	else
 		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(1));
+#endif
 }
 void Media_StopTrack_f(void)
 {
+#ifdef TEMPORALCORTEX
+	**media_playtrack = *media_loopingtrack = 0;
+#else
 	*media_playtrack = *media_loopingtrack = 0;
+#endif
 	Media_Changed(MEDIA_GAMEMUSIC);
 }
-
+#ifdef TEMPORALCORTEX
+void Media_NumberedTrack(unsigned int initialtrack, unsigned int looptrack, short timeperiod)
+#else
 void Media_NumberedTrack(unsigned int initialtrack, unsigned int looptrack)
+#endif
 {
 	char *init = initialtrack?va("%u", initialtrack):NULL;
 	char *loop = looptrack?va("%u", looptrack):NULL;
-
+#ifdef TEMPORALCORTEX
+	Media_NamedTrack(init, loop, timeperiod);
+#else
 	Media_NamedTrack(init, loop);
+#endif
 }
 
 void Media_EndedTrack(void)
@@ -561,7 +619,11 @@ void Media_EndedTrack(void)
 #endif
 
 	if (*media_loopingtrack)
+#ifdef TEMPORALCORTEX
+		Media_NamedTrack(media_loopingtrack, media_loopingtrack, cl_current_bsp_index);
+#else
 		Media_NamedTrack(media_loopingtrack, media_loopingtrack);
+#endif
 }
 
 
@@ -609,6 +671,22 @@ void CD_f (void)
 
 	command = Cmd_Argv (1);
 
+#ifdef TEMPORALCORTEX
+	if (Q_strcasecmp(command, "play") == 0)
+	{
+		Media_NamedTrack(Cmd_Argv(2), "-", cl_current_bsp_index);
+		return;
+	}
+
+	if (Q_strcasecmp(command, "loop") == 0)
+	{
+		if (Cmd_Argc() < 4)
+			Media_NamedTrack(Cmd_Argv(2), NULL, cl_current_bsp_index);
+		else
+			Media_NamedTrack(Cmd_Argv(2), Cmd_Argv(3), cl_current_bsp_index);
+		return;
+	}
+#else
 	if (Q_strcasecmp(command, "play") == 0)
 	{
 		Media_NamedTrack(Cmd_Argv(2), "-");
@@ -623,6 +701,7 @@ void CD_f (void)
 			Media_NamedTrack(Cmd_Argv(2), Cmd_Argv(3));
 		return;
 	}
+#endif
 
 	if (Q_strcasecmp(command, "remap") == 0)
 	{
@@ -641,7 +720,11 @@ void CD_f (void)
 
 	if (Q_strcasecmp(command, "stop") == 0)
 	{
+#ifdef TEMPORALCORTEX
+		**media_playtrack = *media_loopingtrack = 0;
+#else
 		*media_playtrack = *media_loopingtrack = 0;
+#endif
 		cdplaytracknum = 0;
 		Media_Changed(MEDIA_GAMEMUSIC);
 		return;
@@ -671,7 +754,11 @@ void CD_f (void)
 			CDAudio_Stop();
 		cdenabled = false;
 
+#ifdef TEMPORALCORTEX
+		**media_playtrack = *media_loopingtrack = 0;
+#else
 		*media_playtrack = *media_loopingtrack = 0;
+#endif
 		cdplaytracknum = 0;
 		Media_Changed(MEDIA_GAMEMUSIC);
 		return;

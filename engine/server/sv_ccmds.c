@@ -857,9 +857,9 @@ void SV_Map_f (void)
 	{
 #ifdef TEMPORALCORTEX
 		// Missi: Attempt to find a BSP for each time period (2025.9.20)
-		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+		for (t = 0; t < MAX_TIME_PERIODS; t++)
 		{
-			switch( t )
+			switch(t)
 			{
 				case 0:
 					suffix = "_present";
@@ -1010,9 +1010,7 @@ void SV_Map_f (void)
 			{
 				snprintf (expanded, sizeof(expanded), TC_exts[i], level, suffix);
 				if (COM_FCheckExists (expanded))
-				{
 					break;
-				}
 			}
 			if (!TC_exts[i])
 			{	//try again.
@@ -3677,7 +3675,7 @@ void SV_Download_f (void)
 void SV_ChangeTimePeriod( int bspindex )
 {
 	sizebuf_t buf;
-	qbyte bufmem[1024];
+	qbyte bufmem[512];
 	int i, track;
 	edict_t *worldEdict, *ed;
 
@@ -3709,9 +3707,19 @@ void SV_ChangeTimePeriod( int bspindex )
 	{
 		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 
+		// Missi: Should never happen, but just in case (2026.6.1)
+		if (!ed)
+		{
+			Con_Printf(CON_WARNING "TEMPORAL CORTEX WARNING: SV_ChangeTimePeriod found a NULL edict when changing time periods!\n");
+			continue;
+		}
+
 		// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
 		if ((int)ed->v->flags & FL_MONSTER)
 			ed->v->enemy = pr_global_struct->world;
+		// Missi: Check for the grappling hook and transport it (2026.6.1)
+		else if (!strncmp(PR_GetString(svprogfuncs, ed->v->classname), "hook", 4))
+			ed->bspnum = bspindex;
 	}
 
 	track = worldEdict->v->sounds;
@@ -3721,11 +3729,11 @@ void SV_ChangeTimePeriod( int bspindex )
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 10 + sizeof(sv.modelname[0]);
+	buf.cursize = 6 + Q_strlen(sv.mapname[sv_current_bsp_index]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-	MSG_WriteLong (&sv.reliable_datagram, sv_current_bsp_index);
-	MSG_WriteLong (&sv.reliable_datagram, track);
+	MSG_WriteShort (&sv.reliable_datagram, sv_current_bsp_index);
+	MSG_WriteShort (&sv.reliable_datagram, track);
 	MSG_WriteString (&sv.reliable_datagram, sv.mapname[sv_current_bsp_index]);
 }
 
@@ -3808,7 +3816,7 @@ void SV_ChangeTimePeriod_f()
 			if ( !pClientEdict )
 				break;
 
-			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, 0, (wedict_t*)pClientEdict, atoi(pszArg) );
+			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, MOVE_NORMAL, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
 
 			if ( tTrace.fraction != 1 )
 			{

@@ -69,7 +69,7 @@ Name=Server
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
-Arguments=-game temporalcortex +developer 1 +maxplayers 4 +coop 1 +deathmatch 0
+Arguments=-game temporalcortex +developer 0 +maxplayers 4 +coop 1 +deathmatch 0 +map mall
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=

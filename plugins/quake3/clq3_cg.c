@@ -1077,10 +1077,18 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 		break;
 
 	case CG_S_STARTBACKGROUNDTRACK:
+#ifdef TEMPORALCORTEX
+		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]), (short)VM_LONG(arg[2]));
+#else
 		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]));
+#endif
 		return 0;
 	case CG_S_STOPBACKGROUNDTRACK:
+#ifdef TEMPORALCORTEX
+		audiofuncs->ChangeMusicTrack(NULL, NULL, tc_sv3_current_time_period);
+#else
 		audiofuncs->ChangeMusicTrack(NULL, NULL);
+#endif
 		return 0;
 
 	case CG_S_RESPATIALIZE://void		trap_S_Respatialize( int entityNum, const vec3_t origin, vec3_t axis[3], int inwater );
