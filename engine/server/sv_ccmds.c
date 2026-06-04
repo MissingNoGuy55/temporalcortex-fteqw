@@ -861,13 +861,13 @@ void SV_Map_f (void)
 		{
 			switch(t)
 			{
-				case 0:
+				case TIME_PERIOD_PRESENT:
 					suffix = "_present";
 					break;
-				case 1:
+				case TIME_PERIOD_PAST:
 					suffix = "_past";
 					break;
-				case 2:
+				case TIME_PERIOD_FUTURE:
 					suffix = "_future";
 					break;
 			}
@@ -3795,7 +3795,7 @@ void SV_ChangeTimePeriod_f()
 	trace_t tTrace;
 	client_t* pClient;
 	edict_t* pClientEdict;
-	qboolean bStuck;		// Missi: Only needed because we need to report all players that are stuck (2025.9.22)
+	qboolean bStuck;
 
 	bStuck = false;
 
@@ -3810,7 +3810,6 @@ void SV_ChangeTimePeriod_f()
 		for ( i = 0; i < svs.allocated_client_slots; i++ )
 		{
 			pClient = &svs.clients[i];
-
 			pClientEdict = pClient->edict;
 
 			if ( !pClientEdict )
@@ -3818,20 +3817,20 @@ void SV_ChangeTimePeriod_f()
 
 			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, MOVE_NORMAL, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
 
-			if ( tTrace.fraction != 1 )
+			if ( tTrace.allsolid )
 			{
 				if ( svs.allocated_client_slots == 1 )
 				{
 					switch( atoi(pszArg) )
 					{
 						case TIME_PERIOD_PRESENT:
-							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the present!" );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the present!" );
 							break;
 						case TIME_PERIOD_PAST:
-							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the past!" );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the past!" );
 							break;
 						case TIME_PERIOD_FUTURE:
-							snprintf( szPrintString, sizeof(szPrintString), "You would be stuck if you went to the future!" );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the future!" );
 							break;
 					}
 				}
@@ -3840,17 +3839,18 @@ void SV_ChangeTimePeriod_f()
 					switch( atoi(pszArg) )
 					{
 						case TIME_PERIOD_PRESENT:
-							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the present!", i, svs.clients[i].name );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the present!", i, svs.clients[i].name );
 							break;
 						case TIME_PERIOD_PAST:
-							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the past!", i, svs.clients[i].name );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the past!", i, svs.clients[i].name );
 							break;
 						case TIME_PERIOD_FUTURE:
-							snprintf( szPrintString, sizeof(szPrintString), "Player %d (\"%s\") would be stuck if we all went to the future!", i, svs.clients[i].name );
+							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the future!", i, svs.clients[i].name );
 							break;
 					}
-					Con_Printf( "%s\n", szPrintString );	// Missi: Show all players that wouldn't be able to tag along (2025.9.22)
 				}
+
+				Con_Printf( "%s\n", szPrintString );
 				bStuck = true;
 			}
 		}
@@ -3860,13 +3860,13 @@ void SV_ChangeTimePeriod_f()
 		switch( sv_current_bsp_index )
 		{
 			case TIME_PERIOD_PRESENT:
-				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the present time period" );
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the present time period" );
 				break;
 			case TIME_PERIOD_PAST:
-				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the past time period" );
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the past time period" );
 				break;
 			case TIME_PERIOD_FUTURE:
-				snprintf( szPrintString, sizeof(szPrintString), "This map can only be played in the future time period" );
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the future time period" );
 				break;
 			default:
 				break;
@@ -3875,8 +3875,10 @@ void SV_ChangeTimePeriod_f()
 		return;		// Missi: No worldmodel for that time period (2025.9.20)
 	}
 
-	if ( !bStuck )
-		SV_ChangeTimePeriod( atoi(pszArg) );
+	if (bStuck)
+		return;
+
+	SV_ChangeTimePeriod( atoi(pszArg) );
 }
 #endif
 /*

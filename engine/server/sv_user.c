@@ -1522,6 +1522,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, 0x8000|client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 				client->prespawn_idx++;
 			}
 		}
@@ -1668,6 +1671,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[sv_current_bsp_index]);
+#endif
 				client->prespawn_idx++;
 			}
 		}
@@ -1706,7 +1712,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 			if (sv.strings.particle_precache[client->prespawn_idx])
 			{
+#ifdef TEMPORALCORTEX
+				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 8 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
+#else
 				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 4 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
+#endif
 				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
 				ClientReliableWrite_String (client, sv.strings.particle_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX

@@ -3151,7 +3151,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 					m = sv.strings.model_precache[i] = PR_AddString(prinst, m, 0, false);
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 #ifdef TEMPORALCORTEX
-					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1+sv_current_bsp_index]));
+					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[sv.world.worldmodel_indices[sv_current_bsp_index]]));
 #else
 					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1]));
 #endif
@@ -3168,7 +3168,11 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 							continue;
 						if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
 						{
+#ifdef TEMPORALCORTEX
+							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+8);
+#else
 							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
+#endif
 							ClientReliableWrite_Short (&svs.clients[j], i);
 							ClientReliableWrite_String (&svs.clients[j], m);
 #ifdef TEMPORALCORTEX

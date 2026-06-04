@@ -902,6 +902,17 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	extern int sv_allow_cheats;
 	size_t fsz;
 
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_CLIENT
+	tc_cl_loaded_bsps = 0;
+	cl_current_bsp_index = TIME_PERIOD_PRESENT;
+#endif
+#ifdef HAVE_SERVER
+	tc_sv_loaded_bsps = 0;
+	sv_current_bsp_index = TIME_PERIOD_PRESENT;
+#endif
+#endif
+
 #ifndef SERVERONLY
 	if (!isDedicated && qrenderer == QR_NONE)
 	{
@@ -1301,9 +1312,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		//reset the map's areaportal state... it might be dirty from a restart or so.
 		if (sv.world.worldmodel[t] && sv.world.worldmodel[t]->funcs.LoadAreaPortalBlob)
 			sv.world.worldmodel[t]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[t], NULL, 0);
-
-		// Missi: Finally increment the number of loaded BSPs on the server (2026.5.17)
-		tc_sv_loaded_bsps++;
 	}
 #else
 		//make sure our map's package is loaded.
@@ -1362,6 +1370,13 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 		newkey = InfoBuf_ValueForKey(&svs.info, "*bspversion");
 
+		// Missi: Finally increment the number of loaded BSPs on the server (2026.5.17)
+#ifdef HAVE_SERVER
+		tc_sv_loaded_bsps++;
+#endif
+#ifdef HAVE_CLIENT
+		tc_cl_loaded_bsps++;
+#endif
 	}
 #else
 	if (sv.world.worldmodel->type != mod_brush)

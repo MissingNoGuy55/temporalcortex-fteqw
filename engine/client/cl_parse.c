@@ -7722,7 +7722,7 @@ static void CL_ParsePrecache(void)
 
 			CL_CheckOrEnqueDownloadFile(s, s, DLLF_ALLOWWEB);
 #ifdef TEMPORALCORTEX
-			model = Mod_ForName(Mod_FixName(s, cl.model_name[wmidx]), (!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
+			model = Mod_ForName(Mod_FixName(s, cl.model_name[wmidx]), (i == wmidx&&!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
 #else
 			model = Mod_ForName(Mod_FixName(s, cl.model_name[1+i]), (i == 1&&!cl.sendprespawn)?MLV_ERROR:MLV_WARN);
 #endif
