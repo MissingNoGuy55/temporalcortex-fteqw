@@ -177,7 +177,7 @@ q2trace_t	VARGS CLQ2_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 
 	// check against world
 #ifdef TEMPORALCORTEX
-	cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
+	cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[tc_cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
 #else
 	cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, MASK_PLAYERSOLID, &t);
 #endif
@@ -208,7 +208,7 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 	int			contents;
 	vec3_t		axis[3], relpos;
 #ifdef TEMPORALCORTEX
-	contents = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, point);
+	contents = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, point);
 #else
 	contents = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, point);
 #endif
@@ -359,7 +359,7 @@ void CL_NudgePosition (void)
 	vec3_t	base;
 	int		x, y;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+	if (cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[tc_cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
 #else
 	if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
 #endif
@@ -373,7 +373,7 @@ void CL_NudgePosition (void)
 			pmove.origin[0] = base[0] + x * 1.0/8;
 			pmove.origin[1] = base[1] + y * 1.0/8;
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
+			if (cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents (cl.worldmodel[tc_cl_current_bsp_index], NULL, pmove.origin) == FTECONTENTS_EMPTY)
 #else
 			if (cl.worldmodel->funcs.PointContents (cl.worldmodel, NULL, pmove.origin) == FTECONTENTS_EMPTY)
 #endif
@@ -415,7 +415,7 @@ void CL_PredictUsercmd (int pnum, int entnum, player_state_t *from, player_state
 		return;
 	}
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -1036,7 +1036,7 @@ void CL_PredictMovePNum (int seat)
 	if (cls.protocol == CP_QUAKE2)
 	{
 #ifdef TEMPORALCORTEX
-		if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+		if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 		if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif

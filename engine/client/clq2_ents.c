@@ -2936,7 +2936,7 @@ void CLQ2_CalcViewValues (int seat)
 
 	// calculate the origin
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
+	if (cl.worldmodel[tc_cl_current_bsp_index] && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
 #else
 	if (cl.worldmodel && (!cl_nopred.value) && !(cl.q2frame.seat[seat].playerstate.pmove.pm_flags & Q2PMF_NO_PREDICTION) && !cls.demoplayback)
 #endif
@@ -2966,7 +2966,7 @@ void CLQ2_CalcViewValues (int seat)
 
 	// if not running a demo or on a locked frame, add the local angle movement
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
+	if (cl.worldmodel[tc_cl_current_bsp_index] && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
 #else
 	if (cl.worldmodel && ps->pmove.pm_type < Q2PM_DEAD && !cls.demoplayback)
 #endif
@@ -3039,7 +3039,7 @@ void CLQ2_AddEntities (void)
 		AngleVectors(r_refdef.viewangles, axis[0], axis[1], axis[2]);
 		VectorMA(r_refdef.vieworg, -chase_back.value, axis[0], camorg);
 		VectorMA(camorg, -chase_up.value, pv->gravitydir, camorg);
-//		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
+//		if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[tc_cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr))
 		VectorCopy(camorg, r_refdef.vieworg);
 
 		V_EditExternalModels(0, NULL, 0);

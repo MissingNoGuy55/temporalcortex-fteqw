@@ -400,7 +400,7 @@ static pubsubserver_t *MSV_Loop_GetLocalServer(void)
 
 	s = MSV_Link_Server(f, 0, "");
 #ifdef TEMPORALCORTEX
-	Q_strncpyz(s->name, sv.mapname[sv_current_bsp_index], sizeof(s->name));
+	Q_strncpyz(s->name, sv.mapname[tc_sv_current_bsp_index], sizeof(s->name));
 #else
 	Q_strncpyz(s->name, sv.mapname, sizeof(s->name));
 #endif
@@ -1520,7 +1520,7 @@ void SSV_ReadFromControlServer(void)
 
 			(void)to;
 #ifdef TEMPORALCORTEX
-			Con_Printf("%s: got tookplayer\n", sv.modelname[sv_current_bsp_index]);
+			Con_Printf("%s: got tookplayer\n", sv.modelname[tc_sv_current_bsp_index]);
 #else
 			Con_Printf("%s: got tookplayer\n", sv.modelname);
 #endif
@@ -1537,7 +1537,7 @@ void SSV_ReadFromControlServer(void)
 				if (!*addr)
 				{
 #ifdef TEMPORALCORTEX
-					Con_Printf("%s: tookplayer: failed\n", sv.modelname[sv_current_bsp_index]);
+					Con_Printf("%s: tookplayer: failed\n", sv.modelname[tc_sv_current_bsp_index]);
 #else
 					Con_Printf("%s: tookplayer: failed\n", sv.modelname);
 #endif
@@ -1547,7 +1547,7 @@ void SSV_ReadFromControlServer(void)
 				else
 				{
 #ifdef TEMPORALCORTEX
-					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname[sv_current_bsp_index]);
+					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname[tc_sv_current_bsp_index]);
 #else
 					Con_Printf("%s: tookplayer: do transfer\n", sv.modelname);
 #endif
@@ -1558,7 +1558,7 @@ void SSV_ReadFromControlServer(void)
 			}
 			else
 #ifdef TEMPORALCORTEX
-				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname[sv_current_bsp_index]);
+				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname[tc_sv_current_bsp_index]);
 #else
 				Con_Printf("%s: tookplayer: invalid player.\n", sv.modelname);
 #endif

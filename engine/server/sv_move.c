@@ -68,9 +68,9 @@ qboolean World_CheckBottom (world_t *world, wedict_t *ent, vec3_t up)
 #ifdef Q1BSPS
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	if (world->worldmodel[sv_current_bsp_index]->fromgame == fg_quake || world->worldmodel[sv_current_bsp_index]->fromgame == fg_halflife)
+	if (world->worldmodel[tc_sv_current_bsp_index]->fromgame == fg_quake || world->worldmodel[tc_sv_current_bsp_index]->fromgame == fg_halflife)
 #elif defined(HAVE_CLIENT)
-	if (world->worldmodel[cl_current_bsp_index]->fromgame == fg_quake || world->worldmodel[cl_current_bsp_index]->fromgame == fg_halflife)
+	if (world->worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake || world->worldmodel[tc_cl_current_bsp_index]->fromgame == fg_halflife)
 #endif
 #else
 	if (world->worldmodel->fromgame == fg_quake || world->worldmodel->fromgame == fg_halflife)
@@ -80,9 +80,9 @@ qboolean World_CheckBottom (world_t *world, wedict_t *ent, vec3_t up)
 		hull_t *hull;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		hull = Q1BSP_ChooseHull(world->worldmodel[sv_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+		hull = Q1BSP_ChooseHull(world->worldmodel[tc_sv_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
 #elif defined(HAVE_CLIENT)
-		hull = Q1BSP_ChooseHull(world->worldmodel[cl_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
+		hull = Q1BSP_ChooseHull(world->worldmodel[tc_cl_current_bsp_index], ent->xv->hull, ent->v->mins, ent->v->maxs, start);
 #endif
 #else
 		hull = Q1BSP_ChooseHull(world->worldmodel, ent->xv->hull, ent->v->mins, ent->v->maxs, start);
@@ -1326,9 +1326,9 @@ void QCBUILTIN PF_route_calculate (pubprogfuncs_t *prinst, struct globalvars_s *
 	VectorCopy(end, route->end);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[sv_current_bsp_index]);
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[tc_sv_current_bsp_index]);
 #elif defined(HAVE_CLIENT)
-	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[cl_current_bsp_index]);
+	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel[tc_cl_current_bsp_index]);
 #endif
 #else
 	route->waynet = WayNet_Begin(&route->world->waypoints, route->world->worldmodel);
@@ -1362,9 +1362,9 @@ static void Route_Visualise_f(void)
 	VectorCopy(targ, route->end);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	route->waynet = WayNet_Begin(&route->world->waypoints, sv.world.worldmodel[sv_current_bsp_index]);
+	route->waynet = WayNet_Begin(&route->world->waypoints, sv.world.worldmodel[tc_sv_current_bsp_index]);
 #else
-	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel[cl_current_bsp_index]);
+	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel[tc_cl_current_bsp_index]);
 #endif
 #else
 	route->waynet = WayNet_Begin(&route->world->waypoints, cl.worldmodel);
@@ -1393,7 +1393,7 @@ void PR_Route_Visualise (void)
 	struct waypointnetwork_s *wn;
 	size_t u;
 #ifdef TEMPORALCORTEX
-	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel[cl_current_bsp_index]):NULL;
+	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel[tc_cl_current_bsp_index]):NULL;
 #else
 	wn = (w && (w->waypoints || route_shownodes.ival))?WayNet_Begin(&w->waypoints, cl.worldmodel):NULL;
 #endif

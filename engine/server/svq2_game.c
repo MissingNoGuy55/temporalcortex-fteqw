@@ -531,7 +531,7 @@ static void VARGS PFQ2_setmodel (q2edict_t *ent, const char *name)
 	if (name[0] == '*')
 	{
 #ifdef TEMPORALCORTEX
-		mod = Mod_FindName (Mod_FixName(name, sv.modelname[sv_current_bsp_index]));
+		mod = Mod_FindName (Mod_FixName(name, sv.modelname[tc_sv_current_bsp_index]));
 #else
 		mod = Mod_FindName (Mod_FixName(name, sv.modelname));
 #endif
@@ -584,13 +584,13 @@ static qboolean VARGS PFQ2_inPVS (vec3_t p1, vec3_t p2)
 	int		area1, area2;
 	qbyte	*mask;
 #ifdef TEMPORALCORTEX
-	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p1, &area1);
-	mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_bsp_index], cluster, NULL, PVM_FAST);
+	cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], p1, &area1);
+	mask = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[tc_sv_current_bsp_index], cluster, NULL, PVM_FAST);
 
-	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p2, &area2);
+	cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;
-	if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], area1, area2))
+	if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[tc_sv_current_bsp_index], area1, area2))
 		return false;		// a door blocks sight
 #else
 	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
@@ -619,13 +619,13 @@ static qboolean VARGS PFQ2_inPHS (vec3_t p1, vec3_t p2)
 	int		area1, area2;
 	qbyte	*mask;
 #ifdef TEMPORALCORTEX
-	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p1, &area1);
-	mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_bsp_index], cluster, NULL);
+	cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], p1, &area1);
+	mask = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[tc_sv_current_bsp_index], cluster, NULL);
 
-	cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], p2, &area2);
+	cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], p2, &area2);
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;		// more than one bounce away
-	if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], area1, area2))
+	if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[tc_sv_current_bsp_index], area1, area2))
 		return false;		// a door blocks hearing
 #else
 	cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, p1, &area1);
@@ -644,7 +644,7 @@ qboolean VARGS PFQ2_AreasConnected(unsigned int area1, unsigned int area2)
 {
 	//FIXME: requires q2/q3 bsp
 #ifdef TEMPORALCORTEX
-	return sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected(sv.world.worldmodel[sv_current_bsp_index], area1, area2);
+	return sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected(sv.world.worldmodel[tc_sv_current_bsp_index], area1, area2);
 #else
 	return sv.world.worldmodel->funcs.AreasConnected(sv.world.worldmodel, area1, area2);
 #endif
@@ -942,8 +942,8 @@ void SVQ2_InitWorld(void)
 static void QDECL PFQ2_SetAreaPortalState(unsigned int p, qboolean s)
 {
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState)
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_bsp_index], p, -1, -1, s);
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[tc_sv_current_bsp_index], p, -1, -1, s);
 #else
 	if (sv.world.worldmodel->funcs.SetAreaPortalState)
 		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, p, -1, -1, s);

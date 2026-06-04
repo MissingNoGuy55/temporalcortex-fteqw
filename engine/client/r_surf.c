@@ -214,7 +214,7 @@ void Surf_AddStain(vec3_t org, float red, float green, float blue, float radius)
 
 	float parms[7];
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED || r_stains.value <= 0)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED || r_stains.value <= 0)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || r_stains.value <= 0)
 #endif
@@ -228,7 +228,7 @@ void Surf_AddStain(vec3_t org, float red, float green, float blue, float radius)
 	parms[6] = blue;
 
 #ifdef TEMPORALCORTEX
-	cl.worldmodel[cl_current_bsp_index]->funcs.StainNode(cl.worldmodel[cl_current_bsp_index], parms);
+	cl.worldmodel[tc_cl_current_bsp_index]->funcs.StainNode(cl.worldmodel[tc_cl_current_bsp_index], parms);
 #else
 	cl.worldmodel->funcs.StainNode(cl.worldmodel, parms);
 #endif
@@ -242,7 +242,7 @@ void Surf_AddStain(vec3_t org, float red, float green, float blue, float radius)
 	{
 		pe = &pmove.physents[i];
 #ifdef TEMPORALCORTEX
-		if (pe->model && pe->model->surfaces == cl.worldmodel[cl_current_bsp_index]->surfaces && pe->model->loadstate == MLS_LOADED)
+		if (pe->model && pe->model->surfaces == cl.worldmodel[tc_cl_current_bsp_index]->surfaces && pe->model->loadstate == MLS_LOADED)
 #else
 		if (pe->model && pe->model->surfaces == cl.worldmodel->surfaces && pe->model->loadstate == MLS_LOADED)
 #endif
@@ -306,8 +306,8 @@ void Surf_LessenStains(void)
 	limit = 255 - ammount;
 
 #ifdef TEMPORALCORTEX
-	surf = cl.worldmodel[cl_current_bsp_index]->surfaces;
-	for (i=0 ; i<cl.worldmodel[cl_current_bsp_index]->numsurfaces ; i++, surf++)
+	surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces;
+	for (i=0 ; i<cl.worldmodel[tc_cl_current_bsp_index]->numsurfaces ; i++, surf++)
 #else
 	surf = cl.worldmodel->surfaces;
 	for (i=0 ; i<cl.worldmodel->numsurfaces ; i++, surf++)
@@ -2200,7 +2200,7 @@ void Surf_SetupFrame(void)
 	vec3_t	pvsorg;
 	int viewcontents;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate!=MLS_LOADED)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate!=MLS_LOADED)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate!=MLS_LOADED)
 #endif
@@ -2224,7 +2224,7 @@ void Surf_SetupFrame(void)
 	{
 	}
 #ifdef TEMPORALCORTEX
-	else if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint)
+	else if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint)
 #else
 	else if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED && cl.worldmodel->funcs.InfoForPoint)
 #endif
@@ -2233,7 +2233,7 @@ void Surf_SetupFrame(void)
 		unsigned int cont2;
 		int area2;
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[cl_current_bsp_index], pvsorg, &r_viewarea, &r_viewcluster, &viewcontents);
+		cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[tc_cl_current_bsp_index], pvsorg, &r_viewarea, &r_viewcluster, &viewcontents);
 #else
 		cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, pvsorg, &r_viewarea, &r_viewcluster, &viewcontents);
 #endif
@@ -2243,7 +2243,7 @@ void Surf_SetupFrame(void)
 			VectorCopy (pvsorg, temp);
 			temp[2] -= 16;
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[cl_current_bsp_index], temp, &area2, &r_viewcluster2, &cont2);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[tc_cl_current_bsp_index], temp, &area2, &r_viewcluster2, &cont2);
 #else
 			cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, temp, &area2, &r_viewcluster2, &cont2);
 #endif
@@ -2255,7 +2255,7 @@ void Surf_SetupFrame(void)
 			VectorCopy (pvsorg, temp);
 			temp[2] += 16;
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[cl_current_bsp_index], temp, &area2, &r_viewcluster2, &cont2);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint (cl.worldmodel[tc_cl_current_bsp_index], temp, &area2, &r_viewcluster2, &cont2);
 #else
 			cl.worldmodel->funcs.InfoForPoint (cl.worldmodel, temp, &area2, &r_viewcluster2, &cont2);
 #endif
@@ -2271,9 +2271,9 @@ void Surf_SetupFrame(void)
 
 #ifdef TERRAIN
 #ifdef TEMPORALCORTEX
-	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->terrain)
+	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->terrain)
 	{
-		viewcontents |= Heightmap_PointContents(cl.worldmodel[cl_current_bsp_index], NULL, pvsorg);
+		viewcontents |= Heightmap_PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, pvsorg);
 	}
 #else
 	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel && cl.worldmodel->terrain)
@@ -3031,7 +3031,7 @@ void Surf_DrawWorld (void)
 		return;
 	}
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -3040,9 +3040,9 @@ void Surf_DrawWorld (void)
 		return;
 	}
 #ifdef TEMPORALCORTEX
-	if (!r_refdef.areabitsknown && cl.worldmodel[cl_current_bsp_index]->funcs.WriteAreaBits)
+	if (!r_refdef.areabitsknown && cl.worldmodel[tc_cl_current_bsp_index]->funcs.WriteAreaBits)
 	{	//generate the info each frame, as the gamecode didn't tell us what to use.
-		cl.worldmodel[cl_current_bsp_index]->funcs.WriteAreaBits(cl.worldmodel[cl_current_bsp_index], r_refdef.areabits, sizeof(r_refdef.areabits), r_viewarea, false);
+		cl.worldmodel[tc_cl_current_bsp_index]->funcs.WriteAreaBits(cl.worldmodel[tc_cl_current_bsp_index], r_refdef.areabits, sizeof(r_refdef.areabits), r_viewarea, false);
 #else
 	if (!r_refdef.areabitsknown && cl.worldmodel->funcs.WriteAreaBits)
 	{	//generate the info each frame, as the gamecode didn't tell us what to use.
@@ -3051,7 +3051,7 @@ void Surf_DrawWorld (void)
 		r_refdef.areabitsknown = true;
 	}
 #ifdef TEMPORALCORTEX
-	currentmodel = cl.worldmodel[cl_current_bsp_index];
+	currentmodel = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 	currentmodel = cl.worldmodel;
 #endif
@@ -3069,15 +3069,15 @@ void Surf_DrawWorld (void)
 
 #ifdef THREADEDWORLD
 #ifdef TEMPORALCORTEX
-		if (!*r_temporalscenecache.string && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[cl_current_bsp_index]->fromgame == fg_halflife))
+		if (!*r_temporalscenecache.string && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && (cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_halflife))
 #else
 		if (!*r_temporalscenecache.string && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED && (cl.worldmodel->fromgame == fg_quake || cl.worldmodel->fromgame == fg_halflife))
 #endif
 		{	//when empty, pick a suitable default.
 			//at what point is it a win? should we consider batch counts? probability of offscreen-only surfaces?
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[cl_current_bsp_index]->fromgame == fg_halflife)
-				sc = ((r_novis.ival==1)||(cl.worldmodel[cl_current_bsp_index]->numleafs > 6000)) && r_waterstyle.ival<=1 && r_telestyle.ival<=1 && r_slimestyle.ival<=1 &&
+			if (cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_halflife)
+				sc = ((r_novis.ival==1)||(cl.worldmodel[tc_cl_current_bsp_index]->numleafs > 6000)) && r_waterstyle.ival<=1 && r_telestyle.ival<=1 && r_slimestyle.ival<=1 &&
 				r_lavastyle.ival<=1 && Media_Capturing()<2;
 #else
 			if (cl.worldmodel->fromgame == fg_quake || cl.worldmodel->fromgame == fg_halflife)
@@ -3351,12 +3351,12 @@ void Surf_DrawWorld (void)
 		TRACE(("dbg: calling BE_DrawWorld\n"));
 		r_refdef.scenevis = surfvis;
 #ifdef TEMPORALCORTEX
-		BE_DrawWorld(cl.worldmodel[cl_current_bsp_index]->batches);
+		BE_DrawWorld(cl.worldmodel[tc_cl_current_bsp_index]->batches);
 
-		Surf_PopChains(cl.worldmodel[cl_current_bsp_index]->batches);
+		Surf_PopChains(cl.worldmodel[tc_cl_current_bsp_index]->batches);
 
 		/*FIXME: move this away*/
-		if (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[cl_current_bsp_index]->fromgame == fg_halflife)
+		if (cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake || cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_halflife)
 #else
 		BE_DrawWorld(cl.worldmodel->batches);
 

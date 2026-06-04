@@ -3760,7 +3760,7 @@ static void CLQW_ParseServerData (void)
 #ifdef TEMPORALCORTEX
 	str = MSG_ReadString();
 
-	Q_strncpyz (cl.mapname[cl_current_bsp_index], str, sizeof(cl.mapname[cl_current_bsp_index]));
+	Q_strncpyz (cl.mapname[tc_cl_current_bsp_index], str, sizeof(cl.mapname[tc_cl_current_bsp_index]));
 #endif
 
 	if (cl.protocol_qw >= 25)
@@ -3990,7 +3990,7 @@ static void CLQ2_ParseServerData (void)
 #ifdef TEMPORALCORTEX
 	str = MSG_ReadString();
 
-	Q_strncpyz (cl.mapname[cl_current_bsp_index], str, sizeof(cl.mapname[cl_current_bsp_index]));
+	Q_strncpyz (cl.mapname[tc_cl_current_bsp_index], str, sizeof(cl.mapname[tc_cl_current_bsp_index]));
 #endif
 
 	if (cls.protocol_q2 == PROTOCOL_VERSION_R1Q2)
@@ -5186,7 +5186,7 @@ static void CLQ2_UpdateConfigString (unsigned int i, char *s)
 	else if (i == Q2EXCS_CDTRACK)
 	{
 #ifdef TEMPORALCORTEX
-		Media_NamedTrack (s, NULL, cl_current_bsp_index);
+		Media_NamedTrack (s, NULL, tc_cl_current_bsp_index);
 #else
 		Media_NamedTrack (s, NULL);
 #endif
@@ -5263,14 +5263,14 @@ parsesoundindex:
 	{
 		int serverchecksum = (int)strtol(s, NULL, 10);
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index])
+		if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		if (cl.worldmodel)
 #endif
 		{
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(cl.worldmodel[cl_current_bsp_index], &cl.worldmodel[cl_current_bsp_index]->loadstate, MLS_LOADING);
+			if (cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(cl.worldmodel[tc_cl_current_bsp_index], &cl.worldmodel[tc_cl_current_bsp_index]->loadstate, MLS_LOADING);
 #else
 			if (cl.worldmodel->loadstate == MLS_LOADING)
 				COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
@@ -5278,9 +5278,9 @@ parsesoundindex:
 
 			// the Q2 client normally exits here, however for our purposes we might as well ignore it
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->checksum != serverchecksum &&
-				cl.worldmodel[cl_current_bsp_index]->checksum2!= serverchecksum)
-				Con_Printf(CON_WARNING "WARNING: Client checksum does not match server checksum (%i != %i)", cl.worldmodel[cl_current_bsp_index]->checksum2, serverchecksum);
+			if (cl.worldmodel[tc_cl_current_bsp_index]->checksum != serverchecksum &&
+				cl.worldmodel[tc_cl_current_bsp_index]->checksum2!= serverchecksum)
+				Con_Printf(CON_WARNING "WARNING: Client checksum does not match server checksum (%i != %i)", cl.worldmodel[tc_cl_current_bsp_index]->checksum2, serverchecksum);
 #else
 			if (cl.worldmodel->checksum != serverchecksum &&
 				cl.worldmodel->checksum2!= serverchecksum)
@@ -7863,8 +7863,8 @@ static void CL_ParsePortalState(void)
 		return;
 #endif
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate==MLS_LOADED && cl.worldmodel[cl_current_bsp_index]->funcs.SetAreaPortalState)
-		cl.worldmodel[cl_current_bsp_index]->funcs.SetAreaPortalState(cl.worldmodel[cl_current_bsp_index], p, a1, a2, state);
+	if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate==MLS_LOADED && cl.worldmodel[tc_cl_current_bsp_index]->funcs.SetAreaPortalState)
+		cl.worldmodel[tc_cl_current_bsp_index]->funcs.SetAreaPortalState(cl.worldmodel[tc_cl_current_bsp_index], p, a1, a2, state);
 #else
 	if (cl.worldmodel && cl.worldmodel->loadstate==MLS_LOADED && cl.worldmodel->funcs.SetAreaPortalState)
 		cl.worldmodel->funcs.SetAreaPortalState(cl.worldmodel, p, a1, a2, state);
@@ -8446,7 +8446,7 @@ void CLQW_ParseServerMessage (void)
 				unsigned int firsttrack;
 				firsttrack = MSG_ReadByte ();
 #ifdef TEMPORALCORTEX
-				Media_NumberedTrack (firsttrack, firsttrack, cl_current_bsp_index);
+				Media_NumberedTrack (firsttrack, firsttrack, tc_cl_current_bsp_index);
 #else
 				Media_NumberedTrack (firsttrack, firsttrack);
 #endif
@@ -8650,15 +8650,15 @@ void CLQW_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			cl_current_bsp_index = MSG_ReadShort();
+			tc_cl_current_bsp_index = MSG_ReadShort();
 			track = MSG_ReadShort();
-			Media_NumberedTrack( track, track, cl_current_bsp_index );
+			Media_NumberedTrack( track, track, tc_cl_current_bsp_index );
 
 			memset(cl.levelname, 0, sizeof(cl.levelname));
 
 			Q_strcpy(cl.levelname, MSG_ReadString());
 
-			switch(cl_current_bsp_index)
+			switch(tc_cl_current_bsp_index)
 			{
 				case TIME_PERIOD_PRESENT:
 					Q_strcat(cl.levelname, " (present)");
@@ -8674,7 +8674,7 @@ void CLQW_ParseServerMessage (void)
 			CSQC_TC_ChangeLevelName(cl.levelname);
 
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteShort( &cls.netchan.message, cl_current_bsp_index );
+			MSG_WriteShort( &cls.netchan.message, tc_cl_current_bsp_index );
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:
@@ -9322,7 +9322,7 @@ isillegible:
 		case 34:	// Missi: svcq2tc_timeperiod (2025.9.21)
 			if (cls.protocol_q2 == PROTOCOL_VERSION_Q2EX)
 		//case svcq2ex_achievement:
-				cl_current_bsp_index = MSG_ReadLong();
+				tc_cl_current_bsp_index = MSG_ReadLong();
 			else
 				goto isillegible;
 			break;
@@ -9970,7 +9970,7 @@ void CLNQ_ParseServerMessage (void)
 				if (cls.demotrack != -1)
 					firsttrack = looptrack = cls.demotrack;
 #ifdef TEMPORALCORTEX
-				Media_NumberedTrack (firsttrack, looptrack, cl_current_bsp_index);
+				Media_NumberedTrack (firsttrack, looptrack, tc_cl_current_bsp_index);
 #else
 				Media_NumberedTrack (firsttrack, looptrack);
 #endif
@@ -10554,16 +10554,16 @@ void CLNQ_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			cl_current_bsp_index = MSG_ReadShort();
+			tc_cl_current_bsp_index = MSG_ReadShort();
 			track = MSG_ReadShort();
-			Media_NumberedTrack( track, track, cl_current_bsp_index );
+			Media_NumberedTrack( track, track, tc_cl_current_bsp_index );
 
 			Q_strcpy(cl.levelname, MSG_ReadString());
 
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteLong( &cls.netchan.message, cl_current_bsp_index );
+			MSG_WriteLong( &cls.netchan.message, tc_cl_current_bsp_index );
 
-			// CL_RefreshModels( cl_current_bsp_index );
+			// CL_RefreshModels( tc_cl_current_bsp_index );
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:

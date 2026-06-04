@@ -625,7 +625,7 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 //	to = MULTICAST_ALL;
 	//don't let things crash if the world model went away. can happen in broadcasts when reloading video with the map no longer available causing the server to die with the resulting broadcast messages about players dropping or gib effects appearing
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED || !sv.world.worldmodel[sv_current_bsp_index]->nodes)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate != MLS_LOADED || !sv.world.worldmodel[tc_sv_current_bsp_index]->nodes)
 #else
 	if (sv.world.worldmodel->loadstate != MLS_LOADED || !sv.world.worldmodel->nodes)
 #endif
@@ -662,7 +662,7 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 			reliable = true;	// intentional fallthrough
 		case MULTICAST_PHS:
 #ifdef TEMPORALCORTEX
-			if (!sv.world.worldmodel[sv_current_bsp_index]->phs || sv_nopvs.ival)	/*broadcast if no pvs*/
+			if (!sv.world.worldmodel[tc_sv_current_bsp_index]->phs || sv_nopvs.ival)	/*broadcast if no pvs*/
 #else
 			if (!sv.world.worldmodel->phs || sv_nopvs.ival)	/*broadcast if no pvs*/
 #endif
@@ -670,13 +670,13 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 			else
 			{
 #ifdef TEMPORALCORTEX
-				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], origin, &area1);
+				cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin, &area1);
 #else
 				cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, &area1);
 #endif
 				if (cluster >= 0)
 #ifdef TEMPORALCORTEX
-					mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPHS(sv.world.worldmodel[sv_current_bsp_index], cluster, NULL);
+					mask = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPHS(sv.world.worldmodel[tc_sv_current_bsp_index], cluster, NULL);
 #else
 					mask = sv.world.worldmodel->funcs.ClusterPHS(sv.world.worldmodel, cluster, NULL);
 #endif
@@ -693,13 +693,13 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 			else
 			{
 #ifdef TEMPORALCORTEX
-				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], origin, &area1);
+				cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin, &area1);
 #else
 				cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, &area1);
 #endif
 				if (cluster >= 0)
 #ifdef TEMPORALCORTEX
-					mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], cluster, NULL, PVM_FAST);
+					mask = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[tc_sv_current_bsp_index], cluster, NULL, PVM_FAST);
 #else
 					mask = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, cluster, NULL, PVM_FAST);
 #endif
@@ -798,13 +798,13 @@ void SV_MulticastProtExt(vec3_t origin, multicast_t to, int dimension_mask, int 
 							break;
 					}
 #ifdef TEMPORALCORTEX
-					cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], pos, &area2);
+					cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[tc_sv_current_bsp_index], pos, &area2);
 #else
 					cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, pos, &area2);
 #endif
 					if (cluster>= 0 && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ||
 #ifdef TEMPORALCORTEX
-						(sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected && !sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], area1, area2))))
+						(sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected && !sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[tc_sv_current_bsp_index], area1, area2))))
 #else
 						(sv.world.worldmodel->funcs.AreasConnected && !sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, area1, area2))))
 #endif
@@ -978,7 +978,7 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 		reliable = true;	// intentional fallthrough
 	case MULTICAST_PHS:
 #ifdef TEMPORALCORTEX
-		if (!sv.world.worldmodel[sv_current_bsp_index]->phs)	/*broadcast if no pvs*/
+		if (!sv.world.worldmodel[tc_sv_current_bsp_index]->phs)	/*broadcast if no pvs*/
 #else
 		if (!sv.world.worldmodel->phs)	/*broadcast if no pvs*/
 #endif
@@ -986,13 +986,13 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 		else
 		{
 #ifdef TEMPORALCORTEX
-			cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], origin, NULL);
+			cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin, NULL);
 #else
 			cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, NULL);
 #endif
 			if (cluster >= 0)
 #ifdef TEMPORALCORTEX
-				mask = sv.world.worldmodel[sv_current_bsp_index]->phs + cluster * sv.world.worldmodel[sv_current_bsp_index]->pvsbytes;
+				mask = sv.world.worldmodel[tc_sv_current_bsp_index]->phs + cluster * sv.world.worldmodel[tc_sv_current_bsp_index]->pvsbytes;
 #else
 				mask = sv.world.worldmodel->phs + cluster * sv.world.worldmodel->pvsbytes;
 #endif
@@ -1005,13 +1005,13 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 		reliable = true;	// intentional fallthrough
 	case MULTICAST_PVS:
 #ifdef TEMPORALCORTEX
-		cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], origin, NULL);
+		cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin, NULL);
 #else
 		cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, origin, NULL);
 #endif
 		if (cluster >= 0)
 #ifdef TEMPORALCORTEX
-			mask = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], cluster, NULL, PVM_FAST);
+			mask = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[tc_sv_current_bsp_index], cluster, NULL, PVM_FAST);
 #else
 			mask = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, cluster, NULL, PVM_FAST);
 #endif
@@ -1087,7 +1087,7 @@ void SV_MulticastCB(vec3_t origin, multicast_t to, const char *reliableinfokey, 
 					vec3_t pos;
 					VectorAdd(split->edict->v->origin, split->edict->v->view_ofs, pos);
 #ifdef TEMPORALCORTEX
-					cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], pos, NULL);
+					cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[tc_sv_current_bsp_index], pos, NULL);
 #else
 					cluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, pos, NULL);
 #endif
@@ -1379,14 +1379,14 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				MSG_WriteShort(&sv.multicast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.multicast, sample);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 		#ifdef NQPROT
 				MSG_WriteByte(&sv.nqmulticast, svcdp_precache);
 				MSG_WriteShort(&sv.nqmulticast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.nqmulticast, sample);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 		#endif
 				SV_MulticastProtExt(NULL, MULTICAST_ALL_R, FULLDIMENSIONMASK, PEXT_CSQC, 0);
@@ -2738,7 +2738,7 @@ qboolean SV_SendClientDatagram (client_t *client)
 	if (msg.maxsize <= 0)
 		msg.maxsize = clientlimit;	//its going to overflow. favour ents over unreliables. its a little less fatal
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index] && !client->controller)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index] && !client->controller)
 #else
 	if (sv.world.worldmodel && !client->controller)
 #endif

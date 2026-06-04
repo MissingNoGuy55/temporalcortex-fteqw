@@ -2390,7 +2390,7 @@ void CL_UpdateSeats(void)
 {
 	if (!cls.netchan.message.cursize && cl.allocated_client_slots > 1 && cls.state == ca_active && cl.splitclients && (cls.fteprotocolextensions & PEXT_SPLITSCREEN) &&
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[cl_current_bsp_index])
+		cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		cl.worldmodel)
 #endif

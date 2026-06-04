@@ -1719,26 +1719,26 @@ TRACE(("dbg: R_ApplyRenderer: initing mods\n"));
 
 #ifndef CLIENTONLY
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index])
+	if (sv.world.worldmodel[tc_sv_current_bsp_index])
 	{
 TRACE(("dbg: R_ApplyRenderer: reloading server map\n"));
-		sv.world.worldmodel[sv_current_bsp_index] = Mod_ForName (sv.modelname[sv_current_bsp_index], MLV_WARNSYNC);
+		sv.world.worldmodel[tc_sv_current_bsp_index] = Mod_ForName (sv.modelname[tc_sv_current_bsp_index], MLV_WARNSYNC);
 TRACE(("dbg: R_ApplyRenderer: loaded\n"));
-		if (sv.world.worldmodel[sv_current_bsp_index]->loadstate == MLS_LOADING)
-			COM_WorkerPartialSync(sv.world.worldmodel[sv_current_bsp_index], &sv.world.worldmodel[sv_current_bsp_index]->loadstate, MLS_LOADING);
+		if (sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate == MLS_LOADING)
+			COM_WorkerPartialSync(sv.world.worldmodel[tc_sv_current_bsp_index], &sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate, MLS_LOADING);
 TRACE(("dbg: R_ApplyRenderer: doing that funky phs thang\n"));
 		SV_CalcPHS ();
 
 TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 
-		if (sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
+		if (sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate != MLS_LOADED)
 			SV_UnspawnServer();
 		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
 			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 			{
 				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv_current_bsp_index]));
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[tc_sv_current_bsp_index]));
 				else
 					sv.models[i] = NULL;
 			}
@@ -1753,15 +1753,15 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			q2edict_t *q2ent;
 			for (i = 0; i < Q2MAX_MODELS; i++)
 			{
-				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[sv_current_bsp_index]));
+				if (sv.strings.configstring[Q2CS_MODELS+i] && *sv.strings.configstring[Q2CS_MODELS+i] && (!strcmp(sv.strings.configstring[Q2CS_MODELS+i] + strlen(sv.strings.configstring[Q2CS_MODELS+i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[tc_sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i], sv.modelname[tc_sv_current_bsp_index]));
 				else
 					sv.models[i] = NULL;
 			}
 			for (; i < MAX_PRECACHE_MODELS; i++)
 			{
-				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_bsp_index]));
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[tc_sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[tc_sv_current_bsp_index]));
 				else
 					sv.models[i] = NULL;
 			}
@@ -1787,7 +1787,7 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 		else if (svs.gametype == GT_QUAKE3)
 		{
 			memset(&sv.models, 0, sizeof(sv.models));
-			sv.models[1+sv_current_bsp_index] = Mod_FindName(sv.modelname[sv_current_bsp_index]);
+			sv.models[1+tc_sv_current_bsp_index] = Mod_FindName(sv.modelname[tc_sv_current_bsp_index]);
 			//traditionally a q3 server can just keep hold of its world cmodel and nothing is harmed.
 			//this means we just need to reload the worldmodel and all is fine...
 			//there are some edge cases however, like lingering pointers refering to entities.
@@ -1846,8 +1846,8 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			for (; i < MAX_PRECACHE_MODELS; i++)
 			{
 #ifdef TEMPORALCORTEX
-				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[sv_current_bsp_index]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[sv_current_bsp_index]));
+				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[tc_sv_current_bsp_index]->numsubmodels))
+					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname[tc_sv_current_bsp_index]));
 #else
 				if (sv.strings.q2_extramodels[i] && *sv.strings.q2_extramodels[i] && (!strcmp(sv.strings.q2_extramodels[i] + strlen(sv.strings.q2_extramodels[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel->numsubmodels))
 					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.q2_extramodels[i], sv.modelname));
@@ -1989,7 +1989,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 				cl.model_csqcprecache[i] = NULL;
 				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
 #ifdef TEMPORALCORTEX
-				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1+cl_current_bsp_index]), MLV_SILENT);
+				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1+tc_cl_current_bsp_index]), MLV_SILENT);
 #else
 				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
 #endif
@@ -2095,14 +2095,14 @@ void R_ReloadRenderer_f (void)
 
 #if !defined(CLIENTONLY)
 #ifdef TEMPORALCORTEX
-	if (sv.state == ss_active && sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
+	if (sv.state == ss_active && sv.world.worldmodel[tc_cl_current_bsp_index] && sv.world.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
 #else
 	if (sv.state == ss_active && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.SaveAreaPortalBlob)
 #endif
 	{
 		void *t;
 #ifdef TEMPORALCORTEX
-		portalsize = sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], &t);
+		portalsize = sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[tc_cl_current_bsp_index], &t);
 #else
 		portalsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &t);
 #endif
@@ -2122,8 +2122,8 @@ void R_ReloadRenderer_f (void)
 	if (portalblob)
 	{
 #ifdef TEMPORALCORTEX
-		if (sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
-			sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], portalblob, portalsize);
+		if (sv.world.worldmodel[tc_cl_current_bsp_index] && sv.world.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[tc_cl_current_bsp_index], portalblob, portalsize);
 #else
 		if (sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.LoadAreaPortalBlob)
 			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, portalblob, portalsize);
@@ -2375,14 +2375,14 @@ void R_RestartRenderer (rendererstate_t *newr)
 
 #ifdef HAVE_SERVER
 #ifdef TEMPORALCORTEX
-	if (sv.state == ss_active && sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
+	if (sv.state == ss_active && sv.world.worldmodel[tc_cl_current_bsp_index] && sv.world.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.SaveAreaPortalBlob)
 #else
 	if (sv.state == ss_active && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.SaveAreaPortalBlob)
 #endif
 	{
 		void *t;
 #ifdef TEMPORALCORTEX
-		portalsize = sv.world.worldmodel[cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], &t);
+		portalsize = sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[tc_cl_current_bsp_index], &t);
 #else
 		portalsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &t);
 #endif
@@ -2483,8 +2483,8 @@ void R_RestartRenderer (rendererstate_t *newr)
 	if (portalblob)
 	{
 #ifdef TEMPORALCORTEX
-		if (sv.world.worldmodel[cl_current_bsp_index] && sv.world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
-			sv.world.worldmodel[cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[cl_current_bsp_index], portalblob, portalsize);
+		if (sv.world.worldmodel[tc_cl_current_bsp_index] && sv.world.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED && sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.LoadAreaPortalBlob)
+			sv.world.worldmodel[tc_cl_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[tc_cl_current_bsp_index], portalblob, portalsize);
 #else
 		if (sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED && sv.world.worldmodel->funcs.LoadAreaPortalBlob)
 			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, portalblob, portalsize);

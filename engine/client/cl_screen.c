@@ -1785,7 +1785,7 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 	vrect_t rect;
 	rect = r_refdef.vrect;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && crosshaircorrect.ival)
+	if (cl.worldmodel[tc_cl_current_bsp_index] && crosshaircorrect.ival)
 #else
 	if (cl.worldmodel && crosshaircorrect.ival)
 #endif
@@ -1805,7 +1805,7 @@ void SCR_CrosshairPosition(playerview_t *pview, float *x, float *y)
 		memset(&tr, 0, sizeof(tr));
 		tr.fraction = 1;
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false,
+		cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[tc_cl_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false,
 #else
 		cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false,
 #endif
@@ -2528,7 +2528,7 @@ void SCR_SetUpToDrawConsole (void)
 	fullscreenpercent = scr_consize.value;
 #endif
 #ifdef TEMPORALCORTEX
-	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED))
+	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED))
 #else
 	if (!con_stayhidden.ival && (!Key_Dest_Has(~(kdm_console|kdm_game))) && (!cl.sendprespawn && cl.worldmodel && cl.worldmodel->loadstate != MLS_LOADED))
 #endif
@@ -3130,7 +3130,7 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	refdef_t oldrefdef;
 
 #ifdef TEMPORALCORTEX
-	if (!cls.state || !cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!cls.state || !cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!cls.state || !cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -3174,7 +3174,7 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	{	//generate a default filename if none exists yet.
 		char base[MAX_QPATH];
 #ifdef TEMPORALCORTEX
-		COM_FileBase(cl.worldmodel[cl_current_bsp_index]->name, base, sizeof(base));
+		COM_FileBase(cl.worldmodel[tc_cl_current_bsp_index]->name, base, sizeof(base));
 		fname = va("%s/%i_%i_%i", base, (int)r_refdef.vieworg[0], (int)r_refdef.vieworg[1], (int)r_refdef.vieworg[2]);
 #else
 		COM_FileBase(cl.worldmodel->name, base, sizeof(base));

@@ -979,7 +979,7 @@ void SVQ2_BuildClientFrame (client_t *client)
 
 	SVQ2_Ents_Init();
 #ifdef TEMPORALCORTEX
-	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel[sv_current_bsp_index]->pvsbytes);
+	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel[tc_sv_current_bsp_index]->pvsbytes);
 #else
 	clientpvs.buffer = alloca(clientpvs.buffersize=sv.world.worldmodel->pvsbytes);
 #endif
@@ -1017,15 +1017,15 @@ void SVQ2_BuildClientFrame (client_t *client)
 		for (i=0 ; i<3 ; i++)
 			org[seat][i] = clent[seat]->client->ps.pmove.origin[i]*0.125 + clent[seat]->client->ps.viewoffset[i];
 #ifdef TEMPORALCORTEX
-		clientcluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], org[seat], &clientarea[seat]);
+		clientcluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[tc_sv_current_bsp_index], org[seat], &clientarea[seat]);
 
 		// calculate the visible areas
-		frame->areabytes = sv.world.worldmodel[sv_current_bsp_index]->funcs.WriteAreaBits (sv.world.worldmodel[sv_current_bsp_index], frame->areabits, sizeof(frame->areabits), clientarea[seat], seat != 0);
+		frame->areabytes = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.WriteAreaBits (sv.world.worldmodel[tc_sv_current_bsp_index], frame->areabits, sizeof(frame->areabits), clientarea[seat], seat != 0);
 
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org[seat], &clientpvs, seat!=0);
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], org[seat], &clientpvs, seat!=0);
 
 		if (seat==0)	//FIXME
-			clientphs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[sv_current_bsp_index], clientcluster, NULL);
+			clientphs = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPHS (sv.world.worldmodel[tc_sv_current_bsp_index], clientcluster, NULL);
 #else
 		clientcluster = sv.world.worldmodel->funcs.ClusterForPoint (sv.world.worldmodel, org[seat], &clientarea[seat]);
 
@@ -1074,7 +1074,7 @@ void SVQ2_BuildClientFrame (client_t *client)
 			{
 				// check area
 #ifdef TEMPORALCORTEX
-				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], clientarea[seat], ent->areanum))
+				if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[tc_sv_current_bsp_index], clientarea[seat], ent->areanum))
 #else
 				if (!sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, clientarea[seat], ent->areanum))
 #endif
@@ -1082,7 +1082,7 @@ void SVQ2_BuildClientFrame (client_t *client)
 					// we may need to check another one
 #ifdef TEMPORALCORTEX
 					if (!ent->areanum2
-						|| !sv.world.worldmodel[sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[sv_current_bsp_index], clientarea[seat], ent->areanum2))
+						|| !sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.AreasConnected (sv.world.worldmodel[tc_sv_current_bsp_index], clientarea[seat], ent->areanum2))
 #else
 					if (!ent->areanum2
 						|| !sv.world.worldmodel->funcs.AreasConnected (sv.world.worldmodel, clientarea[seat], ent->areanum2))
@@ -1108,7 +1108,7 @@ void SVQ2_BuildClientFrame (client_t *client)
 						cache.num_leafs = -1;
 						cache.headnode = ent->headnode;
 #ifdef TEMPORALCORTEX
-						if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &cache, clientpvs.buffer, NULL))
+						if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], &cache, clientpvs.buffer, NULL))
 #else
 						if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &cache, clientpvs.buffer, NULL))
 #endif

@@ -426,9 +426,9 @@ static int WPhys_FlyMove (world_t *w, wedict_t *ent, const vec3_t gravitydir, fl
 			end[i] = ent->v->origin[i] + time_left * ent->v->velocity[i];
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, sv_current_bsp_index);
+		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, tc_sv_current_bsp_index);
 #elif defined( HAVE_CLIENT )
-		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, cl_current_bsp_index);
+		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, tc_cl_current_bsp_index);
 #endif
 #else
 		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent);
@@ -451,9 +451,9 @@ static int WPhys_FlyMove (world_t *w, wedict_t *ent, const vec3_t gravitydir, fl
 			numplanes = 0;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-			trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, sv_current_bsp_index);
+			trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, tc_sv_current_bsp_index);
 #elif defined( HAVE_CLIENT )
-			trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, cl_current_bsp_index);
+			trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, tc_cl_current_bsp_index);
 #endif
 #else
 			trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent);
@@ -645,9 +645,9 @@ static trace_t WPhys_PushEntity (world_t *w, wedict_t *ent, vec3_t push, unsigne
 		traceflags |= MOVE_NORMAL;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, sv_current_bsp_index);
+	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, cl_current_bsp_index);
+	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, tc_cl_current_bsp_index);
 #endif
 #else
 	trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent);
@@ -665,9 +665,9 @@ static trace_t WPhys_PushEntity (world_t *w, wedict_t *ent, vec3_t push, unsigne
 		VectorAdd(from, move, end);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, sv_current_bsp_index);
+		trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-		trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, cl_current_bsp_index);
+		trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent, tc_cl_current_bsp_index);
 #endif
 #else
 		trace = World_Move (w, from, ent->v->mins, ent->v->maxs, end, traceflags, (wedict_t*)ent);
@@ -680,9 +680,9 @@ static trace_t WPhys_PushEntity (world_t *w, wedict_t *ent, vec3_t push, unsigne
 	{
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		if (!(w->worldmodel[sv_current_bsp_index]->funcs.PointContents(w->worldmodel[sv_current_bsp_index], NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
+		if (!(w->worldmodel[tc_sv_current_bsp_index]->funcs.PointContents(w->worldmodel[tc_sv_current_bsp_index], NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
 #elif defined(HAVE_CLIENT)
-		if (!(w->worldmodel[cl_current_bsp_index]->funcs.PointContents(w->worldmodel[cl_current_bsp_index], NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
+		if (!(w->worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(w->worldmodel[tc_cl_current_bsp_index], NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
 #endif
 #else
 		if (!(w->worldmodel->funcs.PointContents(w->worldmodel, NULL, trace.endpos) & (FTECONTENTS_WATER|FTECONTENTS_SLIME|FTECONTENTS_LAVA)))
@@ -700,7 +700,7 @@ static trace_t WPhys_PushEntity (world_t *w, wedict_t *ent, vec3_t push, unsigne
 
 		//continue the trace on to where we wold be if there had been no impact
 #ifdef TEMPORALCORTEX
-		trace_t trace2 = World_Move (w, trace.endpos, ent->v->mins, ent->v->maxs, end, traceflags|MOVE_NOMONSTERS|MOVE_MISSILE|MOVE_RESERVED/*Don't fuck up in the face of dp's MOVE_WORLDONLY*/, (wedict_t*)ent, sv_current_bsp_index);
+		trace_t trace2 = World_Move (w, trace.endpos, ent->v->mins, ent->v->maxs, end, traceflags|MOVE_NOMONSTERS|MOVE_MISSILE|MOVE_RESERVED/*Don't fuck up in the face of dp's MOVE_WORLDONLY*/, (wedict_t*)ent, tc_sv_current_bsp_index);
 #else
 		trace_t trace2 = World_Move (w, trace.endpos, ent->v->mins, ent->v->maxs, end, traceflags|MOVE_NOMONSTERS|MOVE_MISSILE|MOVE_RESERVED/*Don't fuck up in the face of dp's MOVE_WORLDONLY*/, (wedict_t*)ent);
 #endif
@@ -1234,7 +1234,7 @@ VectorCopy (ent->v->angles, oldang);
 #else
 		pr_global_struct->time = sv.world.physicstime;
 		pr_global_struct->self = EDICT_TO_PROG(w->progs, ent);
-		pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+		pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[tc_sv_current_bsp_index]);
 #ifdef VM_Q1
 		if (svs.gametype == GT_Q1QVM)
 			Q1QVM_Think();
@@ -1332,7 +1332,7 @@ static void WPhys_Physics_Noclip (world_t *w, wedict_t *ent)
 	if (ent->entnum > 0 && ent->entnum <= sv.allocated_client_slots && w == &sv.world)
 	{
 #ifdef TEMPORALCORTEX
-		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NOMONSTERS, (wedict_t*)ent, sv_current_bsp_index);
+		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NOMONSTERS, (wedict_t*)ent, tc_sv_current_bsp_index);
 #else
 		trace = World_Move (w, ent->v->origin, ent->v->mins, ent->v->maxs, end, MOVE_NOMONSTERS, (wedict_t*)ent);
 #endif
@@ -1646,8 +1646,8 @@ void SV_ProgStartFrame (void)
 
 // let the progs know that a new frame has started
 #ifdef TEMPORALCORTEX
-	pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
-	pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+	pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
+	pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 	pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 	pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
@@ -1743,9 +1743,9 @@ static qboolean WPhys_CheckWater (world_t *w, wedict_t *ent)
 	ent->xv->hitcontentsmaski = ~0;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, ent, sv_current_bsp_index);
+	tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-	tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, ent, cl_current_bsp_index);
+	tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, ent, tc_cl_current_bsp_index);
 #endif
 #else
 	tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, ent->v->origin, 0, ent);
@@ -1760,9 +1760,9 @@ static qboolean WPhys_CheckWater (world_t *w, wedict_t *ent)
 		VectorMA (ent->v->origin, 24, flatforward, point);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, point, 0, ent, sv_current_bsp_index);
+		tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, point, 0, ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-		tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, point, 0, ent, cl_current_bsp_index);
+		tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, point, 0, ent, tc_cl_current_bsp_index);
 #endif
 #else
 		tr = World_Move(w, ent->v->origin, ent->v->mins, ent->v->maxs, point, 0, ent);
@@ -2349,9 +2349,9 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 #ifdef TEMPORALCORTEX
 		// Missi: Prevent entities from running if they're out of the current time period (2025.9.23)
 #ifdef HAVE_SERVER
-		if ( ent->bspnum != sv_current_bsp_index )
+		if ( ent->bspnum != tc_sv_current_bsp_index )
 #elif defined(HAVE_CLIENT)
-		if ( ent->bspnum != cl_current_bsp_index )
+		if ( ent->bspnum != tc_cl_current_bsp_index )
 #endif
 		{
 			World_UnlinkEdict (ent);	// Missi: It's basically a ghost at this point (2025.9.23)
@@ -2551,9 +2551,9 @@ trace_t WPhys_Trace_Toss (world_t *w, wedict_t *tossent, wedict_t *ignore)
 		VectorAdd (origin, move, end);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		trace = World_Move (w, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL, tossent, sv_current_bsp_index);
+		trace = World_Move (w, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL, tossent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-		trace = World_Move (w, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL, tossent, cl_current_bsp_index);
+		trace = World_Move (w, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL, tossent, tc_cl_current_bsp_index);
 #endif
 #else
 		trace = World_Move (w, origin, tossent->v->mins, tossent->v->maxs, end, MOVE_NORMAL, tossent);
@@ -2792,8 +2792,8 @@ qboolean SV_Physics (void)
 		if (svs.gametype == GT_Q1QVM)
 		{
 #ifdef TEMPORALCORTEX
-			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
-			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
+			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
@@ -2906,8 +2906,8 @@ qboolean SV_Physics (void)
 		if (svs.gametype == GT_Q1QVM)
 		{
 #ifdef TEMPORALCORTEX
-			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
-			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
+			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
@@ -2920,8 +2920,8 @@ qboolean SV_Physics (void)
 			if (EndFrameQC)
 		{
 #ifdef TEMPORALCORTEX
-			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
-			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
+			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 			pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 			pr_global_struct->other = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);

@@ -89,9 +89,9 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 				mask = NULL;
 			else
 			{
-				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_bsp_index], origin);
+				cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin);
 				if (cluster >= 0)
-					mask = sv.phs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
+					mask = sv.phs + cluster * 4*((sv.world.worldmodel[tc_sv_current_bsp_index]->numclusters+31)>>5);
 				else
 					mask = NULL;
 			}
@@ -101,13 +101,13 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 			reliable = true;	// intentional fallthrough
 		case MULTICAST_PVS:
 #ifdef TEMPORALCORTEX
-			cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[sv_current_bsp_index], origin);
+			cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LeafnumForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], origin);
 #else
 			cluster = sv.world.worldmodel->funcs.LeafnumForPoint(sv.world.worldmodel, origin);
 #endif
 			if (cluster >= 0)
 #ifdef TEMPORALCORTEX
-				mask = sv.pvs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
+				mask = sv.pvs + cluster * 4*((sv.world.worldmodel[tc_sv_current_bsp_index]->numclusters+31)>>5);
 #else
 				mask = sv.pvs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
 #endif
@@ -141,7 +141,7 @@ static void pp_flush(multicast_t to, vec3_t origin, void (*flushfunc)(client_t *
 
 			if (mask)
 			{
-				cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], client->edict->v->origin);
+				cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[tc_sv_current_bsp_index], client->edict->v->origin);
 				if (cluster >= 0 && !(mask[leafnum>>3] & (1<<(leafnum&7)) ) )
 				{
 					continue;

@@ -253,11 +253,11 @@ sfx_t *Media_NextTrack(int musicchannelnum, float *starttime)
 		}
 #endif
 #ifdef TEMPORALCORTEX
-		if (media_playtrack[cl_current_bsp_index][0] || *media_loopingtrack)
+		if (media_playtrack[tc_cl_current_bsp_index][0] || *media_loopingtrack)
 		{
-			if (media_playtrack[cl_current_bsp_index][0])
+			if (media_playtrack[tc_cl_current_bsp_index][0])
 			{
-				Q_strncpyz(media_currenttrack, media_playtrack[cl_current_bsp_index], sizeof(media_currenttrack));
+				Q_strncpyz(media_currenttrack, media_playtrack[tc_cl_current_bsp_index], sizeof(media_currenttrack));
 				*media_playtrack[0] = 0;
 			}
 			else
@@ -440,7 +440,7 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 					for(ie = 0; ext[ie]; ie++)
 					{
 #ifdef TEMPORALCORTEX
-						Q_snprintfz(tryname, sizeof(tryname), "%strack%03u_%s%s", path[ip], tracknum, timeperiod[cl_current_bsp_index], ext[ie]);
+						Q_snprintfz(tryname, sizeof(tryname), "%strack%03u_%s%s", path[ip], tracknum, timeperiod[tc_cl_current_bsp_index], ext[ie]);
 #else
 						Q_snprintfz(tryname, sizeof(tryname), "%strack%03u%s", path[ip], tracknum, ext[ie]);
 #endif
@@ -457,7 +457,7 @@ qboolean Media_CleanupTrackName(const char *track, int *out_track, char *result,
 					for(ie = 0; ext[ie]; ie++)
 					{
 #ifdef TEMPORALCORTEX
-						Q_snprintfz(tryname, sizeof(tryname), "%strack%02u_%s%s", path[ip], tracknum, timeperiod[cl_current_bsp_index], ext[ie]);
+						Q_snprintfz(tryname, sizeof(tryname), "%strack%02u_%s%s", path[ip], tracknum, timeperiod[tc_cl_current_bsp_index], ext[ie]);
 #else
 						Q_snprintfz(tryname, sizeof(tryname), "%strack%02u%s", path[ip], tracknum, ext[ie]);
 #endif
@@ -561,7 +561,7 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 
 		cdplaytracknum = tracknum;
 #ifdef TEMPORALCORTEX
-		Q_strncpyz(media_playtrack[cl_current_bsp_index], "", sizeof(media_playtrack[cl_current_bsp_index]));
+		Q_strncpyz(media_playtrack[tc_cl_current_bsp_index], "", sizeof(media_playtrack[tc_cl_current_bsp_index]));
 #else
 		Q_strncpyz(media_playtrack, "", sizeof(media_playtrack));
 #endif
@@ -577,9 +577,9 @@ void Media_NamedTrack_f(void)
 {
 #ifdef TEMPORALCORTEX
 	if (Cmd_Argc() == 3)
-		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(2), cl_current_bsp_index);
+		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(2), tc_cl_current_bsp_index);
 	else
-		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(1), cl_current_bsp_index);
+		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(1), tc_cl_current_bsp_index);
 #else
 	if (Cmd_Argc() == 3)
 		Media_NamedTrack(Cmd_Argv(1), Cmd_Argv(2));
@@ -620,7 +620,7 @@ void Media_EndedTrack(void)
 
 	if (*media_loopingtrack)
 #ifdef TEMPORALCORTEX
-		Media_NamedTrack(media_loopingtrack, media_loopingtrack, cl_current_bsp_index);
+		Media_NamedTrack(media_loopingtrack, media_loopingtrack, tc_cl_current_bsp_index);
 #else
 		Media_NamedTrack(media_loopingtrack, media_loopingtrack);
 #endif
@@ -674,16 +674,16 @@ void CD_f (void)
 #ifdef TEMPORALCORTEX
 	if (Q_strcasecmp(command, "play") == 0)
 	{
-		Media_NamedTrack(Cmd_Argv(2), "-", cl_current_bsp_index);
+		Media_NamedTrack(Cmd_Argv(2), "-", tc_cl_current_bsp_index);
 		return;
 	}
 
 	if (Q_strcasecmp(command, "loop") == 0)
 	{
 		if (Cmd_Argc() < 4)
-			Media_NamedTrack(Cmd_Argv(2), NULL, cl_current_bsp_index);
+			Media_NamedTrack(Cmd_Argv(2), NULL, tc_cl_current_bsp_index);
 		else
-			Media_NamedTrack(Cmd_Argv(2), Cmd_Argv(3), cl_current_bsp_index);
+			Media_NamedTrack(Cmd_Argv(2), Cmd_Argv(3), tc_cl_current_bsp_index);
 		return;
 	}
 #else

@@ -1776,7 +1776,7 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 	char out[64];
 
 #ifdef TEMPORALCORTEX
-	COM_FileBase( sv.world.worldmodel[sv_current_bsp_index]->name, out, sizeof( out ) );
+	COM_FileBase( sv.world.worldmodel[tc_sv_current_bsp_index]->name, out, sizeof( out ) );
 #else
 	COM_FileBase( sv.world.worldmodel->name, out, sizeof( out ) );
 #endif

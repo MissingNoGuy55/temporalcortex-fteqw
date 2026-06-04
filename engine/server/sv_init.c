@@ -46,7 +46,7 @@ int sv_max_staticsounds;
 #ifdef HAVE_SERVER
 int tc_sv_loaded_bsps;
 int tc_sv_unloaded_bsps;
-int sv_current_bsp_index;
+int tc_sv_current_bsp_index;
 #endif
 #endif
 
@@ -87,7 +87,7 @@ int SV_ModelIndex (const char *name)
 				sv.strings.model_precache[i] = PR_AddString(svprogfuncs, name, 0, false);
 			if (!strcmp(name + strlen(name) - 4, ".bsp"))
 #ifdef TEMPORALCORTEX
-				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv.world.worldmodel_indices[sv_current_bsp_index]]));
+				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv.world.worldmodel_indices[tc_sv_current_bsp_index]]));
 #else
 				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 #endif
@@ -100,14 +100,14 @@ int SV_ModelIndex (const char *name)
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i]);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
 				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i]);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 			}
@@ -493,7 +493,7 @@ void SV_CalcPHS (void)
 	qbyte	*scan, *pvs;
 	int		count, vcount;
 #ifdef TEMPORALCORTEX
-	model_t *model = sv.world.worldmodel[sv_current_bsp_index];
+	model_t *model = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 	model_t *model = sv.world.worldmodel;
 #endif
@@ -905,11 +905,11 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;
-	cl_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
-	sv_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
 
@@ -2134,10 +2134,10 @@ MSV_OpenUserDatabase();
 		}
 	}
 #ifdef HAVE_SERVER
-	sv_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #ifdef HAVE_CLIENT
-	cl_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #else
 	if (sv.world.worldmodel->entitiescrc)
@@ -2183,9 +2183,6 @@ MSV_OpenUserDatabase();
 #endif
 
 #ifdef TEMPORALCORTEX
-	// Missi: Normally I would use MAX_TIME_PERIODS here, but entities are allocated with the assumption that
-	// the players come after the number of loaded BSPs. This is by design, as this is a sort of level streaming
-	// system. (2026.5.17)
 	for ( t = 0, l = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		if (!sv.world.worldmodel[t])
@@ -2244,22 +2241,20 @@ MSV_OpenUserDatabase();
 		}
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		sv_current_bsp_index++;
+		tc_sv_current_bsp_index++;
 #endif
 #ifdef HAVE_CLIENT
-		cl_current_bsp_index++;
+		tc_cl_current_bsp_index++;
 #endif
-#endif
-#ifdef TEMPORALCORTEX
 	}
 #endif
 
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	sv_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #ifdef HAVE_CLIENT
-	cl_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
 

@@ -1035,7 +1035,7 @@ static qintptr_t QVM_DropToFloor (void *offset, quintptr_t mask, const qintptr_t
 
 	VectorCopy (ent->v->origin, start);
 #ifdef TEMPORALCORTEX
-	trace = World_Move (&sv.world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, sv_current_bsp_index);
+	trace = World_Move (&sv.world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent, tc_sv_current_bsp_index);
 #else
 	trace = World_Move (&sv.world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, (wedict_t*)ent);
 #endif
@@ -1063,7 +1063,7 @@ static qintptr_t QVM_PointContents (void *offset, quintptr_t mask, const qintptr
 	v[1] = VM_FLOAT(arg[1]);
 	v[2] = VM_FLOAT(arg[2]);
 #ifdef TEMPORALCORTEX
-	return sv.world.worldmodel[sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[sv_current_bsp_index], NULL, v);
+	return sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[tc_sv_current_bsp_index], NULL, v);
 #else
 	return sv.world.worldmodel->funcs.PointContents(sv.world.worldmodel, NULL, v);
 #endif
@@ -1936,7 +1936,7 @@ static qintptr_t QVM_VisibleTo (void *offset, quintptr_t mask, const qintptr_t *
 		//FIXME: make a FatPVS that uses a pvscache_t
 		VectorAdd(viewer->v->origin, viewer->v->view_ofs, org);
 #ifdef TEMPORALCORTEX
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, &pvs, false);
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], org, &pvs, false);
 #else
 		sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &pvs, false);
 #endif
@@ -1953,7 +1953,7 @@ static qintptr_t QVM_VisibleTo (void *offset, quintptr_t mask, const qintptr_t *
 				continue;	//player ents are weird, skip them for mods that do weird stuff.
 #endif
 #ifdef TEMPORALCORTEX
-			if (sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &ed->pvsinfo, pvs.buffer, areas))
+			if (sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], &ed->pvsinfo, pvs.buffer, areas))
 #else
 			if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ed->pvsinfo, pvs.buffer, areas))
 #endif
@@ -2162,8 +2162,8 @@ static qintptr_t QVM_VisibleTo_FTE (void *offset, quintptr_t mask, const qintptr
 			for (i = 0; i < viewer->num_leafs; i++)
 			{
 #ifdef TEMPORALCORTEX
-				qbyte *pvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], viewer->leafnums[i], NULL, PVM_FAST);
-				if (sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], viewee, pvs, areas))
+				qbyte *pvs = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[tc_sv_current_bsp_index], viewer->leafnums[i], NULL, PVM_FAST);
+				if (sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], viewee, pvs, areas))
 #else
 				qbyte *pvs = sv.world.worldmodel->funcs.ClusterPVS(sv.world.worldmodel, viewer->leafnums[i], NULL, PVM_FAST);
 				if (sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, viewee, pvs, areas))
@@ -2448,7 +2448,7 @@ static void QDECL Q1QVM_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
 #ifdef TEMPORALCORTEX
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[tc_sv_current_bsp_index]);
 #else
 	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts);
 #endif

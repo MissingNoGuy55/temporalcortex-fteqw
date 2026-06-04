@@ -317,7 +317,7 @@ static qboolean SV_LegacySavegame (const char *savename, qboolean verbose)
 			VFS_PRINTF(f,"m\n");
 	}
 #ifdef TEMPORALCORTEX
-	VFS_PRINTF(f, "current_time_period %i\n", sv_current_bsp_index);
+	VFS_PRINTF(f, "current_time_period %i\n", tc_sv_current_bsp_index);
 #endif
 
 	if (!s)
@@ -585,7 +585,7 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 			}
 			//Read portal state
 #ifdef TEMPORALCORTEX
-			sv.world.worldmodel[sv_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[sv_current_bsp_index], s, (file+filelen)-s);
+			sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LoadAreaPortalBlob(sv.world.worldmodel[tc_sv_current_bsp_index], s, (file+filelen)-s);
 #else
 			sv.world.worldmodel->funcs.LoadAreaPortalBlob(sv.world.worldmodel, s, (file+filelen)-s);
 #endif
@@ -1068,7 +1068,7 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 			}
 			VFS_WRITE(f, "", 1);
 #ifdef TEMPORALCORTEX
-			portalblobsize = sv.world.worldmodel[sv_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[sv_current_bsp_index], &portalblob);
+			portalblobsize = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.SaveAreaPortalBlob(sv.world.worldmodel[tc_sv_current_bsp_index], &portalblob);
 #else
 			portalblobsize = sv.world.worldmodel->funcs.SaveAreaPortalBlob(sv.world.worldmodel, &portalblob);
 #endif
@@ -1243,7 +1243,7 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 			//FIXME: frik files?
 			//FIXME: qc threads?
 
-			//	portalblobsize = CM_WritePortalState(sv.world.worldmodel[sv_current_bsp_index], &portalblob);
+			//	portalblobsize = CM_WritePortalState(sv.world.worldmodel[tc_sv_current_bsp_index], &portalblob);
 			//	VFS_WRITE(f, portalblob, portalblobsize);
 		}
 

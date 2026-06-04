@@ -1136,7 +1136,7 @@ static int bi_lua_pointcontents(lua_State *L)
 {
 	vec3_t pos;
 	lua_readvector(L, 1, pos);
-	lua_pushinteger(L, sv.world.worldmodel[sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[sv_current_bsp_index], NULL, pos));
+	lua_pushinteger(L, sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.PointContents(sv.world.worldmodel[tc_sv_current_bsp_index], NULL, pos));
 	return 1;
 }
 
@@ -1185,7 +1185,7 @@ static int bi_lua_droptofloor(lua_State *L)
 		VectorMA(end, 256, gravitydir, end);
 
 	VectorCopy (ent->v->origin, start);
-	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, sv_current_bsp_index);
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, tc_sv_current_bsp_index);
 
 	if (trace.fraction == 1 || trace.allsolid)
 		lua_pushboolean(L, false);
@@ -1359,7 +1359,7 @@ static int bi_lua_traceline(lua_State *L)
 	lua_getfield(L, 4, "entnum");
 	ent = (wedict_t*)EDICT_NUM_UB((&lua.progfuncs), lua_tointegerx(L, -1, NULL));
 
-	trace = World_Move (&sv.world, v1, vec3_origin, vec3_origin, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+	trace = World_Move (&sv.world, v1, vec3_origin, vec3_origin, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, tc_sv_current_bsp_index);
 
 	return pushset_trace_globals(L, &trace);
 }
@@ -1379,7 +1379,7 @@ static int bi_lua_tracebox(lua_State *L)
 	lua_getfield(L, 6, "entnum");
 	ent = (wedict_t*)EDICT_NUM_UB((&lua.progfuncs), lua_tointegerx(L, -1, NULL));
 
-	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, tc_sv_current_bsp_index);
 
 	return pushset_trace_globals(L, &trace);
 }
@@ -3118,7 +3118,7 @@ static void Lua_Event_Touch(world_t *w, wedict_t *s, wedict_t *o, trace_t *trace
 static void Lua_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[tc_sv_current_bsp_index]);
 
 #if 0
 	PR_ExecuteProgram (w->progs, s->v->think);

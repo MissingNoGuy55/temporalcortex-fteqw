@@ -3603,7 +3603,7 @@ void MP_RendererRestarted(void)
 	if (!menu_world.progs)
 		return;
 #ifdef TEMPORALCORTEX
-	menu_world.worldmodel[cl_current_bsp_index] = cl.worldmodel[cl_current_bsp_index];
+	menu_world.worldmodel[tc_cl_current_bsp_index] = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 	menu_world.worldmodel = cl.worldmodel;
 #endif

@@ -1252,7 +1252,7 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 		//use the player's origin for r_viewleaf, because there's not much we can do anyway*/
 		VectorCopy(r_origin, r_refdef.pvsorigin);
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
+		if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
 #else
 		if (cl.worldmodel && cl.worldmodel->funcs.ClusterPVS && !r_novis.ival)
 #endif
@@ -1263,7 +1263,7 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 			r_refdef.forcevis = false;
 			r_refdef.forcedvis = NULL;
 #ifdef TEMPORALCORTEX
-			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_bsp_index]->pvsbytes);
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[tc_cl_current_bsp_index]->pvsbytes);
 #else
 			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel->pvsbytes);
 #endif
@@ -1281,19 +1281,19 @@ void GLR_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist[2], 
 				d += 0.1;	//an epsilon on the far side
 				VectorMA(point, d, plane.normal, point);
 #ifdef TEMPORALCORTEX
-				clust = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], point, NULL);
+				clust = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[tc_cl_current_bsp_index], point, NULL);
 #else
 				clust = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, point, NULL);
 #endif
 				if (i == batch->firstmesh)
 #ifdef TEMPORALCORTEX
-					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
+					r_refdef.forcedvis = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[tc_cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
 #else
 					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_REPLACE);
 #endif
 				else
 #ifdef TEMPORALCORTEX
-					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_MERGE);
+					r_refdef.forcedvis = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[tc_cl_current_bsp_index], clust, &newvis, PVM_MERGE);
 #else
 					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_MERGE);
 #endif
@@ -2110,13 +2110,13 @@ void GLR_RenderView (void)
 	{
 		//FIXME: fbo stuff
 #ifdef TEMPORALCORTEX
-		if (!r_worldentity.model || !cl.worldmodel[cl_current_bsp_index])
+		if (!r_worldentity.model || !cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		if (!r_worldentity.model || !cl.worldmodel)
 #endif
 			r_refdef.flags |= RDF_NOWORLDMODEL;
 #ifdef TEMPORALCORTEX
-		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_bsp_index])
+		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		else if (r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel)
 #endif

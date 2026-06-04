@@ -67,7 +67,7 @@ void Sh_CalcPointLight(vec3_t point, vec3_t light);
 void R_UpdateHDR(vec3_t org)
 {
 #ifdef TEMPORALCORTEX
-	if (r_hdr_irisadaptation.ival && cl.worldmodel[cl_current_bsp_index] && !(r_refdef.flags & RDF_NOWORLDMODEL))
+	if (r_hdr_irisadaptation.ival && cl.worldmodel[tc_cl_current_bsp_index] && !(r_refdef.flags & RDF_NOWORLDMODEL))
 #else
 	if (r_hdr_irisadaptation.ival && cl.worldmodel && !(r_refdef.flags & RDF_NOWORLDMODEL))
 #endif
@@ -85,7 +85,7 @@ void R_UpdateHDR(vec3_t org)
 #endif
 		{
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[cl_current_bsp_index], org, ambient, diffuse, dir);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[tc_cl_current_bsp_index], org, ambient, diffuse, dir);
 #else
 			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, org, ambient, diffuse, dir);
 #endif
@@ -1209,7 +1209,7 @@ qboolean R_ImportRTLights(const char *entlump, int importmode)
 
 		VectorAdd(origin, originhack, origin);
 #ifdef TEMPORALCORTEX
-		if (radius >= 1 && !(cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, origin) & FTECONTENTS_SOLID))
+		if (radius >= 1 && !(cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, origin) & FTECONTENTS_SOLID))
 #else
 		if (radius >= 1 && !(cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, origin) & FTECONTENTS_SOLID))
 #endif
@@ -1305,7 +1305,7 @@ qboolean R_LoadRTLights(void)
 	rtlights_max = RTL_FIRST;
 
 #ifdef TEMPORALCORTEX
-	COM_StripExtension(cl.worldmodel[cl_current_bsp_index]->name, fname, sizeof(fname));
+	COM_StripExtension(cl.worldmodel[tc_cl_current_bsp_index]->name, fname, sizeof(fname));
 #else
 	COM_StripExtension(cl.worldmodel->name, fname, sizeof(fname));
 #endif
@@ -1481,7 +1481,7 @@ static void R_SaveRTLights_f(void)
 	vec3_t ang;
 	int ver = 0;
 #ifdef TEMPORALCORTEX
-	COM_StripExtension(cl.worldmodel[cl_current_bsp_index]->name, fname, sizeof(fname));
+	COM_StripExtension(cl.worldmodel[tc_cl_current_bsp_index]->name, fname, sizeof(fname));
 #else
 	COM_StripExtension(cl.worldmodel->name, fname, sizeof(fname));
 #endif
@@ -1599,7 +1599,7 @@ static void R_ReloadRTLights_f(void)
 {
 	int i;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index])
+	if (!cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (!cl.worldmodel)
 #endif
@@ -1612,7 +1612,7 @@ static void R_ReloadRTLights_f(void)
 	r_shadow_realtime_world_lightmaps_force = -1;
 	if (!strcmp(Cmd_Argv(1), "bsp"))
 #ifdef TEMPORALCORTEX
-		R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_bsp_index]), 1);
+		R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[tc_cl_current_bsp_index]), 1);
 #else
 		R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), 1);
 #endif
@@ -1637,7 +1637,7 @@ static void R_ReloadRTLights_f(void)
 		//otherwise try to import.
 		if (rtlights_first == rtlights_max)
 #ifdef TEMPORALCORTEX
-			R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[cl_current_bsp_index]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
+			R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel[tc_cl_current_bsp_index]), r_shadow_realtime_world_importlightentitiesfrommap.ival);
 #else
 			R_ImportRTLights(Mod_GetEntitiesString(cl.worldmodel), r_shadow_realtime_world_importlightentitiesfrommap.ival);
 #endif
@@ -2580,7 +2580,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 	unsigned	scale;
 	int			maps;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake2)
+	if (cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake2)
 #else
 	if (cl.worldmodel->fromgame == fg_quake2)
 #endif
@@ -2619,7 +2619,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 	VectorCopy (mid, lightspot);
 	lightplane = plane;
 #ifdef TEMPORALCORTEX
-	surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+	surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces + node->firstsurface;
 #else
 	surf = cl.worldmodel->surfaces + node->firstsurface;
 #endif
@@ -2653,7 +2653,7 @@ static int GLRecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 		if (lightmap)
 		{
 #ifdef TEMPORALCORTEX
-			switch(cl.worldmodel[cl_current_bsp_index]->lightmaps.fmt)
+			switch(cl.worldmodel[tc_cl_current_bsp_index]->lightmaps.fmt)
 #else
 			switch(cl.worldmodel->lightmaps.fmt)
 #endif
@@ -2711,19 +2711,19 @@ int R_LightPoint (vec3_t p)
 	if (r_refdef.flags & 1)
 		return 255;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_bsp_index]->lightdata)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED || !cl.worldmodel[tc_cl_current_bsp_index]->lightdata)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || !cl.worldmodel->lightdata)
 #endif
 		return 255;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake3)
+	if (cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake3)
 #else
 	if (cl.worldmodel->fromgame == fg_quake3)
 #endif
 	{
 #ifdef TEMPORALCORTEX
-		GLQ3_LightGrid(cl.worldmodel[cl_current_bsp_index], p, NULL, end, NULL);
+		GLQ3_LightGrid(cl.worldmodel[tc_cl_current_bsp_index], p, NULL, end, NULL);
 #else
 		GLQ3_LightGrid(cl.worldmodel, p, NULL, end, NULL);
 #endif
@@ -2734,7 +2734,7 @@ int R_LightPoint (vec3_t p)
 	end[1] = p[1];
 	end[2] = p[2] - mod_lightpoint_distance.value;
 #ifdef TEMPORALCORTEX
-	r = GLRecursiveLightPoint (cl.worldmodel[cl_current_bsp_index]->rootnode, p, end);
+	r = GLRecursiveLightPoint (cl.worldmodel[tc_cl_current_bsp_index]->rootnode, p, end);
 #else
 	r = GLRecursiveLightPoint (cl.worldmodel->rootnode, p, end);
 #endif

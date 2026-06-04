@@ -502,9 +502,9 @@ void SV_New_f (void)
 #endif
 	{
 #ifdef TEMPORALCORTEX
-		COM_FileBase( sv.modelname[sv_current_bsp_index], out, sizeof( out ) );
+		COM_FileBase( sv.modelname[tc_sv_current_bsp_index], out, sizeof( out ) );
 		// Missi (2025.9.22)
-		ClientReliableWrite_String (host_client, sv.mapname[sv_current_bsp_index]);
+		ClientReliableWrite_String (host_client, sv.mapname[tc_sv_current_bsp_index]);
 		ClientReliableWrite_String (host_client, out);
 #else
 		ClientReliableWrite_String (host_client, sv.mapname);
@@ -776,7 +776,7 @@ void SVNQ_New_f (void)
 #endif
 	}
 #ifdef TEMPORALCORTEX
-	COM_FileBase(sv.modelname[sv_current_bsp_index], mapname, sizeof(mapname));
+	COM_FileBase(sv.modelname[tc_sv_current_bsp_index], mapname, sizeof(mapname));
 #else
 	COM_FileBase(sv.modelname, mapname, sizeof(mapname));
 #endif
@@ -998,8 +998,8 @@ void SVNQ_New_f (void)
 static const char *SVQ2_GetQ2EXConfigString(int i)
 {	//remap from vanilla to q2e
 #ifdef TEMPORALCORTEX
-	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel[sv_current_bsp_index])
-		return va("%i", sv.world.worldmodel[sv_current_bsp_index]->checksum2);
+	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel[tc_sv_current_bsp_index])
+		return va("%i", sv.world.worldmodel[tc_sv_current_bsp_index]->checksum2);
 #else
 	if (i == Q2EXCS_MAPCHECKSUM && sv.world.worldmodel)
 		return va("%i", sv.world.worldmodel->checksum2);
@@ -1191,7 +1191,7 @@ void SVQ2_BaseLines_f (void)
 void SVQ2_NextServer_f (void)
 {
 #ifdef TEMPORALCORTEX
-	if (!*sv.modelname[sv_current_bsp_index] && atoi(Cmd_Argv(1)) == svs.spawncount)
+	if (!*sv.modelname[tc_sv_current_bsp_index] && atoi(Cmd_Argv(1)) == svs.spawncount)
 #else
 	if (!*sv.modelname && atoi(Cmd_Argv(1)) == svs.spawncount)
 #endif
@@ -1324,8 +1324,8 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				if (svprogfuncs)
 				{
 #ifdef TEMPORALCORTEX
-					track = ((edict_t*)&sv.world.edicts[sv_current_bsp_index])->v->sounds;
-					noise = PR_GetString(svprogfuncs, ((edict_t*)&sv.world.edicts[sv_current_bsp_index])->v->noise);
+					track = ((edict_t*)&sv.world.edicts[tc_sv_current_bsp_index])->v->sounds;
+					noise = PR_GetString(svprogfuncs, ((edict_t*)&sv.world.edicts[tc_sv_current_bsp_index])->v->noise);
 #else
 					track = ((edict_t*)&sv.world.edicts)->v->sounds;
 					noise = PR_GetString(svprogfuncs, ((edict_t*)&sv.world.edicts)->v->noise);
@@ -1523,7 +1523,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteShort(&client->netchan.message, 0x8000|client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 				client->prespawn_idx++;
 			}
@@ -1672,7 +1672,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 				client->prespawn_idx++;
 			}
@@ -1720,7 +1720,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
 				ClientReliableWrite_String (client, sv.strings.particle_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
-				ClientReliableWrite_Short(client, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				ClientReliableWrite_Short(client, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 			}
 			client->prespawn_idx++;
@@ -2573,16 +2573,16 @@ void SV_Begin_Core(client_t *split)
 							split->edict->v->maxs[2] = 32;
 							split->edict->v->view_ofs[2] = DEFAULT_VIEWHEIGHT;
 #ifdef TEMPORALCORTEX
-							if (sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake3)
+							if (sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame == fg_quake3)
 #else
 							if (sv.world.worldmodel->fromgame == fg_quake3)
 #endif
 								split->edict->v->view_ofs[2] = 26;	//q3 defaults to slightly higher view heights (though same player size as quake).
 #ifdef TEMPORALCORTEX
-							if (sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_maxs[2]-sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_mins[2]>0)
+							if (sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[1].clip_maxs[2]-sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[1].clip_mins[2]>0)
 							{
-								VectorCopy(sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_mins, split->edict->v->mins);
-								VectorCopy(sv.world.worldmodel[sv_current_bsp_index]->hulls[1].clip_maxs, split->edict->v->maxs);
+								VectorCopy(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[1].clip_mins, split->edict->v->mins);
+								VectorCopy(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[1].clip_maxs, split->edict->v->maxs);
 							}
 #else
 							if (sv.world.worldmodel->hulls[1].clip_maxs[2]-sv.world.worldmodel->hulls[1].clip_mins[2]>0)
@@ -5718,7 +5718,7 @@ void Cmd_ChangeTimePeriod_f(void)
 
 	arg = atoi(pszArg);
 
-	sv_current_bsp_index = arg;
+	tc_sv_current_bsp_index = arg;
 }
 #endif
 void SV_SetUpClientEdict (client_t *cl, edict_t *ent)
@@ -5742,7 +5742,7 @@ void SV_SetUpClientEdict (client_t *cl, edict_t *ent)
 	ED_Spawned(ent, false);
 	ent->ereftype = ER_ENTITY;
 #ifdef TEMPORALCORTEX
-	ent->bspnum = sv_current_bsp_index;
+	ent->bspnum = tc_sv_current_bsp_index;
 #endif
 
 	ent->v->colormap = NUM_FOR_EDICT(svprogfuncs, ent);
@@ -7704,7 +7704,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 		pmove.jump_msec = 0;
 		pmove.waterjumptime = 0;
 		pmove.numphysent = 1;
-		pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+		pmove.physents[0].model = sv.world.worldmodel[tc_sv_current_bsp_index];
 		pmove.cmd = *ucmd;
 		pmove.hullnum = SV_HullNumForPlayer(0, player_mins, player_maxs);
 		pmove.capsule = (sv_player->xv->geomtype == GEOMTYPE_CAPSULE);
@@ -7762,7 +7762,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 	{
 		//fixme: should probably support rtlights, but this is a server, so urgh.
 #ifdef TEMPORALCORTEX
-		if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues)
+		if (sv.world.worldmodel[tc_sv_current_bsp_index] && sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LightPointValues)
 #else
 		if (sv.world.worldmodel && sv.world.worldmodel->funcs.LightPointValues)
 #endif
@@ -7777,7 +7777,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 #endif
 			{
 #ifdef TEMPORALCORTEX
-				sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[sv_current_bsp_index], sv_player->v->origin, ambient, diffuse, dir);
+				sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[tc_sv_current_bsp_index], sv_player->v->origin, ambient, diffuse, dir);
 #else
 				sv.world.worldmodel->funcs.LightPointValues(sv.world.worldmodel, sv_player->v->origin, ambient, diffuse, dir);
 #endif
@@ -7951,7 +7951,7 @@ void SV_RunCmd (usercmd_t *ucmd, qboolean recurse)
 		pmove.waterjumptime = sv_player->v->teleport_time;
 	pmove.numphysent = 1;
 #ifdef TEMPORALCORTEX
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+	pmove.physents[0].model = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 	pmove.physents[0].model = sv.world.worldmodel;
 #endif
@@ -8379,7 +8379,7 @@ void SV_ReadQCRequest(void)
 			if (!ed)
 			{
 #ifdef TEMPORALCORTEX
-				ed = (edict_t*)&sv.world.edicts[sv_current_bsp_index];
+				ed = (edict_t*)&sv.world.edicts[tc_sv_current_bsp_index];
 #else
 				ed = (edict_t*)&sv.world.edicts;
 #endif
@@ -8488,7 +8488,7 @@ static double SVFTE_ExecuteClientMove(client_t *controller, unsigned int moveseq
 
 		//all sorts of reasons why we might not want to do physics here and now.
 #ifdef TEMPORALCORTEX
-		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel[sv_current_bsp_index] || sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED);
+		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel[tc_sv_current_bsp_index] || sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate != MLS_LOADED);
 #else
 		split->isindependant = !(sv_nqplayerphysics.ival || split->state < cs_spawned || SV_PlayerPhysicsQC || sv.paused || !sv.world.worldmodel || sv.world.worldmodel->loadstate != MLS_LOADED);
 #endif
@@ -8804,7 +8804,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 				else
 #endif
 #ifdef TEMPORALCORTEX
-					if (!sv.paused && sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->loadstate == MLS_LOADED)
+					if (!sv.paused && sv.world.worldmodel[tc_sv_current_bsp_index] && sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate == MLS_LOADED)
 #else
 					if (!sv.paused && sv.world.worldmodel && sv.world.worldmodel->loadstate == MLS_LOADED)
 #endif
@@ -8957,7 +8957,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 		case clctc_timeperiod:
 			input = MSG_ReadShort();
 			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-				sv_current_bsp_index = input;
+				tc_sv_current_bsp_index = input;
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();
@@ -9751,7 +9751,7 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 		case clctc_timeperiod:
 			input = MSG_ReadShort();
 			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-				sv_current_bsp_index = input;
+				tc_sv_current_bsp_index = input;
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();

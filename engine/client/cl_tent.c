@@ -3360,7 +3360,7 @@ void CL_UpdateExplosions (float frametime)
 		ent->drawflags = SCALE_ORIGIN_ORIGIN;
 #endif
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_bsp_index], &ent->pvscache, ent->origin, ent->origin);
+		cl.worldmodel[tc_cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[tc_cl_current_bsp_index], &ent->pvscache, ent->origin, ent->origin);
 #else
 		cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &ent->pvscache, ent->origin, ent->origin);
 #endif

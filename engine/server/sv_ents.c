@@ -2247,7 +2247,7 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	int best;
 	int hullnum, i;
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->fromgame != fg_quake)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame != fg_quake)
 #else
 	if (sv.world.worldmodel->fromgame != fg_quake)
 #endif
@@ -2267,10 +2267,10 @@ int SV_HullNumForPlayer(int h2hull, float *mins, float *maxs)
 	{
 #define sq(x) ((x)*(x))
 #ifdef TEMPORALCORTEX
-		diff = sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[2] - maxs[2]) +
-			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[2] - mins[2]) +
-			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_maxs[0] - maxs[0]) +
-			sq(sv.world.worldmodel[sv_current_bsp_index]->hulls[i].clip_mins[0] - mins[0]);
+		diff = sq(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[i].clip_maxs[2] - maxs[2]) +
+			sq(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[i].clip_mins[2] - mins[2]) +
+			sq(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[i].clip_maxs[0] - maxs[0]) +
+			sq(sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[i].clip_mins[0] - mins[0]);
 #else
 		diff = sq(sv.world.worldmodel->hulls[i].clip_maxs[2] - maxs[2]) +
 			sq(sv.world.worldmodel->hulls[i].clip_mins[2] - mins[2]) +
@@ -2578,7 +2578,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 	if (seen->v->solid == SOLID_BSP)
 		return false;	//bsp ents are never culled this way (typically far too large to care, often with large parts inside walls)
 #ifdef TEMPORALCORTEX
-	if (seen->bspnum != sv_current_bsp_index)
+	if (seen->bspnum != tc_sv_current_bsp_index)
 		return false;
 #endif
 
@@ -2606,7 +2606,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 				end[1] = amin[1] + frandom()*size[1];
 				end[2] = amin[2] + frandom()*size[2];
 #ifdef TEMPORALCORTEX
-				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+				if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[tc_sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #else
 				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #endif
@@ -2628,7 +2628,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 		{
 			tr.fraction = 1;
 #ifdef TEMPORALCORTEX
-			if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+			if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[tc_sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #else
 			if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], seen->v->origin, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #endif
@@ -2646,7 +2646,7 @@ qboolean Cull_Traceline(float *timestamp, pvscamera_t *cameras, edict_t *seen)
 
 				tr.fraction = 1;
 #ifdef TEMPORALCORTEX
-				if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
+				if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.NativeTrace (sv.world.worldmodel[tc_sv_current_bsp_index], 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #else
 				if (!sv.world.worldmodel->funcs.NativeTrace (sv.world.worldmodel, 1, NULLFRAMESTATE, NULL, cameras->org[c], end, vec3_origin, vec3_origin, false, FTECONTENTS_SOLID, &tr))
 #endif
@@ -2966,7 +2966,7 @@ void SV_WritePlayersToClient (client_t *client, client_frame_t *frame, edict_t *
 
 			// ignore if not touching a PV leaf
 #ifdef TEMPORALCORTEX
-			if (cameras && !sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
+			if (cameras && !sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
 #else
 			if (cameras && !sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &ent->pvsinfo, cameras->pvs.buffer, &cameras->numents))
 #endif
@@ -4031,7 +4031,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 				ent->v->skin >= 0)	//ents with negative skins are networked too. eg ladder volumes.
 				continue;
 #ifdef TEMPORALCORTEX
-			if ( ent->bspnum != sv_current_bsp_index )
+			if ( ent->bspnum != tc_sv_current_bsp_index )
 				continue;
 #endif
 			if (cameras)	//self doesn't get a pvs test, to cover teleporters
@@ -4061,7 +4061,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 						else
 						{
 #ifdef TEMPORALCORTEX
-							if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+							if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 #else
 							if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)tracecullent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 #endif
@@ -4071,7 +4071,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 					else
 					{
 #ifdef TEMPORALCORTEX
-						if (!sv.world.worldmodel[sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[sv_current_bsp_index], &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
+						if (!sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.EdictInFatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 #else
 						if (!sv.world.worldmodel->funcs.EdictInFatPVS(sv.world.worldmodel, &((wedict_t*)ent)->pvsinfo, cameras->pvs.buffer, cameras->area))
 #endif
@@ -4080,7 +4080,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 					}
 				}
 #ifdef TEMPORALCORTEX
-				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake)
+				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame == fg_quake)
 #else
 				else if ((pvsflags & PVSF_MODE_MASK) == PVSF_USEPHS && sv.world.worldmodel->fromgame == fg_quake)
 #endif
@@ -4088,7 +4088,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 					int cluster;
 					unsigned char *mask;
 #ifdef TEMPORALCORTEX
-					qbyte *phs = sv.world.worldmodel[sv_current_bsp_index]->phs;
+					qbyte *phs = sv.world.worldmodel[tc_sv_current_bsp_index]->phs;
 #else
 					qbyte *phs = sv.world.worldmodel->phs;
 #endif
@@ -4097,7 +4097,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 						//FIXME: this lookup should be cachable or something.
 						if (client->edict)
 #ifdef TEMPORALCORTEX
-							cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], client->edict->v->origin, NULL);
+							cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], client->edict->v->origin, NULL);
 #else
 							cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, client->edict->v->origin, NULL);
 #endif
@@ -4107,9 +4107,9 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 						if (cluster >= 0)
 						{
 #ifdef TEMPORALCORTEX
-							mask = phs + cluster * 4*((sv.world.worldmodel[sv_current_bsp_index]->numclusters+31)>>5);
+							mask = phs + cluster * 4*((sv.world.worldmodel[tc_sv_current_bsp_index]->numclusters+31)>>5);
 
-							cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[sv_current_bsp_index], ent->v->origin, NULL);
+							cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint (sv.world.worldmodel[tc_sv_current_bsp_index], ent->v->origin, NULL);
 #else
 							mask = phs + cluster * 4*((sv.world.worldmodel->numclusters+31)>>5);
 
@@ -4280,7 +4280,7 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 	else
 		VectorCopy (viewofs, org);
 #ifdef TEMPORALCORTEX
-	sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], org, &area);
+	sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], org, &area);
 #else
 	sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, org, &area);
 #endif
@@ -4295,7 +4295,7 @@ void SV_AddCameraEntity(pvscamera_t *cameras, edict_t *ent, pvec3_t viewofs)
 			break;	//already have a camera in this area, don't make stuff slow with dupes.
 	}
 #ifdef TEMPORALCORTEX
-	sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, &cameras->pvs, cameras->numents!=0);
+	sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], org, &cameras->pvs, cameras->numents!=0);
 #else
 	sv.world.worldmodel->funcs.FatPVS(sv.world.worldmodel, org, &cameras->pvs, cameras->numents!=0);
 #endif
@@ -4376,7 +4376,7 @@ void SV_WriteEntitiesToClient (client_t *client, sizebuf_t *msg, qboolean ignore
 	pvscamera_t camerasbuf;
 	pvscamera_t *cameras = &camerasbuf;
 #ifdef TEMPORALCORTEX
-	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel[sv_current_bsp_index]->pvsbytes);
+	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel[tc_sv_current_bsp_index]->pvsbytes);
 #else
 	cameras->pvs.buffer = alloca(cameras->pvs.buffersize=sv.world.worldmodel->pvsbytes);
 #endif

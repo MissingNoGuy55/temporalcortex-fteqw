@@ -861,7 +861,7 @@ qboolean CL_GetDemoMessage (void)
 
 		//if we've finished reading the connection part of the demo, but not finished loading, pause the demo
 #ifdef TEMPORALCORTEX
-		if (cls.signon == 1 && !cl.worldmodel[cl_current_bsp_index])
+		if (cls.signon == 1 && !cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		if (cls.signon == 1 && !cl.worldmodel)
 #endif
@@ -1366,7 +1366,7 @@ qboolean CL_GetTemporalCacheMessage (void)
 
 		//if we've finished reading the connection part of the demo, but not finished loading, pause the demo
 #ifdef TEMPORALCORTEX
-		if (cls.signon == 1 && !cl.worldmodel[cl_current_bsp_index])
+		if (cls.signon == 1 && !cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		if (cls.signon == 1 && !cl.worldmodel)
 #endif
@@ -2122,7 +2122,7 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 	MSG_WriteString (buf, cl.levelname);
 #ifdef TEMPORALCORTEX
 	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
 #endif
 	// send the movevars
 	MSG_WriteFloat(buf, movevars.gravity);
@@ -2244,7 +2244,7 @@ void CLQW_RecordServerData_Reverse(sizebuf_t *buf, int *seq)
 
 #ifdef TEMPORALCORTEX
 	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
 #endif
 
 	// send the movevars
@@ -2391,7 +2391,7 @@ void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
 
 #ifdef TEMPORALCORTEX
 	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
 #endif
 
 	for (i = 1; cl.model_name[i] && i < MAX_PRECACHE_MODELS; i++)
@@ -2446,7 +2446,7 @@ static int CL_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
 		MSG_WriteShort(buf, PC_PARTICLE | i);
 		MSG_WriteString(buf, cl.particle_ssname[i]);
 #ifdef TEMPORALCORTEX
-		MSG_WriteShort(buf, cl.worldmodel_indices[cl_current_bsp_index]);
+		MSG_WriteShort(buf, cl.worldmodel_indices[tc_cl_current_bsp_index]);
 #endif
 
 		if (buf->cursize > buf->maxsize/2)
@@ -2774,7 +2774,7 @@ int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
 		MSG_WriteShort(buf, PC_PARTICLE | i);
 		MSG_WriteString(buf, cl.particle_ssname[i]);
 #ifdef TEMPORALCORTEX
-		MSG_WriteShort(buf, cl.worldmodel_indices[cl_current_bsp_index]);
+		MSG_WriteShort(buf, cl.worldmodel_indices[tc_cl_current_bsp_index]);
 #endif
 
 		if (buf->cursize > buf->maxsize/2)
@@ -3417,7 +3417,7 @@ void CL_Record_f (void)
 
 #ifdef TEMPORALCORTEX
 		// Missi: Send full mapname (2026.1.6)
-		MSG_WriteString (&buf, cl.mapname[cl_current_bsp_index]);
+		MSG_WriteString (&buf, cl.mapname[tc_cl_current_bsp_index]);
 #endif
 
 		for (i = 0; i < Q2MAX_CONFIGSTRINGS; i++)

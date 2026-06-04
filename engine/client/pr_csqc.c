@@ -688,7 +688,7 @@ static int CS_FindModel(const char *name, int *free)
 		return 0;
 #ifdef TEMPORALCORTEX
 	// Missi: FIXME: Should probably add a parameter so people can find a model in another time period. (2026.2.4)
-	fixedname = Mod_FixName(name, csqc_world.worldmodel[cl_current_bsp_index]->publicname);
+	fixedname = Mod_FixName(name, csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname);
 #else
 	fixedname = Mod_FixName(name, csqc_world.worldmodel->publicname);
 #endif
@@ -722,7 +722,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 	{
 		if (!cl.model_csqcprecache[-index])
 #ifdef TEMPORALCORTEX
-			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[cl_current_bsp_index]?csqc_world.worldmodel[cl_current_bsp_index]->publicname:NULL), MLV_WARN);
+			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[tc_cl_current_bsp_index]?csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname:NULL), MLV_WARN);
 #else
 			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel?csqc_world.worldmodel->publicname:NULL), MLV_WARN);
 #endif
@@ -1003,8 +1003,8 @@ static void QCBUILTIN PF_cs_makestatic (pubprogfuncs_t *prinst, struct globalvar
 		cl_static_entities[cl.num_statics].emit = trailkey_null;
 		cl_static_entities[cl.num_statics].mdlidx = in->v->modelindex;
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs)
-			cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_bsp_index], &cl_static_entities[cl.num_statics].ent.pvscache, in->v->absmin, in->v->absmax);
+		if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.FindTouchedLeafs)
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[tc_cl_current_bsp_index], &cl_static_entities[cl.num_statics].ent.pvscache, in->v->absmin, in->v->absmax);
 #else
 		if (cl.worldmodel && cl.worldmodel->funcs.FindTouchedLeafs)
 			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &cl_static_entities[cl.num_statics].ent.pvscache, in->v->absmin, in->v->absmax);
@@ -1404,7 +1404,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	int oldself = *csqcg.self;
 	RSpeedMark();
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
@@ -1492,7 +1492,7 @@ static void QCBUILTIN PF_R_AddEntityMask(pubprogfuncs_t *prinst, struct globalva
 	}
 	*csqcg.self = oldself;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
@@ -2737,10 +2737,10 @@ static void QCBUILTIN PF_R_RenderScene(pubprogfuncs_t *prinst, struct globalvars
 	{
 		csqc_worldchanged = false;
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[cl_current_bsp_index] = r_worldentity.model = csqc_world.worldmodel[cl_current_bsp_index];
-		if (cl.worldmodel[cl_current_bsp_index])
-			FS_LoadMapPackFile(cl.worldmodel[cl_current_bsp_index]->name, cl.worldmodel[cl_current_bsp_index]->archive);
-		Surf_NewMap(csqc_world.worldmodel[cl_current_bsp_index], cl_current_bsp_index);
+		cl.worldmodel[tc_cl_current_bsp_index] = r_worldentity.model = csqc_world.worldmodel[tc_cl_current_bsp_index];
+		if (cl.worldmodel[tc_cl_current_bsp_index])
+			FS_LoadMapPackFile(cl.worldmodel[tc_cl_current_bsp_index]->name, cl.worldmodel[tc_cl_current_bsp_index]->archive);
+		Surf_NewMap(csqc_world.worldmodel[tc_cl_current_bsp_index], tc_cl_current_bsp_index);
 #else
 		cl.worldmodel = r_worldentity.model = csqc_world.worldmodel;
 		if (cl.worldmodel)
@@ -2755,7 +2755,7 @@ static void QCBUILTIN PF_R_RenderScene(pubprogfuncs_t *prinst, struct globalvars
 
 	R2D_ImageColours(1,1,1,1);	//apparently does matter.
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
@@ -3111,7 +3111,7 @@ static void QCBUILTIN PF_cs_pointcontents(pubprogfuncs_t *prinst, struct globalv
 
 	v = G_VECTOR(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	cont = w->worldmodel[cl_current_bsp_index] ? World_PointContentsWorldOnly(w, v):FTECONTENTS_EMPTY;
+	cont = w->worldmodel[tc_cl_current_bsp_index] ? World_PointContentsWorldOnly(w, v):FTECONTENTS_EMPTY;
 #else
 	cont = w->worldmodel ? World_PointContentsWorldOnly(w, v):FTECONTENTS_EMPTY;
 #endif
@@ -3137,7 +3137,7 @@ static void QCBUILTIN PF_cs_pointcontentsmask(pubprogfuncs_t *prinst, struct glo
 
 	v = G_VECTOR(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	if (!w->worldmodel[cl_current_bsp_index] || w->worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!w->worldmodel[tc_cl_current_bsp_index] || w->worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!w->worldmodel || w->worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -3167,7 +3167,7 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_csqcname[-modelindex], true);
 		if (!cl.model_csqcprecache[-modelindex])
 #ifdef TEMPORALCORTEX
-			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[cl_current_bsp_index]->publicname), MLV_WARN);
+			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), MLV_WARN);
 #else
 			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel->publicname), MLV_WARN);
 #endif
@@ -3269,7 +3269,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 		{
 			if (!cl.model_precache[i])
 #ifdef TEMPORALCORTEX
-				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[cl_current_bsp_index]->publicname), MLV_WARN);
+				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), MLV_WARN);
 #else
 				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel->publicname), MLV_WARN);
 #endif
@@ -3284,7 +3284,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 		if (!freei)
 			Host_EndGame("CSQC ran out of model slots\n");
 #ifdef TEMPORALCORTEX
-		fixedname = Mod_FixName(modelname, csqc_world.worldmodel[cl_current_bsp_index]->publicname);
+		fixedname = Mod_FixName(modelname, csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname);
 #else
 		fixedname = Mod_FixName(modelname, csqc_world.worldmodel->publicname);
 #endif
@@ -3323,7 +3323,7 @@ static void QCBUILTIN PF_cs_getsoundindex (pubprogfuncs_t *prinst, struct global
 	for (i = 1; i < MAX_PRECACHE_SOUNDS; i++)
 	{
 #ifdef TEMPORALCORTEX
-		if (!cl.sound_name[cl_current_bsp_index][i])
+		if (!cl.sound_name[tc_cl_current_bsp_index][i])
 #else
 		if (!cl.sound_name[i])
 #endif
@@ -4280,7 +4280,7 @@ static void QCBUILTIN PF_cs_runplayerphysics (pubprogfuncs_t *prinst, struct glo
 		return;
 	}
 #ifdef TEMPORALCORTEX
-	if (!csqc_world.worldmodel[cl_current_bsp_index])
+	if (!csqc_world.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (!csqc_world.worldmodel)
 #endif
@@ -4387,11 +4387,11 @@ static void QCBUILTIN PF_cs_getentitytoken (pubprogfuncs_t *prinst, struct globa
 	{
 		const char *s = PR_GetStringOfs(prinst, OFS_PARM0);
 #ifdef TEMPORALCORTEX
-		if (*s == 0 && csqc_world.worldmodel[cl_current_bsp_index])
+		if (*s == 0 && csqc_world.worldmodel[tc_cl_current_bsp_index])
 		{
-			if (csqc_world.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADING)
-				COM_WorkerPartialSync(csqc_world.worldmodel[cl_current_bsp_index], &csqc_world.worldmodel[cl_current_bsp_index]->loadstate, MLS_LOADING);
-			s = Mod_GetEntitiesString(csqc_world.worldmodel[cl_current_bsp_index]);
+			if (csqc_world.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADING)
+				COM_WorkerPartialSync(csqc_world.worldmodel[tc_cl_current_bsp_index], &csqc_world.worldmodel[tc_cl_current_bsp_index]->loadstate, MLS_LOADING);
+			s = Mod_GetEntitiesString(csqc_world.worldmodel[tc_cl_current_bsp_index]);
 		}
 #else
 		if (*s == 0 && csqc_world.worldmodel)
@@ -5342,8 +5342,8 @@ static void QCBUILTIN PF_cs_OpenPortal (pubprogfuncs_t *prinst, struct globalvar
 	int portal = ent->xv->style;
 	int area1 = ent->pvsinfo.areanum, area2 = ent->pvsinfo.areanum2;
 #ifdef TEMPORALCORTEX
-	if (csqc_world.worldmodel[cl_current_bsp_index]->funcs.SetAreaPortalState)
-		csqc_world.worldmodel[cl_current_bsp_index]->funcs.SetAreaPortalState(csqc_world.worldmodel[cl_current_bsp_index], portal, area1, area2, state);
+	if (csqc_world.worldmodel[tc_cl_current_bsp_index]->funcs.SetAreaPortalState)
+		csqc_world.worldmodel[tc_cl_current_bsp_index]->funcs.SetAreaPortalState(csqc_world.worldmodel[tc_cl_current_bsp_index], portal, area1, area2, state);
 #else
 	if (csqc_world.worldmodel->funcs.SetAreaPortalState)
 		csqc_world.worldmodel->funcs.SetAreaPortalState(csqc_world.worldmodel, portal, area1, area2, state);
@@ -5385,7 +5385,7 @@ static void QCBUILTIN PF_cl_getlight (pubprogfuncs_t *prinst, struct globalvars_
 {
 	vec3_t ambient, diffuse, dir;
 #ifdef TEMPORALCORTEX
-	if (csqc_world.worldmodel[cl_current_bsp_index]->lightmaps.maxstyle >= cl_max_lightstyles || !csqc_world.worldmodel[cl_current_bsp_index] || csqc_world.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED || !csqc_world.worldmodel[cl_current_bsp_index]->funcs.LightPointValues)
+	if (csqc_world.worldmodel[tc_cl_current_bsp_index]->lightmaps.maxstyle >= cl_max_lightstyles || !csqc_world.worldmodel[tc_cl_current_bsp_index] || csqc_world.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED || !csqc_world.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues)
 #else
 	if (csqc_world.worldmodel->lightmaps.maxstyle >= cl_max_lightstyles || !csqc_world.worldmodel || csqc_world.worldmodel->loadstate != MLS_LOADED || !csqc_world.worldmodel->funcs.LightPointValues)
 #endif
@@ -5393,7 +5393,7 @@ static void QCBUILTIN PF_cl_getlight (pubprogfuncs_t *prinst, struct globalvars_
 	else
 	{
 #ifdef TEMPORALCORTEX
-		csqc_world.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(csqc_world.worldmodel[cl_current_bsp_index], G_VECTOR(OFS_PARM0), ambient, diffuse, dir);
+		csqc_world.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues(csqc_world.worldmodel[tc_cl_current_bsp_index], G_VECTOR(OFS_PARM0), ambient, diffuse, dir);
 #else
 		csqc_world.worldmodel->funcs.LightPointValues(csqc_world.worldmodel, G_VECTOR(OFS_PARM0), ambient, diffuse, dir);
 #endif
@@ -8376,8 +8376,8 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 		csqc_world.physicstime = 0;
 #ifdef TEMPORALCORTEX
-		if (!csqc_world.worldmodel[cl_current_bsp_index])
-			csqc_world.worldmodel[cl_current_bsp_index] = Mod_ForName("", MLV_SILENT);
+		if (!csqc_world.worldmodel[tc_cl_current_bsp_index])
+			csqc_world.worldmodel[tc_cl_current_bsp_index] = Mod_ForName("", MLV_SILENT);
 #else
 		if (!csqc_world.worldmodel)
 			csqc_world.worldmodel = Mod_ForName("", MLV_SILENT);
@@ -8499,10 +8499,10 @@ void CSQC_RendererRestarted(qboolean initing)
 		{
 			csqc_worldchanged = false;
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index] = r_worldentity.model = csqc_world.worldmodel[cl_current_bsp_index];
-			if (cl.worldmodel[cl_current_bsp_index])
-				FS_LoadMapPackFile(cl.worldmodel[cl_current_bsp_index]->name, cl.worldmodel[cl_current_bsp_index]->archive);
-			Surf_NewMap(csqc_world.worldmodel[cl_current_bsp_index], cl_current_bsp_index);
+			cl.worldmodel[tc_cl_current_bsp_index] = r_worldentity.model = csqc_world.worldmodel[tc_cl_current_bsp_index];
+			if (cl.worldmodel[tc_cl_current_bsp_index])
+				FS_LoadMapPackFile(cl.worldmodel[tc_cl_current_bsp_index]->name, cl.worldmodel[tc_cl_current_bsp_index]->archive);
+			Surf_NewMap(csqc_world.worldmodel[tc_cl_current_bsp_index], tc_cl_current_bsp_index);
 #else
 			cl.worldmodel = r_worldentity.model = csqc_world.worldmodel;
 			if (cl.worldmodel)
@@ -8518,7 +8518,7 @@ void CSQC_RendererRestarted(qboolean initing)
 	else
 	{	//FIXME: this might be awkward in the purecsqc case.
 #ifdef TEMPORALCORTEX
-		csqc_world.worldmodel[cl_current_bsp_index] = cl.worldmodel[cl_current_bsp_index];
+		csqc_world.worldmodel[tc_cl_current_bsp_index] = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		csqc_world.worldmodel = cl.worldmodel;
 #endif
@@ -9043,7 +9043,7 @@ qboolean CSQC_DrawView(void)
 	CL_SetSolidEntities ();
 	CL_TransitionEntities();
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
@@ -9078,7 +9078,7 @@ qboolean CSQC_DrawView(void)
 	CSQC_ChangeLocalPlayer(cl_forceseat.ival?(cl_forceseat.ival - 1) % cl.splitclients:0);
 	DropPunchAngle (csqc_playerview);	//FIXME: this seems like the wrong place for this.
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
@@ -9782,7 +9782,7 @@ void CSQC_ParseEntities(qboolean sized)
 	if (!csqcg.CSQC_Ent_Update || !csqcg.self)
 		Host_EndGame("CSQC has no CSQC_Ent_Update function\n");
 #ifdef TEMPORALCORTEX
-	if (!csqc_world.worldmodel[cl_current_bsp_index] || csqc_world.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!csqc_world.worldmodel[tc_cl_current_bsp_index] || csqc_world.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!csqc_world.worldmodel || csqc_world.worldmodel->loadstate != MLS_LOADED)
 #endif

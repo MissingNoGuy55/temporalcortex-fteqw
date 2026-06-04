@@ -796,7 +796,7 @@ static void skel_integrate(pubprogfuncs_t *prinst, skelobject_t *sko, skelobject
 			Matrix3x4_RM_Transform3(mmat, opos, wopos);
 			Matrix3x4_RM_Transform3(mmat, npos, wnpos);
 
-			t = World_Move(w, wopos, vec3_origin, vec3_origin, wnpos, MOVE_NOMONSTERS, w->edicts, cl_current_bsp_index);
+			t = World_Move(w, wopos, vec3_origin, vec3_origin, wnpos, MOVE_NOMONSTERS, w->edicts, tc_cl_current_bsp_index);
 			if (t.startsolid)
 				t.fraction = 1;
 			else if (t.fraction < 1)

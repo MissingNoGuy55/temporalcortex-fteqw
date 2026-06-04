@@ -3366,7 +3366,7 @@ void CL_AddDecal(shader_t *shader, vec3_t origin, vec3_t up, vec3_t side, vec3_t
 	VectorCopy(rgbvalue, ctx.rgbavalue);
 	ctx.rgbavalue[3] = alphavalue;
 #ifdef TEMPORALCORTEX
-	Mod_ClipDecal(cl.worldmodel[cl_current_bsp_index], origin, ctx.axis[0], ctx.axis[1], ctx.axis[2], max(radius, vradius), 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[tc_cl_current_bsp_index], origin, ctx.axis[0], ctx.axis[1], ctx.axis[2], max(radius, vradius), 0,0, CL_AddDecal_Callback, &ctx);
 #else
 	Mod_ClipDecal(cl.worldmodel, origin, ctx.axis[0], ctx.axis[1], ctx.axis[2], max(radius, vradius), 0,0, CL_AddDecal_Callback, &ctx);
 #endif
@@ -3439,7 +3439,7 @@ void R_AddItemTimer(vec3_t shadoworg, float yaw, float radius, float percent, ve
 	ctx.t = t;
 	Vector4Set(ctx.rgbavalue, rgb[0], rgb[1], rgb[2], percent);
 #ifdef TEMPORALCORTEX
-	Mod_ClipDecal(cl.worldmodel[cl_current_bsp_index], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[tc_cl_current_bsp_index], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 #else
 	Mod_ClipDecal(cl.worldmodel, shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 #endif
@@ -3522,7 +3522,7 @@ void CLQ1_AddShadow(entity_t *ent)
 	ctx.t = t;
 	Vector4Set(ctx.rgbavalue, 0, 0, 0, r_blobshadows*((ent->flags & RF_TRANSLUCENT)?ent->shaderRGBAf[3]:1));
 #ifdef TEMPORALCORTEX
-	Mod_ClipDecal(cl.worldmodel[cl_current_bsp_index], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
+	Mod_ClipDecal(cl.worldmodel[tc_cl_current_bsp_index], shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 #else
 	Mod_ClipDecal(cl.worldmodel, shadoworg, ctx.axis[0], ctx.axis[1], ctx.axis[2], radius, 0,0, CL_AddDecal_Callback, &ctx);
 #endif
@@ -3672,7 +3672,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 		return;
 
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index])
+	if (!cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (!cl.worldmodel)
 #endif
@@ -3704,7 +3704,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 			if (!clmodel || clmodel->loadstate == MLS_LOADING)
 				continue;
 #ifdef TEMPORALCORTEX
-			if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+			if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 			if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -3735,7 +3735,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 				VectorCopy(stat->state.origin, maxs);
 			}
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_bsp_index], &stat->ent.pvscache, mins, maxs);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[tc_cl_current_bsp_index], &stat->ent.pvscache, mins, maxs);
 #else
 			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &stat->ent.pvscache, mins, maxs);
 #endif
@@ -3749,7 +3749,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 
 		/*pvs test*/
 #ifdef TEMPORALCORTEX
-		if (pvs && !cl.worldmodel[cl_current_bsp_index]->funcs.EdictInFatPVS(cl.worldmodel[cl_current_bsp_index], &stat->ent.pvscache, pvs, areas))
+		if (pvs && !cl.worldmodel[tc_cl_current_bsp_index]->funcs.EdictInFatPVS(cl.worldmodel[tc_cl_current_bsp_index], &stat->ent.pvscache, pvs, areas))
 #else
 		if (pvs && !cl.worldmodel->funcs.EdictInFatPVS(cl.worldmodel, &stat->ent.pvscache, pvs, areas))
 #endif
@@ -4627,7 +4627,7 @@ void CL_LinkPacketEntities (void)
 				VectorAdd(model->maxs, ent->origin, absmax);
 			}
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[cl_current_bsp_index], &ent->pvscache, absmin, absmax);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.FindTouchedLeafs(cl.worldmodel[tc_cl_current_bsp_index], &ent->pvscache, absmin, absmax);
 #else
 			cl.worldmodel->funcs.FindTouchedLeafs(cl.worldmodel, &ent->pvscache, absmin, absmax);
 #endif
@@ -5379,7 +5379,7 @@ void CLQW_ParsePlayerinfo (void)
 		int num;
 		num = MSG_ReadByte();
 #ifdef TEMPORALCORTEX
-		if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->fromgame != fg_quake)
+		if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->fromgame != fg_quake)
 #else
 		if (!cl.worldmodel || cl.worldmodel->fromgame != fg_quake)
 #endif
@@ -5390,8 +5390,8 @@ void CLQW_ParsePlayerinfo (void)
 		else
 		{
 #ifdef TEMPORALCORTEX
-			VectorCopy(cl.worldmodel[cl_current_bsp_index]->hulls[num&(MAX_MAP_HULLSM-1)].clip_mins, state->szmins);
-			VectorCopy(cl.worldmodel[cl_current_bsp_index]->hulls[num&(MAX_MAP_HULLSM-1)].clip_maxs, state->szmaxs);
+			VectorCopy(cl.worldmodel[tc_cl_current_bsp_index]->hulls[num&(MAX_MAP_HULLSM-1)].clip_mins, state->szmins);
+			VectorCopy(cl.worldmodel[tc_cl_current_bsp_index]->hulls[num&(MAX_MAP_HULLSM-1)].clip_maxs, state->szmaxs);
 #else
 			VectorCopy(cl.worldmodel->hulls[num&(MAX_MAP_HULLSM-1)].clip_mins, state->szmins);
 			VectorCopy(cl.worldmodel->hulls[num&(MAX_MAP_HULLSM-1)].clip_maxs, state->szmaxs);
@@ -5501,7 +5501,7 @@ guess_pm_type:
 	}
 #endif
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && cl.do_lerp_players && cl_predict_players.ival)
+	if (cl.worldmodel[tc_cl_current_bsp_index] && cl.do_lerp_players && cl_predict_players.ival)
 #else
 	if (cl.worldmodel && cl.do_lerp_players && cl_predict_players.ival)
 #endif
@@ -5659,7 +5659,7 @@ void CL_LinkPlayers (void)
 	extern cvar_t	cl_demospeed;
 	int displayseq;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -6192,7 +6192,7 @@ void CL_SetSolidEntities (void)
 
 	memset(&pmove.physents[0], 0, sizeof(physent_t));
 #ifdef TEMPORALCORTEX
-	pmove.physents[0].model = cl.worldmodel[cl_current_bsp_index];
+	pmove.physents[0].model = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 	pmove.physents[0].model = cl.worldmodel;
 #endif
@@ -6302,7 +6302,7 @@ void CL_SetUpPlayerPrediction(qboolean dopred)
 	if (playertime > realtime)
 		playertime = realtime;
 #ifdef TEMPORALCORTEX
-	if (cl_nopred.value || /*cls.demoplayback ||*/ cl.paused || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (cl_nopred.value || /*cls.demoplayback ||*/ cl.paused || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (cl_nopred.value || /*cls.demoplayback ||*/ cl.paused || cl.worldmodel->loadstate != MLS_LOADED)
 #endif

@@ -3819,7 +3819,7 @@ static void QDECL R_ParticleDesc_Callback(struct cvar_s *var, char *oldvalue)
 			if (failure)
 			P_LoadParticleSet("high", true, true);
 #ifdef TEMPORALCORTEX
-		if (cls.state && cl.model_name[1+cl_current_bsp_index])
+		if (cls.state && cl.model_name[1+tc_cl_current_bsp_index])
 #else
 		if (cls.state && cl.model_name[1])
 #endif
@@ -3827,7 +3827,7 @@ static void QDECL R_ParticleDesc_Callback(struct cvar_s *var, char *oldvalue)
 			//per-map configs. because we can.
 			memcpy(token, "map_", 4);
 #ifdef TEMPORALCORTEX
-			COM_FileBase(cl.model_name[1+cl_current_bsp_index], token+4, sizeof(token)-4);
+			COM_FileBase(cl.model_name[1+tc_cl_current_bsp_index], token+4, sizeof(token)-4);
 #else
 			COM_FileBase(cl.model_name[1], token+4, sizeof(token)-4);
 #endif
@@ -3853,7 +3853,7 @@ static void P_ReadPointFile_f (void)
 	int pt_pointfile;
 	unsigned int spawned = 0, total = 0;
 #ifdef TEMPORALCORTEX
-	COM_StripExtension(cl.worldmodel[cl_current_bsp_index]->name, name, sizeof(name));
+	COM_StripExtension(cl.worldmodel[tc_cl_current_bsp_index]->name, name, sizeof(name));
 #else
 	COM_StripExtension(cl.worldmodel->name, name, sizeof(name));
 #endif
@@ -4135,9 +4135,9 @@ static void P_AddRainParticles(model_t *mod, vec3_t axis[3], vec3_t eorg, float 
 			if (VectorLength(vdist) > (1024+512)*frandom())
 				continue;
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint)
+			if (cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint)
 			{
-				cl.worldmodel[cl_current_bsp_index]->funcs.InfoForPoint(cl.worldmodel[cl_current_bsp_index], worg, &area, &cluster, &contentbits);
+				cl.worldmodel[tc_cl_current_bsp_index]->funcs.InfoForPoint(cl.worldmodel[tc_cl_current_bsp_index], worg, &area, &cluster, &contentbits);
 #else
 			if (cl.worldmodel->funcs.InfoForPoint)
 			{
@@ -4703,14 +4703,14 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 
 	// inwater check, switch only once
 #ifdef TEMPORALCORTEX
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED)
 #else
 	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
 #endif
 	{
 		int cont;
 #ifdef TEMPORALCORTEX
-		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, org);
+		cont = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, org);
 #else
 		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
 #endif
@@ -4732,14 +4732,14 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 	while(ptype)
 	{
 #ifdef TEMPORALCORTEX
-		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate==MLS_LOADED)
+		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate==MLS_LOADED)
 #else
 		if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel && cl.worldmodel->loadstate==MLS_LOADED)
 #endif
 		{
 			int cont;
 #ifdef TEMPORALCORTEX
-			cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, org);
+			cont = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, org);
 #else
 			cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, org);
 #endif
@@ -4774,7 +4774,7 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 
 			ctx.entity = 0;
 #ifdef TEMPORALCORTEX
-			ctx.model = cl.worldmodel[cl_current_bsp_index];
+			ctx.model = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 			ctx.model = cl.worldmodel;
 #endif
@@ -5673,14 +5673,14 @@ static void P_ParticleTrailSpawn (vec3_t startpos, vec3_t end, part_type_t *ptyp
 			P_ParticleTrail(start, end, ptype->assoc, timeinterval, dlkey, NULL, NULL);
 	}
 #ifdef TEMPORALCORTEX
-	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[cl_current_bsp_index])
+	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (r_part_contentswitch.ival && (ptype->flags & (PT_TRUNDERWATER | PT_TROVERWATER)) && cl.worldmodel)
 #endif
 	{
 		int cont;
 #ifdef TEMPORALCORTEX
-		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, startpos);
+		cont = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, startpos);
 #else
 		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
 #endif
@@ -6197,14 +6197,14 @@ static int PScript_ParticleTrail (vec3_t startpos, vec3_t end, int type, float t
 
 	// inwater check, switch only once
 #ifdef TEMPORALCORTEX
-	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED)
 #else
 	if (r_part_contentswitch.ival && ptype->inwater >= 0 && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
 #endif
 	{
 		int cont;
 #ifdef TEMPORALCORTEX
-		cont = cl.worldmodel[cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[cl_current_bsp_index], NULL, startpos);
+		cont = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, startpos);
 #else
 		cont = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, startpos);
 #endif
@@ -7585,7 +7585,7 @@ static void PScript_DrawParticleTypes (void)
 								if (!ctx.entity)
 								{
 #ifdef TEMPORALCORTEX
-									model = cl.worldmodel[cl_current_bsp_index];
+									model = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 									model = cl.worldmodel;
 #endif
@@ -7825,7 +7825,7 @@ static void PScript_DrawParticles (void)
 		entity_t *ent;
 		int i;
 #ifdef TEMPORALCORTEX
-		P_AddRainParticles(cl.worldmodel[cl_current_bsp_index], r_worldentity.axis, r_worldentity.origin, pframetime);
+		P_AddRainParticles(cl.worldmodel[tc_cl_current_bsp_index], r_worldentity.axis, r_worldentity.origin, pframetime);
 #else
 		P_AddRainParticles(cl.worldmodel, r_worldentity.axis, r_worldentity.origin, pframetime);
 #endif

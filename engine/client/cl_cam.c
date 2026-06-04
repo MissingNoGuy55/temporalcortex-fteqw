@@ -761,7 +761,7 @@ void Cam_SelfTrack(playerview_t *pv)
 {
 	vec3_t vec;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -839,7 +839,7 @@ void Cam_Track(playerview_t *pv, usercmd_t *cmd)
 	vec3_t vec;
 	float len;
 #ifdef TEMPORALCORTEX
-	if (!pv->spectator || !cl.worldmodel[cl_current_bsp_index])	//can happen when the server changes level
+	if (!pv->spectator || !cl.worldmodel[tc_cl_current_bsp_index])	//can happen when the server changes level
 #else
 	if (!pv->spectator || !cl.worldmodel)	//can happen when the server changes level
 #endif
@@ -848,7 +848,7 @@ void Cam_Track(playerview_t *pv, usercmd_t *cmd)
 	if (autotrackmode != TM_USER && pv->cam_state == CAM_FREECAM)
 		Cam_CheckHighTarget(pv);
 #ifdef TEMPORALCORTEX
-	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED)
+	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (pv->cam_state == CAM_FREECAM || cls.state != ca_active || cl.worldmodel->loadstate != MLS_LOADED)
 #endif

@@ -1408,9 +1408,9 @@ void QCBUILTIN PF_checkpvs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globa
 	world_t *world = prinst->parms->user;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	model_t *worldmodel = world->worldmodel[sv_current_bsp_index];
+	model_t *worldmodel = world->worldmodel[tc_sv_current_bsp_index];
 #elif defined(HAVE_CLIENT)
-	model_t *worldmodel = world->worldmodel[cl_current_bsp_index];
+	model_t *worldmodel = world->worldmodel[tc_cl_current_bsp_index];
 #endif
 #else
 	model_t *worldmodel = world->worldmodel;
@@ -4263,9 +4263,9 @@ void QCBUILTIN PF_Spawn (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals
 	pr_globals = PR_globals(prinst, PR_CURRENT);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	ed->bspnum = sv_current_bsp_index;
+	ed->bspnum = tc_sv_current_bsp_index;
 #elif defined(HAVE_CLIENT)
-	ed->bspnum = cl_current_bsp_index;
+	ed->bspnum = tc_cl_current_bsp_index;
 #endif
 #endif
 	RETURN_EDICT(prinst, ed);
@@ -4286,9 +4286,9 @@ void QCBUILTIN PF_spawn_object (pubprogfuncs_t *prinst, struct globalvars_s *pr_
 		ed = ED_Alloc(prinst, true, size);
 	pr_globals = PR_globals(prinst, PR_CURRENT);
 #ifdef HAVE_SERVER
-	ed->bspnum = sv_current_bsp_index;
+	ed->bspnum = tc_sv_current_bsp_index;
 #elif defined(HAVE_CLIENT)
-	ed->bspnum = cl_current_bsp_index;
+	ed->bspnum = tc_cl_current_bsp_index;
 #endif
 	RETURN_EDICT(prinst, ed);
 }
@@ -6739,9 +6739,9 @@ void QCBUILTIN PF_droptofloor (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 	VectorCopy (ent->v->origin, start);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, sv_current_bsp_index);
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, cl_current_bsp_index);
+	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent, tc_cl_current_bsp_index);
 #endif
 #else
 	trace = World_Move (world, start, ent->v->mins, ent->v->maxs, end, MOVE_NORMAL, ent);
@@ -6757,9 +6757,9 @@ void QCBUILTIN PF_droptofloor (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 		VectorAdd(end, offset, end);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, sv_current_bsp_index);
+		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, tc_sv_current_bsp_index);
 #elif defined(HAVE_CLIENT)
-		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, cl_current_bsp_index);
+		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, tc_cl_current_bsp_index);
 #endif
 #else
 		trace = World_Move (world, start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent);

@@ -1901,13 +1901,13 @@ qboolean Terrain_LocateSection(const char *name, flocation_t *loc)
 	if (Q_strncasecmp(name, "maps/", 5))
 		return false;
 #ifdef TEMPORALCORTEX
-	if (!sv.world.worldmodel[sv_current_bsp_index])
+	if (!sv.world.worldmodel[tc_sv_current_bsp_index])
 #else
 	if (!sv.world.worldmodel)
 #endif
 		return false;
 #ifdef TEMPORALCORTEX
-	hm = sv.world.worldmodel[sv_current_bsp_index]->terrain;
+	hm = sv.world.worldmodel[tc_sv_current_bsp_index]->terrain;
 #else
 	hm = sv.world.worldmodel->terrain;
 #endif
@@ -3039,7 +3039,7 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 	if (hm->relight)
 		ted_dorelight(m, hm);
 #ifdef TEMPORALCORTEX
-	if (e->model == cl.worldmodel[cl_current_bsp_index] && hm->skyshader)
+	if (e->model == cl.worldmodel[tc_cl_current_bsp_index] && hm->skyshader)
 #else
 	if (e->model == cl.worldmodel && hm->skyshader)
 #endif
@@ -3114,7 +3114,7 @@ void Terr_DrawTerrainModel (batch_t **batches, entity_t *e)
 	tdibctx.vy = (r_refdef.vieworg[1] + CHUNKBIAS*hm->sectionsize) / hm->sectionsize;
 	tdibctx.wmodel = e->model;
 #ifdef TEMPORALCORTEX
-	tdibctx.pvs = (e->model == cl.worldmodel[cl_current_bsp_index])?r_refdef.scenevis:NULL;
+	tdibctx.pvs = (e->model == cl.worldmodel[tc_cl_current_bsp_index])?r_refdef.scenevis:NULL;
 validatelinks(&hm->recycle);
 #else
 	tdibctx.pvs = (e->model == cl.worldmodel)?r_refdef.scenevis:NULL;
@@ -7989,7 +7989,7 @@ void Mod_Terrain_Save_f(void)
 #ifdef HAVE_CLIENT
 	else if (cls.state)
 #ifdef TEMPORALCORTEX
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		mod = cl.worldmodel;
 #endif
@@ -8847,7 +8847,7 @@ static void Mod_Terrain_Import_f(void)
 	if (*mapname)
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -8891,7 +8891,7 @@ static void Mod_Terrain_Export_f(void)
 	if (*Cmd_Argv(1))
 		mod = NULL;//Mod_FindName(va("maps/%s", mapname));
 	else
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 	if (!mod || mod->type == mod_dummy)
 		return;
 	hm = mod->terrain;
@@ -9115,7 +9115,7 @@ void Mod_Terrain_Convert_f(void)
 		mod = Mod_FindName(va("maps/%s.hmp", Cmd_Argv(1)));
 	else if (cls.state)
 #ifdef TEMPORALCORTEX
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		mod = cl.worldmodel;
 #endif
@@ -9187,7 +9187,7 @@ void Mod_Terrain_Reload_f(void)
 #ifdef HAVE_CLIENT
 	else if (cls.state)
 #ifdef TEMPORALCORTEX
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		mod = cl.worldmodel;
 #endif

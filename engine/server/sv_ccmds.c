@@ -2544,7 +2544,7 @@ static void SV_Status_f (void)
 	Con_TPrintf("map uptime       : %s\n", ShowTime(sv.world.physicstime));
 	//show the current map+name (but hide name if its too long or would be ugly)
 #ifdef TEMPORALCORTEX
-	switch(sv_current_bsp_index)
+	switch(tc_sv_current_bsp_index)
 	{
 		case TIME_PERIOD_PRESENT:
 			str = "present";
@@ -2560,8 +2560,8 @@ static void SV_Status_f (void)
 			break;
 	}
 
-	if (columns >= 80 && *sv.mapname[sv_current_bsp_index] && strlen(sv.mapname[sv_current_bsp_index]) < 45 && !strchr(sv.mapname[sv_current_bsp_index], '\n'))
-		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s) "S_COLOR_GREEN"(%s)\n", svs.name, sv.mapname[sv_current_bsp_index], str);
+	if (columns >= 80 && *sv.mapname[tc_sv_current_bsp_index] && strlen(sv.mapname[tc_sv_current_bsp_index]) < 45 && !strchr(sv.mapname[tc_sv_current_bsp_index], '\n'))
+		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s) "S_COLOR_GREEN"(%s)\n", svs.name, sv.mapname[tc_sv_current_bsp_index], str);
 #else
 	if (columns >= 80 && *sv.mapname && strlen(sv.mapname) < 45 && !strchr(sv.mapname, '\n'))
 		Con_TPrintf ("current map      : %s "S_COLOR_GRAY"(%s)\n", svs.name, sv.mapname);
@@ -3679,7 +3679,7 @@ void SV_ChangeTimePeriod( int bspindex )
 	int i, track;
 	edict_t *worldEdict, *ed;
 
-	if ( bspindex == sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
+	if ( bspindex == tc_sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
 		return;
 
 	if ( bspindex < TIME_PERIOD_PRESENT || bspindex > TIME_PERIOD_FUTURE )
@@ -3693,7 +3693,7 @@ void SV_ChangeTimePeriod( int bspindex )
 	if ( !worldEdict )
 		return;
 
-	sv_current_bsp_index = bspindex;
+	tc_sv_current_bsp_index = bspindex;
 
 	for ( i = 0; i < sv.allocated_client_slots; i++ )
 	{
@@ -3702,7 +3702,7 @@ void SV_ChangeTimePeriod( int bspindex )
 	}
 
 	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
-	// It works as intended though, as sv_current_bsp_index and cl_current_bsp_index need to stay in-sync. (2025.9.22)
+	// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
 	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
 	{
 		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
@@ -3729,12 +3729,12 @@ void SV_ChangeTimePeriod( int bspindex )
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 6 + Q_strlen(sv.mapname[sv_current_bsp_index]);
+	buf.cursize = 6 + Q_strlen(sv.mapname[tc_sv_current_bsp_index]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-	MSG_WriteShort (&sv.reliable_datagram, sv_current_bsp_index);
+	MSG_WriteShort (&sv.reliable_datagram, tc_sv_current_bsp_index);
 	MSG_WriteShort (&sv.reliable_datagram, track);
-	MSG_WriteString (&sv.reliable_datagram, sv.mapname[sv_current_bsp_index]);
+	MSG_WriteString (&sv.reliable_datagram, sv.mapname[tc_sv_current_bsp_index]);
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
@@ -3746,9 +3746,9 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
-	// Missi: At the point in which this function is called, changing sv_current_bsp_index is not safe and will lead to
+	// Missi: At the point in which this function is called, changing tc_sv_current_bsp_index is not safe and will lead to
 	// thrashing the edict list, resulting in a crash. (2025.12.6)
-	//sv_current_bsp_index = (int)tTimePeriod;
+	//tc_sv_current_bsp_index = (int)tTimePeriod;
 
 	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
 
@@ -3764,7 +3764,7 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	}
 
 	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
-	// It works as intended though, as sv_current_bsp_index and cl_current_bsp_index need to stay in-sync. (2025.9.22)
+	// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
 	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
 	{
 		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
@@ -3857,7 +3857,7 @@ void SV_ChangeTimePeriod_f()
 	}
 	else
 	{
-		switch( sv_current_bsp_index )
+		switch( tc_sv_current_bsp_index )
 		{
 			case TIME_PERIOD_PRESENT:
 				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the present time period" );

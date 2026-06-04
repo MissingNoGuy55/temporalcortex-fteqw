@@ -575,7 +575,7 @@ void SV_DropClient (client_t *drop)
 	SV_WipeChat(drop);
 #endif
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate != MLS_LOADED)
 #else
 	if (sv.world.worldmodel->loadstate != MLS_LOADED)
 #endif
@@ -5654,7 +5654,7 @@ float SV_Frame (void)
 	SQL_ServerCycle();
 #endif
 #ifdef TEMPORALCORTEX
-	if (sv.state < ss_active || !sv.world.worldmodel[sv_current_bsp_index])
+	if (sv.state < ss_active || !sv.world.worldmodel[tc_sv_current_bsp_index])
 #else
 	if (sv.state < ss_active || !sv.world.worldmodel)
 #endif
@@ -5784,8 +5784,8 @@ float SV_Frame (void)
 
 		//make sure the worldmodel is actually valid...
 #ifdef TEMPORALCORTEX
-		if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->loadstate != MLS_LOADED)
-			Mod_LoadModel(sv.world.worldmodel[sv_current_bsp_index], MLV_ERROR);
+		if (sv.world.worldmodel[tc_sv_current_bsp_index] && sv.world.worldmodel[tc_sv_current_bsp_index]->loadstate != MLS_LOADED)
+			Mod_LoadModel(sv.world.worldmodel[tc_sv_current_bsp_index], MLV_ERROR);
 #else
 		if (sv.world.worldmodel && sv.world.worldmodel->loadstate != MLS_LOADED)
 			Mod_LoadModel(sv.world.worldmodel, MLV_ERROR);

@@ -613,7 +613,7 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 		model_t *mod;
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
 #ifdef TEMPORALCORTEX
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname[sv_current_bsp_index]), MLV_WARN);
+			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
 #else
 			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
 #endif
@@ -674,7 +674,7 @@ static void QDECL SVPR_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
 #ifdef TEMPORALCORTEX
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[sv_current_bsp_index]);
+	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[tc_sv_current_bsp_index]);
 #else
 	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts);
 #endif
@@ -1191,13 +1191,13 @@ void PR_LoadGlabalStruct(qboolean muted)
 	for (i = 0; i < countof(buttonfields); i++)
 	{
 #ifdef TEMPORALCORTEX
-		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[tc_sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
 #else
 		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
 #endif
 		if (val)
 #ifdef TEMPORALCORTEX
-			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[sv_current_bsp_index].v;
+			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[tc_sv_current_bsp_index].v;
 #else
 			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts->v;
 #endif
@@ -1366,13 +1366,13 @@ static progsnum_t AddProgs(const char *name)
 	for (i = 0; i < countof(buttonfields); i++)
 	{
 #ifdef TEMPORALCORTEX
-		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[tc_sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
 #else
 		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
 #endif
 		if (val)
 #ifdef TEMPORALCORTEX
-			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts[sv_current_bsp_index].v;
+			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts[tc_sv_current_bsp_index].v;
 #else
 			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts->v;
 #endif
@@ -1497,7 +1497,7 @@ static void PR_ApplyCompilation_f (void)
 	PR_RegisterFields();
 	sv.world.edict_size=PR_InitEnts(svprogfuncs, sv.world.max_edicts);
 #ifdef TEMPORALCORTEX
-	sv.world.edict_size=svprogfuncs->load_ents(svprogfuncs, s, NULL, NULL, NULL, NULL, sv_current_bsp_index, 0);
+	sv.world.edict_size=svprogfuncs->load_ents(svprogfuncs, s, NULL, NULL, NULL, NULL, tc_sv_current_bsp_index, 0);
 #else
 	sv.world.edict_size=svprogfuncs->load_ents(svprogfuncs, s, NULL, NULL, NULL, NULL);
 #endif
@@ -1765,7 +1765,7 @@ static void PR_FallbackSpawn_Misc_Model(pubprogfuncs_t *progfuncs, edict_t *self
 	void *pr_globals;
 	eval_t *val;
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index] && sv.world.worldmodel[sv_current_bsp_index]->type==mod_brush && sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_quake3 && !force)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index] && sv.world.worldmodel[tc_sv_current_bsp_index]->type==mod_brush && sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame == fg_quake3 && !force)
 #else
 	if (sv.world.worldmodel && sv.world.worldmodel->type==mod_brush && sv.world.worldmodel->fromgame == fg_quake3 && !force)
 #endif
@@ -2279,7 +2279,7 @@ void Q_InitProgs(enum initprogs_e flags)
 		}
 		prnum = 0;
 #ifdef TEMPORALCORTEX
-		switch (sv.world.worldmodel[sv_current_bsp_index]->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
+		switch (sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
 #else
 		switch (sv.world.worldmodel->fromgame)	//spawn functions for - spawn funcs still come from the first progs found.
 #endif
@@ -2686,7 +2686,7 @@ qboolean PR_ConsoleCmd(const char *command)
 				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, host_client->edict);
 			else
 #ifdef TEMPORALCORTEX
-				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);	// Missi (2025.9.21)
+				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);	// Missi (2025.9.21)
 #else
 				pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -2728,7 +2728,7 @@ void PR_LocalInfoChanged(char *name, char *oldivalue, char *newvalue)
 
 		pr_global_struct->time = sv.world.physicstime;
 #ifdef TEMPORALCORTEX
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -2752,7 +2752,7 @@ void PR_PreShutdown(void)
 
 		pr_global_struct->time = sv.world.physicstime;
 #ifdef TEMPORALCORTEX
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -3151,7 +3151,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 					m = sv.strings.model_precache[i] = PR_AddString(prinst, m, 0, false);
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 #ifdef TEMPORALCORTEX
-					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[sv.world.worldmodel_indices[sv_current_bsp_index]]));
+					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1+tc_sv_current_bsp_index]));
 #else
 					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1]));
 #endif
@@ -3169,14 +3169,14 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 						if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
 						{
 #ifdef TEMPORALCORTEX
-							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+8);
+							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+6);
 #else
 							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
 #endif
 							ClientReliableWrite_Short (&svs.clients[j], i);
 							ClientReliableWrite_String (&svs.clients[j], m);
 #ifdef TEMPORALCORTEX
-							ClientReliableWrite_Short(&svs.clients[j], sv.world.worldmodel_indices[sv_current_bsp_index]);
+							ClientReliableWrite_Short(&svs.clients[j], sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 						}
 						else
@@ -3252,7 +3252,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			if (mod)
 			{
 #ifdef TEMPORALCORTEX
-				mod = Mod_ForName (Mod_FixName(m, sv.modelname[sv_current_bsp_index]), MLV_WARNSYNC);
+				mod = Mod_ForName (Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
 #else
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
 #endif
@@ -3919,7 +3919,7 @@ static void QCBUILTIN PF_pointsound(pubprogfuncs_t *prinst, struct globalvars_s 
 	if (volume > 255)
 		volume = 255;
 #ifdef TEMPORALCORTEX
-	SVQ1_StartSound (origin, &sv.world.edicts[sv_current_bsp_index], 0, sample, volume, attenuation, pitchpct, 0, 0);
+	SVQ1_StartSound (origin, &sv.world.edicts[tc_sv_current_bsp_index], 0, sample, volume, attenuation, pitchpct, 0, 0);
 #else
 	SVQ1_StartSound (origin, sv.world.edicts, 0, sample, volume, attenuation, pitchpct, 0, 0);
 #endif
@@ -3986,7 +3986,7 @@ static void set_trace_globals(pubprogfuncs_t *prinst, /*struct globalvars_s *pr_
 		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, trace->ent);
 	else
 #ifdef TEMPORALCORTEX
-		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 		pr_global_struct->trace_ent = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -4054,7 +4054,7 @@ static void QCBUILTIN PF_traceboxh2 (pubprogfuncs_t *prinst, struct globalvars_s
 	int nomonsters = G_FLOAT(OFS_PARM4);
 	edict_t *ent = G_EDICT(prinst, OFS_PARM5);
 #ifdef TEMPORALCORTEX
-	trace_t	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+	trace_t	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, tc_sv_current_bsp_index);
 #else
 	trace_t	trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
 #endif
@@ -4073,7 +4073,7 @@ static void QCBUILTIN PF_traceboxdp (pubprogfuncs_t *prinst, struct globalvars_s
 
 //	PR_StackTrace(prinst, 2);
 #ifdef TEMPORALCORTEX
-	trace_t trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, sv_current_bsp_index);
+	trace_t trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent, tc_sv_current_bsp_index);
 #else
 	trace_t trace = World_Move (&sv.world, v1, mins, maxs, v2, nomonsters|MOVE_IGNOREHULL, (wedict_t*)ent);
 #endif
@@ -4162,7 +4162,7 @@ void PF_newcheckclient (pubprogfuncs_t *prinst, world_t *w)
 // get the PVS for the entity
 	VectorAdd (ent->v->origin, ent->v->view_ofs, checkorg);
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->type == mod_heightmap || sv_nopvs.ival)
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->type == mod_heightmap || sv_nopvs.ival)
 #else
 	if (sv.world.worldmodel->type == mod_heightmap || sv_nopvs.ival)
 #endif
@@ -4170,8 +4170,8 @@ void PF_newcheckclient (pubprogfuncs_t *prinst, world_t *w)
 	else
 	{
 #ifdef TEMPORALCORTEX
-		cluster = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], checkorg, NULL);
-		w->lastcheckpvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[sv_current_bsp_index], cluster, &checkpvsbuffer, PVM_FAST);
+		cluster = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], checkorg, NULL);
+		w->lastcheckpvs = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS (sv.world.worldmodel[tc_sv_current_bsp_index], cluster, &checkpvsbuffer, PVM_FAST);
 #else
 		cluster = sv.world.worldmodel->funcs.ClusterForPoint(sv.world.worldmodel, checkorg, NULL);
 		w->lastcheckpvs = sv.world.worldmodel->funcs.ClusterPVS (sv.world.worldmodel, cluster, &checkpvsbuffer, PVM_FAST);
@@ -4235,7 +4235,7 @@ int PF_checkclient_Internal (pubprogfuncs_t *prinst)
 	if (w->lastcheckpvs)
 	{
 #ifdef TEMPORALCORTEX
-		clust = w->worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(w->worldmodel[sv_current_bsp_index], view, NULL);
+		clust = w->worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(w->worldmodel[tc_sv_current_bsp_index], view, NULL);
 #else
 		clust = w->worldmodel->funcs.ClusterForPoint(w->worldmodel, view, NULL);
 #endif
@@ -4423,7 +4423,7 @@ static void QCBUILTIN PF_spawnclient (pubprogfuncs_t *prinst, struct globalvars_
 		}
 	}
 #ifdef TEMPORALCORTEX
-	RETURN_EDICT(prinst, &sv.world.edicts[sv_current_bsp_index]);
+	RETURN_EDICT(prinst, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 	RETURN_EDICT(prinst, &sv.world.edicts);
 #endif
@@ -4482,7 +4482,7 @@ static void QCBUILTIN PF_cvar (pubprogfuncs_t *prinst, struct globalvars_s *pr_g
 		G_FLOAT(OFS_RETURN) = PR_EnableEBFSBuiltin("map_builtin", 0);
 	else if (!strcmp(str, "halflifebsp"))
 #ifdef TEMPORALCORTEX
-		G_FLOAT(OFS_RETURN) = sv.world.worldmodel[sv_current_bsp_index]->fromgame == fg_halflife;
+		G_FLOAT(OFS_RETURN) = sv.world.worldmodel[tc_sv_current_bsp_index]->fromgame == fg_halflife;
 #else
 		G_FLOAT(OFS_RETURN) = sv.world.worldmodel->fromgame == fg_halflife;
 #endif
@@ -4503,7 +4503,7 @@ static void QCBUILTIN PF_sv_getlight (pubprogfuncs_t *prinst, struct globalvars_
 	float *point = G_VECTOR(OFS_PARM0);
 	vec3_t diffuse, ambient, dir;
 #ifdef TEMPORALCORTEX
-	model_t *wm = sv.world.worldmodel[sv_current_bsp_index];
+	model_t *wm = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 	model_t *wm = sv.world.worldmodel;
 #endif
@@ -4649,14 +4649,14 @@ static int SV_ParticlePrecache_Add(const char *pname)
 				MSG_WriteShort(&sv.multicast, i|PC_PARTICLE);
 				MSG_WriteString(&sv.multicast, pname);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqmulticast, svcdp_precache);
 				MSG_WriteShort(&sv.nqmulticast, i|PC_PARTICLE);
 				MSG_WriteString(&sv.nqmulticast, pname);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 
@@ -4754,14 +4754,14 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				MSG_WriteShort(&sv.reliable_datagram, i+PC_SOUND);
 				MSG_WriteString(&sv.reliable_datagram, s);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i+PC_SOUND);
 				MSG_WriteString(&sv.nqreliable_datagram, s);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 			}
@@ -4835,7 +4835,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 
 			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
 #ifdef TEMPORALCORTEX
-				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[sv_current_bsp_index]), MLV_WARNSYNC);
+				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
 #else
 				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname), MLV_WARNSYNC);
 #endif
@@ -4852,14 +4852,14 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, s);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
 				MSG_WriteString(&sv.nqreliable_datagram, s);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 			}
@@ -6763,7 +6763,7 @@ char *PF_infokey_Internal (int entnum, const char *key)
 			value = "2.40";
 		else if (!strcmp(key, "modelname"))	//for compat with mvdsv.
 #ifdef TEMPORALCORTEX
-			value = sv.modelname[sv_current_bsp_index];
+			value = sv.modelname[tc_sv_current_bsp_index];
 #else
 			value = sv.modelname;
 #endif
@@ -8215,8 +8215,8 @@ static void QCBUILTIN PF_OpenPortal	(pubprogfuncs_t *prinst, struct globalvars_s
 		}
 	}
 #ifdef TEMPORALCORTEX
-	if (sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState)
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[sv_current_bsp_index], portal, area1, area2, state);
+	if (sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.SetAreaPortalState)
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.SetAreaPortalState(sv.world.worldmodel[tc_sv_current_bsp_index], portal, area1, area2, state);
 #else
 	if (sv.world.worldmodel->funcs.SetAreaPortalState)
 		sv.world.worldmodel->funcs.SetAreaPortalState(sv.world.worldmodel, portal, area1, area2, state);
@@ -8371,7 +8371,7 @@ const char *SV_CheckRejectConnection(netadr_t *adr, const char *uinfo, unsigned 
 		if (ezpext1 & EZPEXT1_SETANGLEREASON)
 			Info_SetValueForKey(clfeatures, "EZPEXT1_SETANGLEREASON", "1", sizeof(clfeatures));
 #ifdef TEMPORALCORTEX
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -8396,7 +8396,7 @@ void SV_AddDebugPolygons(void)
 		csqc_dp_lastwas3d = true;
 #endif
 #ifdef TEMPORALCORTEX
-		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[sv_current_bsp_index]);
+		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts[tc_sv_current_bsp_index]);
 #else
 		pr_global_struct->self = EDICT_TO_PROG(svprogfuncs, &sv.world.edicts);
 #endif
@@ -10756,7 +10756,7 @@ static void QCBUILTIN PF_runclientphys(pubprogfuncs_t *prinst, struct globalvars
 	pmove.skipent = -1;
 	pmove.numphysent = 1;
 #ifdef TEMPORALCORTEX
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+	pmove.physents[0].model = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 	pmove.physents[0].model = sv.world.worldmodel;
 #endif
@@ -11152,7 +11152,7 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 				model_t *mod = sv.models[idx];
 				if (!mod && doload)
 #ifdef TEMPORALCORTEX
-					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname[sv_current_bsp_index]));
+					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname[tc_sv_current_bsp_index]));
 #else
 					mod = sv.models[idx] = Mod_FindName(Mod_FixName(resname, sv.modelname));
 #endif

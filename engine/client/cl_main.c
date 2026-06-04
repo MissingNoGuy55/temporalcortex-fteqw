@@ -50,7 +50,7 @@ extern int	r_blockvidrestart;
 #ifdef HAVE_CLIENT
 int tc_cl_loaded_bsps;
 int tc_cl_unloaded_bsps;
-int cl_current_bsp_index;
+int tc_cl_current_bsp_index;
 #endif
 #endif
 
@@ -3172,7 +3172,7 @@ void CL_CheckServerInfo(void)
 		s = InfoBuf_ValueForKey(&cl.serverinfo, "allow_skyboxes");
 	if (!*s)
 #ifdef TEMPORALCORTEX
-		cls.allow_unmaskedskyboxes = (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->fromgame != fg_quake);
+		cls.allow_unmaskedskyboxes = (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->fromgame != fg_quake);
 #else
 		cls.allow_unmaskedskyboxes = (cl.worldmodel && cl.worldmodel->fromgame != fg_quake);
 #endif
@@ -5757,14 +5757,14 @@ void CL_Status_f(void)
 			Con_Printf("\tinfoblobs\n");
 	}
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index])
+	if (cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (cl.worldmodel)
 #endif
 	{
 		Con_Printf("map uptime       : %s\n", ShowTime(cl.time));
 #ifdef TEMPORALCORTEX
-		switch(cl_current_bsp_index)
+		switch(tc_cl_current_bsp_index)
 		{
 			case TIME_PERIOD_PRESENT:
 				str = "present";
@@ -5780,7 +5780,7 @@ void CL_Status_f(void)
 				break;
 		}
 
-		COM_FileBase(cl.worldmodel[cl_current_bsp_index]->name, adr, sizeof(adr));
+		COM_FileBase(cl.worldmodel[tc_cl_current_bsp_index]->name, adr, sizeof(adr));
 		Con_Printf ("current map      : %s (%s) "S_COLOR_GREEN"(%s)\n", adr, cl.levelname, str);
 #else
 		COM_FileBase(cl.worldmodel->name, adr, sizeof(adr));
@@ -5869,7 +5869,7 @@ static void CL_ChangeTimePeriod_f()
 
 	if ( !cl.worldmodel[atoi(pszArg)] )
 	{
-		switch( cl_current_bsp_index )
+		switch( tc_cl_current_bsp_index )
 		{
 			case TIME_PERIOD_PRESENT:
 				pszTime = "present";
@@ -5892,7 +5892,7 @@ static void CL_ChangeTimePeriod_f()
 	}
 
 	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
-	//cl_current_bsp_index = (timeperiod_t)atoi(pszArg);
+	//tc_cl_current_bsp_index = (timeperiod_t)atoi(pszArg);
 
 	char cmd[64];
 	snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
@@ -7310,7 +7310,7 @@ void CLTC_RecordServerData( sizebuf_t *buf, int *seq )
 	MSG_WriteString (buf, cl.levelname);
 
 	// Missi: Send full map name
-	MSG_WriteString (buf, cl.mapname[cl_current_bsp_index]);
+	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
 
 	// send the movevars
 	MSG_WriteFloat(buf, movevars.gravity);
@@ -7904,7 +7904,7 @@ double Host_Frame (double time)
 			CL_CheckForResend ();
 		CL_SendCmd (cl.gamespeed?host_frametime/cl.gamespeed:host_frametime, true);
 #ifdef TEMPORALCORTEX
-		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel[cl_current_bsp_index])
+		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel[tc_cl_current_bsp_index])
 #else
 		if (cls.state == ca_onserver && cl.validsequence && cl.worldmodel)
 #endif
@@ -7980,7 +7980,7 @@ double Host_Frame (double time)
 		}
 		if (cls.state && r_worldentity.model && r_worldentity.model->loadstate == MLS_NOTLOADED)
 #ifdef TEMPORALCORTEX
-			Mod_LoadModel(cl.worldmodel[cl_current_bsp_index], MLV_WARNSYNC);
+			Mod_LoadModel(cl.worldmodel[tc_cl_current_bsp_index], MLV_WARNSYNC);
 #else
 			Mod_LoadModel(cl.worldmodel, MLV_WARNSYNC);
 #endif

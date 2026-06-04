@@ -4709,7 +4709,7 @@ static void * NET_KexLobby_CreateContext(const dtlscred_t *credinfo, void *cbctx
 		peer->plidx[2] = 3;
 		peer->plidx[3] = 4;
 #ifdef TEMPORALCORTEX
-		NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBYRULE, va("map\\%s", sv.mapname[sv_current_bsp_index]));
+		NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBYRULE, va("map\\%s", sv.mapname[tc_sv_current_bsp_index]));
 #else
 		NET_KexLobby_SendMessageZ(peer, KEXLAN_NAGGLE|KEXLAN_RELIABLE|KEXLAN_LOBBYRULE, va("map\\%s", sv.mapname));
 #endif

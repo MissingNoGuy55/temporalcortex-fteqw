@@ -1699,7 +1699,7 @@ static void	(D3D11_R_RenderView)				(void)
 		
 		if (!(r_refdef.flags & RDF_NOWORLDMODEL))
 #ifdef TEMPORALCORTEX
-			if (!r_worldentity.model || r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[cl_current_bsp_index])
+			if (!r_worldentity.model || r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel[tc_cl_current_bsp_index])
 #else
 			if (!r_worldentity.model || r_worldentity.model->loadstate != MLS_LOADED || !cl.worldmodel)
 #endif

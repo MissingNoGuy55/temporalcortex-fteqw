@@ -1792,9 +1792,9 @@ void V_CalcRefdef (playerview_t *pv)
 		len = VectorLength(camdir);
 		VectorMA(r_refdef.vieworg, (len+128)/len, camdir, camorg);	//push it 128qu further
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace)
+		if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace)
 		{
-			cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[tc_cl_current_bsp_index], 0, 0, NULL, r_refdef.vieworg, camorg, vec3_origin, vec3_origin, true, MASK_WORLDSOLID, &tr);
 #else
 		if (cl.worldmodel && cl.worldmodel->funcs.NativeTrace)
 		{
@@ -2131,7 +2131,7 @@ void R_DrawNameTags(void)
 
 #if defined(CSQC_DAT) || !defined(CLIENTONLY)
 #ifdef TEMPORALCORTEX
-	if (r_showshaders.ival && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+	if (r_showshaders.ival && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED)
 #else
 	if (r_showshaders.ival && cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
 #endif
@@ -2155,7 +2155,7 @@ void R_DrawNameTags(void)
 			int oldhit = csqc_world.edicts->xv->hitcontentsmaski;
 			csqc_world.edicts->xv->hitcontentsmaski = ~0;
 #ifdef TEMPORALCORTEX
-			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, &csqc_world.edicts[cl_current_bsp_index], cl_current_bsp_index);
+			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, &csqc_world.edicts[tc_cl_current_bsp_index], tc_cl_current_bsp_index);
 #else
 			trace = World_Move(&csqc_world, r_refdef.vieworg, vec3_origin, vec3_origin, targ, MOVE_EVERYTHING, csqc_world.edicts);
 #endif
@@ -2164,7 +2164,7 @@ void R_DrawNameTags(void)
 		else
 #endif
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[cl_current_bsp_index], 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.NativeTrace(cl.worldmodel[tc_cl_current_bsp_index], 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
 #else
 			cl.worldmodel->funcs.NativeTrace(cl.worldmodel, 0, PE_FRAMESTATE, NULL, r_refdef.vieworg, targ, vec3_origin, vec3_origin, false, ~0, &trace);
 #endif
@@ -2175,7 +2175,7 @@ void R_DrawNameTags(void)
 			shader = NULL;
 #ifdef TERRAIN
 #ifdef TEMPORALCORTEX
-			if (cl.worldmodel[cl_current_bsp_index]->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel[cl_current_bsp_index], &trace)))
+			if (cl.worldmodel[tc_cl_current_bsp_index]->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel[tc_cl_current_bsp_index], &trace)))
 #else
 			if (cl.worldmodel->terrain && trace.brush_id && (shader = Terr_GetShader(cl.worldmodel, &trace)))
 #endif
@@ -2183,7 +2183,7 @@ void R_DrawNameTags(void)
 			else
 #endif
 #ifdef TEMPORALCORTEX
-				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel[cl_current_bsp_index], trace.endpos)))
+				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel[tc_cl_current_bsp_index], trace.endpos)))
 #else
 				 if ((surf = (trace.fraction == 1)?NULL:Mod_GetSurfaceNearPoint(cl.worldmodel, trace.endpos)))
 #endif

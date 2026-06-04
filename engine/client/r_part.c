@@ -141,7 +141,7 @@ static void R_Clutter_Insert_Soup(clutter_build_ctx_t *ctx, shader_t *shader, ve
 		soup->idx[soup->numidx++] = soup->numverts+*index++;
 
 #ifdef TEMPORALCORTEX
-	cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[cl_current_bsp_index], origin, diffuse, ambient, ldir);
+	cl.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[tc_cl_current_bsp_index], origin, diffuse, ambient, ldir);
 #else
 	cl.worldmodel->funcs.LightPointValues(cl.worldmodel, origin, diffuse, ambient, ldir);
 #endif
@@ -358,7 +358,7 @@ void R_Clutter_Emit(batch_t **batches)
 	batch_t *b;
 	qboolean rebuildlimit = false;
 #ifdef TEMPORALCORTEX
-	if (!cl.worldmodel[cl_current_bsp_index] || cl.worldmodel[cl_current_bsp_index]->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
+	if (!cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
 #else
 	if (!cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED || r_clutter_density.value <= 0 || (r_refdef.flags & RDF_NOWORLDMODEL))
 #endif
@@ -424,7 +424,7 @@ void R_Clutter_Emit(batch_t **batches)
 			cctx.z = z;
 			cctx.w = (sect-cluttersector)+1;
 #ifdef TEMPORALCORTEX
-			Mod_ClipDecal(cl.worldmodel[cl_current_bsp_index], org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
+			Mod_ClipDecal(cl.worldmodel[tc_cl_current_bsp_index], org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
 #else
 			Mod_ClipDecal(cl.worldmodel, org, down, forward, right, cluttersize, 0, 0, R_Clutter_Insert, &cctx);
 #endif
@@ -906,7 +906,7 @@ float CL_TraceLine (vec3_t start, vec3_t end, vec3_t impact, vec3_t normal, int 
 	if (csqc_world.progs)
 	{
 #ifdef TEMPORALCORTEX
-		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, &csqc_world.edicts[cl_current_bsp_index], cl_current_bsp_index);
+		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, &csqc_world.edicts[tc_cl_current_bsp_index], tc_cl_current_bsp_index);
 #else
 		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, csqc_world.edicts);
 #endif

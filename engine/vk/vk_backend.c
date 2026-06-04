@@ -5215,7 +5215,7 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		VKBE_RT_Gen(&shaderstate.rt_reflection, NULL, r_refdef.vrect.width, r_refdef.vrect.height, false, RT_IMAGEFLAGS);
 		VKBE_RT_Begin(&shaderstate.rt_reflection);
 #ifdef TEMPORALCORTEX
-		R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 1);
+		R_DrawPortal(batch, cl.worldmodel[tc_cl_current_bsp_index]->batches, NULL, 1);
 #else
 		R_DrawPortal(batch, cl.worldmodel->batches, NULL, 1);
 #endif
@@ -5238,7 +5238,7 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 			VKBE_RT_Gen(&shaderstate.rt_refraction, NULL, r_refdef.vrect.width, r_refdef.vrect.height, false, RT_IMAGEFLAGS);
 			VKBE_RT_Begin(&shaderstate.rt_refraction);
 #ifdef TEMPORALCORTEX
-			R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
+			R_DrawPortal(batch, cl.worldmodel[tc_cl_current_bsp_index]->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
 #else
 			R_DrawPortal(batch, cl.worldmodel->batches, NULL, ((bs->flags & SHADER_HASREFRACTDEPTH)?3:2));	//fixme
 #endif
@@ -5251,7 +5251,7 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		else
 		{
 #ifdef TEMPORALCORTEX
-			R_DrawPortal(batch, cl.worldmodel[cl_current_bsp_index]->batches, NULL, 3);
+			R_DrawPortal(batch, cl.worldmodel[tc_cl_current_bsp_index]->batches, NULL, 3);
 #else
 			R_DrawPortal(batch, cl.worldmodel->batches, NULL, 3);
 #endif
@@ -5305,7 +5305,7 @@ static qboolean BE_GenerateRefraction(batch_t *batch, shader_t *bs)
 		BE_RT_Begin(&shaderstate.rt_refraction, vid.fbpwidth, vid.fbpheight);
 
 		r_refdef.recurse+=1; //paranoid, should stop potential infinite loops
-		GLBE_SubmitMeshes(cl.worldmodel[cl_current_bsp_index]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
+		GLBE_SubmitMeshes(cl.worldmodel[tc_cl_current_bsp_index]->batches, SHADER_SORT_RIPPLE, SHADER_SORT_RIPPLE);
 		r_refdef.recurse-=1;
 
 		r_refdef.vrect = orect;
@@ -5574,7 +5574,7 @@ static void R_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist
 		//use the player's origin for r_viewleaf, because there's not much we can do anyway*/
 		VectorCopy(r_origin, r_refdef.pvsorigin);
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
+		if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS && !r_novis.ival)
 #else
 		if (cl.worldmodel && cl.worldmodel->funcs.ClusterPVS && !r_novis.ival)
 #endif
@@ -5585,7 +5585,7 @@ static void R_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist
 			r_refdef.forcevis = true;
 			r_refdef.forcedvis = NULL;
 #ifdef TEMPORALCORTEX
-			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[cl_current_bsp_index]->pvsbytes);
+			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel[tc_cl_current_bsp_index]->pvsbytes);
 #else
 			newvis.buffer = alloca(newvis.buffersize=cl.worldmodel->pvsbytes);
 #endif
@@ -5600,19 +5600,19 @@ static void R_DrawPortal(batch_t *batch, batch_t **blist, batch_t *depthmasklist
 				d += 0.1;	//an epsilon on the far side
 				VectorMA(point, d, plane.normal, point);
 #ifdef TEMPORALCORTEX
-				clust = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[cl_current_bsp_index], point, NULL);
+				clust = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterForPoint(cl.worldmodel[tc_cl_current_bsp_index], point, NULL);
 #else
 				clust = cl.worldmodel->funcs.ClusterForPoint(cl.worldmodel, point, NULL);
 #endif
 				if (i == batch->firstmesh)
 #ifdef TEMPORALCORTEX
-					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
+					r_refdef.forcedvis = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[tc_cl_current_bsp_index], clust, &newvis, PVM_REPLACE);
 #else
 					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_REPLACE);
 #endif
 				else
 #ifdef TEMPORALCORTEX
-					r_refdef.forcedvis = cl.worldmodel[cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[cl_current_bsp_index], clust, &newvis, PVM_MERGE);
+					r_refdef.forcedvis = cl.worldmodel[tc_cl_current_bsp_index]->funcs.ClusterPVS(cl.worldmodel[tc_cl_current_bsp_index], clust, &newvis, PVM_MERGE);
 #else
 					r_refdef.forcedvis = cl.worldmodel->funcs.ClusterPVS(cl.worldmodel, clust, &newvis, PVM_MERGE);
 #endif

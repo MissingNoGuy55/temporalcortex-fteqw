@@ -338,7 +338,7 @@ static void MN_RenderScene(menuscene_t *scene)
 	r_refdef.viewangles[2] = 0;
 
 	r_refdef.flags = 0;
-	if (scene->worldmodel && scene->worldmodel == cl.worldmodel[cl_current_bsp_index])
+	if (scene->worldmodel && scene->worldmodel == cl.worldmodel[tc_cl_current_bsp_index])
 		r_refdef.flags &= ~RDF_NOWORLDMODEL;
 	else
 		r_refdef.flags |= RDF_NOWORLDMODEL;

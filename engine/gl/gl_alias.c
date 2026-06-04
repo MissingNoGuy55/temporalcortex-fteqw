@@ -1401,7 +1401,7 @@ qboolean R_CalcModelLighting(entity_t *e, model_t *clmodel)
 		return e->light_known-1;
 	}
 #ifdef TEMPORALCORTEX
-	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_bsp_index])
+	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (!(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel)
 #endif
@@ -1409,7 +1409,7 @@ qboolean R_CalcModelLighting(entity_t *e, model_t *clmodel)
 		if (e->flags & RF_WEAPONMODEL)
 		{
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[cl_current_bsp_index], r_refdef.vieworg, shadelight, ambientlight, lightdir);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[tc_cl_current_bsp_index], r_refdef.vieworg, shadelight, ambientlight, lightdir);
 #else
 			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, r_refdef.vieworg, shadelight, ambientlight, lightdir);
 #endif
@@ -1430,7 +1430,7 @@ qboolean R_CalcModelLighting(entity_t *e, model_t *clmodel)
 			center[2] += 24;
 			#endif
 #ifdef TEMPORALCORTEX
-			cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[cl_current_bsp_index], center, shadelight, ambientlight, lightdir);
+			cl.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues(cl.worldmodel[tc_cl_current_bsp_index], center, shadelight, ambientlight, lightdir);
 #else
 			cl.worldmodel->funcs.LightPointValues(cl.worldmodel, center, shadelight, ambientlight, lightdir);
 #endif
@@ -1859,9 +1859,9 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 			b->buildmeshes = R_GAlias_DrawBatch;
 			b->ent = e;
 #ifdef TEMPORALCORTEX
-			b->envmap = Mod_CubemapForOrigin(cl.worldmodel[cl_current_bsp_index], e->origin);
+			b->envmap = Mod_CubemapForOrigin(cl.worldmodel[tc_cl_current_bsp_index], e->origin);
 #if defined(Q3BSPS) || defined(RFBSPS)
-			b->fog = Mod_FogForOrigin(cl.worldmodel[cl_current_bsp_index], e->origin);
+			b->fog = Mod_FogForOrigin(cl.worldmodel[tc_cl_current_bsp_index], e->origin);
 #endif
 #else
 			b->envmap = Mod_CubemapForOrigin(cl.worldmodel, e->origin);
@@ -2810,7 +2810,7 @@ static void R_Sprite_GenerateTrisoup(entity_t *e, int bemode)
 
 	VectorScale(e->shaderRGBAf, lightmap, rgba[0]);
 #ifdef TEMPORALCORTEX
-	if (frame && frame->lit && !(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->funcs.LightPointValues)
+	if (frame && frame->lit && !(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->funcs.LightPointValues)
 #else
 	if (frame && frame->lit && !(r_refdef.flags & RDF_NOWORLDMODEL) && cl.worldmodel && cl.worldmodel->funcs.LightPointValues)
 #endif
@@ -2939,9 +2939,9 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 		batches[i] = NULL;
 
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && !(r_refdef.flags & RDF_NOWORLDMODEL))
+	if (cl.worldmodel[tc_cl_current_bsp_index] && !(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
-		if (cl.worldmodel[cl_current_bsp_index]->terrain)
+		if (cl.worldmodel[tc_cl_current_bsp_index]->terrain)
 #else
 	if (cl.worldmodel && !(r_refdef.flags & RDF_NOWORLDMODEL))
 	{
@@ -2951,7 +2951,7 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 			Terr_DrawTerrainModel(batches, &r_worldentity);
 #endif
 #ifdef TEMPORALCORTEX
-		if (cl.worldmodel[cl_current_bsp_index]->type == mod_alias)
+		if (cl.worldmodel[tc_cl_current_bsp_index]->type == mod_alias)
 #else
 		if (cl.worldmodel->type == mod_alias)
 #endif
@@ -3011,7 +3011,7 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 		}
 #endif
 #ifdef TEMPORALCORTEX
-		if (worldpvs && !cl.worldmodel[cl_current_bsp_index]->funcs.EdictInFatPVS(cl.worldmodel[cl_current_bsp_index], &ent->pvscache, worldpvs, worldareas))
+		if (worldpvs && !cl.worldmodel[tc_cl_current_bsp_index]->funcs.EdictInFatPVS(cl.worldmodel[tc_cl_current_bsp_index], &ent->pvscache, worldpvs, worldareas))
 #else
 		if (worldpvs && !cl.worldmodel->funcs.EdictInFatPVS(cl.worldmodel, &ent->pvscache, worldpvs, worldareas))
 #endif

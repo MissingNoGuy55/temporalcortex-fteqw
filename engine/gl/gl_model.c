@@ -2207,7 +2207,7 @@ static void Mod_ShowEnt_f(void)
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
 #ifdef TEMPORALCORTEX
-		mod = sv.world.worldmodel[sv_current_bsp_index];
+		mod = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 		mod = sv.world.worldmodel;
 #endif
@@ -2215,7 +2215,7 @@ static void Mod_ShowEnt_f(void)
 #ifndef SERVERONLY
 	if (cls.state && !mod)
 #ifdef TEMPORALCORTEX
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		mod = cl.worldmodel;
 #endif
@@ -2264,7 +2264,7 @@ static void Mod_SaveEntFile_f(void)
 #ifndef CLIENTONLY
 	if (sv.state && !mod)
 #ifdef TEMPORALCORTEX
-		mod = sv.world.worldmodel[sv_current_bsp_index];
+		mod = sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 		mod = sv.world.worldmodel;
 #endif
@@ -2272,7 +2272,7 @@ static void Mod_SaveEntFile_f(void)
 #ifndef SERVERONLY
 	if (cls.state && !mod)
 #ifdef TEMPORALCORTEX
-		mod = cl.worldmodel[cl_current_bsp_index];
+		mod = cl.worldmodel[tc_cl_current_bsp_index];
 #else
 		mod = cl.worldmodel;
 #endif
@@ -5558,22 +5558,22 @@ static qboolean QDECL Mod_LoadBrushModel (model_t *mod, void *buffer, size_t fsi
 
 #ifdef SERVERONLY
 #ifdef TEMPORALCORTEX
-	isnotmap = !!sv.world.worldmodel[sv_current_bsp_index];
+	isnotmap = !!sv.world.worldmodel[tc_sv_current_bsp_index];
 #else
 	isnotmap = !!sv.world.worldmodel;
 #endif
 #else
 #ifdef TEMPORALCORTEX
-	if ((!cl.worldmodel[cl_current_bsp_index] && cls.state>=ca_connected)
+	if ((!cl.worldmodel[tc_cl_current_bsp_index] && cls.state>=ca_connected)
 #else
 	if ((!cl.worldmodel && cls.state>=ca_connected)
 #endif
 #ifndef CLIENTONLY
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-		|| (!sv.world.worldmodel[sv_current_bsp_index] && sv.state)
+		|| (!sv.world.worldmodel[tc_sv_current_bsp_index] && sv.state)
 #elif defined(HAVE_CLIENT)
-		|| (!sv.world.worldmodel[cl_current_bsp_index] && sv.state)
+		|| (!sv.world.worldmodel[tc_cl_current_bsp_index] && sv.state)
 #endif
 #else
 		|| (!sv.world.worldmodel && sv.state)

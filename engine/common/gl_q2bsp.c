@@ -4573,7 +4573,7 @@ static void Q2BSP_MarkLights (dlight_t *light, dlightbitmask_t bit, mnode_t *nod
 
 // mark the polygons
 #ifdef TEMPORALCORTEX
-	surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+	surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces + node->firstsurface;
 #else
 	surf = cl.worldmodel->surfaces + node->firstsurface;
 #endif

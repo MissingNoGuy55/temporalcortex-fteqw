@@ -946,7 +946,7 @@ void Log_MapNowCompleted(void)
 		return;
 
 #ifdef TEMPORALCORTEX
-	if (!FS_FLocateFile(sv.world.worldmodel[sv_current_bsp_index]->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
+	if (!FS_FLocateFile(sv.world.worldmodel[tc_sv_current_bsp_index]->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
 #else
 	if (!FS_FLocateFile(sv.world.worldmodel->name, FSLF_DONTREFERENCE|FSLF_IGNORELINKS, &loc))
 #endif
@@ -962,15 +962,15 @@ void Log_MapNowCompleted(void)
 	}
 
 #ifdef TEMPORALCORTEX
-	m = Log_FindMap(packagename, sv.world.worldmodel[sv_current_bsp_index]->name);
+	m = Log_FindMap(packagename, sv.world.worldmodel[tc_sv_current_bsp_index]->name);
 #else
 	m = Log_FindMap(packagename, sv.world.worldmodel->name);
 #endif
 	if (!m)
 	{
 #ifdef TEMPORALCORTEX
-		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel[sv_current_bsp_index]->name)+2);
-		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel[sv_current_bsp_index]->name);
+		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel[tc_sv_current_bsp_index]->name)+2);
+		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel[tc_sv_current_bsp_index]->name);
 #else
 		m = Z_Malloc(sizeof(*m)+strlen(packagename)+strlen(sv.world.worldmodel->name)+2);
 		sprintf(m->name, "%s/%s", packagename, sv.world.worldmodel->name);

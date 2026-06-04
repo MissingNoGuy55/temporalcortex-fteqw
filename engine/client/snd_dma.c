@@ -3537,7 +3537,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 	for (i = 0; i < NUM_AMBIENTS; i++)
 		ambientlevel[i] = 0;
 #ifdef TEMPORALCORTEX
-	if (cl.worldmodel[cl_current_bsp_index] && cl.worldmodel[cl_current_bsp_index]->type == mod_brush && cl.worldmodel[cl_current_bsp_index]->fromgame == fg_quake && cl.worldmodel[cl_current_bsp_index]->loadstate == MLS_LOADED)
+	if (cl.worldmodel[tc_cl_current_bsp_index] && cl.worldmodel[tc_cl_current_bsp_index]->type == mod_brush && cl.worldmodel[tc_cl_current_bsp_index]->fromgame == fg_quake && cl.worldmodel[tc_cl_current_bsp_index]->loadstate == MLS_LOADED)
 #else
 	if (cl.worldmodel && cl.worldmodel->type == mod_brush && cl.worldmodel->fromgame == fg_quake && cl.worldmodel->loadstate == MLS_LOADED)
 #endif
@@ -3550,7 +3550,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 				while(seat --> 0)
 				{
 #ifdef TEMPORALCORTEX
-					l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_bsp_index], listener[seat].origin);
+					l = Q1BSP_LeafForPoint(cl.worldmodel[tc_cl_current_bsp_index], listener[seat].origin);
 #else
 					l = Q1BSP_LeafForPoint(cl.worldmodel, listener[seat].origin);
 #endif
@@ -3564,7 +3564,7 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 			else
 			{
 #ifdef TEMPORALCORTEX
-				l = Q1BSP_LeafForPoint(cl.worldmodel[cl_current_bsp_index], listener[sc->seat].origin);
+				l = Q1BSP_LeafForPoint(cl.worldmodel[tc_cl_current_bsp_index], listener[sc->seat].origin);
 #else
 				l = Q1BSP_LeafForPoint(cl.worldmodel, listener[sc->seat].origin);
 #endif

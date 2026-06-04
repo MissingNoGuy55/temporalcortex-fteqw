@@ -90,14 +90,14 @@ int QDECL GHL_PrecacheModel(const char *name)
 				MSG_WriteShort(&sv.reliable_datagram, i);
 				MSG_WriteString(&sv.reliable_datagram, name);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
 				MSG_WriteString(&sv.nqreliable_datagram, name);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 			}
@@ -142,14 +142,14 @@ int QDECL GHL_PrecacheSound(char *name)
 				MSG_WriteShort(&sv.reliable_datagram, -i);
 				MSG_WriteString(&sv.reliable_datagram, name);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, -i);
 				MSG_WriteString(&sv.nqreliable_datagram, name);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[sv_current_bsp_index]);
+				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
 			}
@@ -275,7 +275,7 @@ void QDECL GHL_MoveToOrigin(hledict_t *ent, vec3_t dest, float dist, int movefla
 						VectorMA(neworg, 8, up, neworg);
 				}
 			}
-			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, sv_current_bsp_index);
+			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, tc_sv_current_bsp_index);
 			if (set_move_trace)
 				set_move_trace(world->progs, set_trace_globs, &trace);
 	
@@ -412,7 +412,7 @@ int QDECL GHL_GetEntityIllum(hledict_t *ent)
 	if (!r_shadow_realtime_world.ival || r_shadow_realtime_world_lightmaps.value)
 #endif
 	{
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[sv_current_bsp_index], ent->v.origin, ambient, diffuse, dir);
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.LightPointValues(sv.world.worldmodel[tc_sv_current_bsp_index], ent->v.origin, ambient, diffuse, dir);
 		lev += (VectorLength(ambient) + VectorLength(diffuse)/2.0)/256;
 	}
 	return lev * 255; //I assume its 0-255, no idea
@@ -463,7 +463,7 @@ hledict_t *QDECL GHL_FindClientInPVS(hledict_t *ed)
 	//fixme: we need to track some state
 	//a different client should be returned each call _per ent_ (so it can be used once per frame)
 
-	viewerpvs = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[sv_current_bsp_index], sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], ed->v.origin), NULL, 0);
+	viewerpvs = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterPVS(sv.world.worldmodel[tc_sv_current_bsp_index], sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], ed->v.origin), NULL, 0);
 
 	for (i = 0; i < svs.allocated_client_slots; i++)
 	{
@@ -475,7 +475,7 @@ hledict_t *QDECL GHL_FindClientInPVS(hledict_t *ed)
 			if (svs.clients[i].spectator)
 				continue;	//ignore spectators
 
-			clusternum = sv.world.worldmodel[sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[sv_current_bsp_index], other->v.origin)-1;/*pvs is 1 based, leafs are 0 based*/
+			clusternum = sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.ClusterForPoint(sv.world.worldmodel[tc_sv_current_bsp_index], other->v.origin)-1;/*pvs is 1 based, leafs are 0 based*/
 			if (viewerpvs[clusternum>>3] & (1<<(clusternum&7)))
 			{
 				VectorSubtract(ed->v.origin, other->v.origin, ofs);
@@ -677,7 +677,7 @@ int QDECL GHL_WalkMove(hledict_t *ent, float yaw, float dist, int mode)
 						VectorMA(neworg, 8, up, neworg);
 				}
 			}
-			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, sv_current_bsp_index);
+			trace = World_Move (world, ent->v->origin, ent->v->mins, ent->v->maxs, neworg, false, ent, tc_sv_current_bsp_index);
 			if (set_move_trace)
 				set_move_trace(world->progs, set_trace_globs, &trace);
 	
@@ -813,7 +813,7 @@ void QDECL GHL_TraceHull(float *start, float *end, int flags, int hullnum, hledi
 	trace_t t;
 	bi_trace();
 
-	t = SVHL_Move(start, sv.world.worldmodel[sv_current_bsp_index]->hulls[hullnum].clip_mins, sv.world.worldmodel[sv_current_bsp_index]->hulls[hullnum].clip_maxs, end, flags, 0, ignore);
+	t = SVHL_Move(start, sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[hullnum].clip_mins, sv.world.worldmodel[tc_sv_current_bsp_index]->hulls[hullnum].clip_maxs, end, flags, 0, ignore);
 
 	result->allsolid = t.allsolid;
 	result->startsolid = t.startsolid;
@@ -831,7 +831,7 @@ char *QDECL GHL_TraceTexture(hledict_t *againstent, vec3_t start, vec3_t end)
 {
 	trace_t tr;
 	bi_trace();
-	sv.world.worldmodel[sv_current_bsp_index]->funcs.NativeTrace(sv.world.worldmodel[sv_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
+	sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.NativeTrace(sv.world.worldmodel[tc_sv_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, vec3_origin, vec3_origin, false, MASK_WORLDSOLID, &tr);
 	return tr.surface->name;
 }
 unk QDECL GHL_TraceSphere(unk){notimpf(__func__);}
@@ -1904,7 +1904,7 @@ void SVHL_SpawnEntities(char *entstring)
 	//precache the inline models (and touch them).
 	sv.strings.model_precache[0] = "";
 	sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
-	for (i=1 ; i<sv.world.worldmodel[sv_current_bsp_index]->numsubmodels ; i++)
+	for (i=1 ; i<sv.world.worldmodel[tc_sv_current_bsp_index]->numsubmodels ; i++)
 	{
 		const char *s = va("*%i", i);
 		char *n;
@@ -2117,7 +2117,7 @@ static void SVHL_RunCmdR(hledict_t *ed, usercmd_t *ucmd)
 		break;
 	}
 	pmove.numphysent = 1;
-	pmove.physents[0].model = sv.world.worldmodel[sv_current_bsp_index];
+	pmove.physents[0].model = sv.world.worldmodel[tc_sv_current_bsp_index];
 	pmove.physents[0].info = 0;
 	pmove.skipent = -1;
 	pmove.onladder = false;
@@ -2405,7 +2405,7 @@ qbyte *SVHL_Snapshot_SetupPVS(client_t *client, qbyte *pvs, unsigned int pvsbufs
 	if (client->hledict)
 	{
 		VectorAdd (client->hledict->v.origin, client->hledict->v.view_ofs, org);
-		sv.world.worldmodel[sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[sv_current_bsp_index], org, pvs, pvsbufsize, false);
+		sv.world.worldmodel[tc_sv_current_bsp_index]->funcs.FatPVS(sv.world.worldmodel[tc_sv_current_bsp_index], org, pvs, pvsbufsize, false);
 	}
 
 	return pvs;

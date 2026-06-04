@@ -1806,7 +1806,7 @@ start:
 	{
 		pleaf = (mleaf_t *)node;
 #ifdef TEMPORALCORTEX
-		c = (pleaf - cl.worldmodel[cl_current_bsp_index]->leafs)-1;
+		c = (pleaf - cl.worldmodel[tc_cl_current_bsp_index]->leafs)-1;
 #else
 		c = (pleaf - cl.worldmodel->leafs)-1;
 #endif
@@ -1860,7 +1860,7 @@ start:
 	if (c)
 	{
 #ifdef TEMPORALCORTEX
-		surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+		surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces + node->firstsurface;
 #else
 		surf = cl.worldmodel->surfaces + node->firstsurface;
 #endif
@@ -1945,7 +1945,7 @@ static void Q1BSP_OrthoRecursiveWorldNode (mnode_t *node, unsigned int clipflags
 	if (c)
 	{
 #ifdef TEMPORALCORTEX
-		surf = cl.worldmodel[cl_current_bsp_index]->surfaces + node->firstsurface;
+		surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces + node->firstsurface;
 #else
 		surf = cl.worldmodel->surfaces + node->firstsurface;
 #endif
@@ -2083,7 +2083,7 @@ static void Q1BSP_PrepareFrame(model_t *model, refdef_t *refdef, int area, int c
 	q1frustumvis = vis->buffer;
 	memset(q1frustumvis, 0, model->pvsbytes);
 #ifdef TEMPORALCORTEX
-	if (model != cl.worldmodel[cl_current_bsp_index])
+	if (model != cl.worldmodel[tc_cl_current_bsp_index])
 #else
 	if (model != cl.worldmodel)
 #endif
@@ -2995,9 +2995,9 @@ static void Mod_FindCubemaps(qboolean build)
 {
 	struct bspxrw bspctx;
 #ifdef TEMPORALCORTEX
-	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[cl_current_bsp_index]->name))
+	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[tc_cl_current_bsp_index]->name))
 	{
-		const char *entlump = Mod_GetEntitiesString(cl.worldmodel[cl_current_bsp_index]), *lmp;
+		const char *entlump = Mod_GetEntitiesString(cl.worldmodel[tc_cl_current_bsp_index]), *lmp;
 #else
 	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel->name))
 	{
@@ -3079,10 +3079,10 @@ static void Mod_FindCubemaps(qboolean build)
 		{
 			qsort(envmap, nenvmap, sizeof(*envmap), envmapsort);	//sort them by size
 #ifdef TEMPORALCORTEX
-			if (ZF_ReallocElements((void**)&envmapidx, &nenvmapidx, cl.worldmodel[cl_current_bsp_index]->numsurfaces, sizeof(*envmapidx)))
+			if (ZF_ReallocElements((void**)&envmapidx, &nenvmapidx, cl.worldmodel[tc_cl_current_bsp_index]->numsurfaces, sizeof(*envmapidx)))
 			{
-				for(i = 0; i < cl.worldmodel[cl_current_bsp_index]->numsurfaces; i++)
-					envmapidx[i] = Mod_NearestCubeForSurf(cl.worldmodel[cl_current_bsp_index]->surfaces+i, envmap, nenvmap);
+				for(i = 0; i < cl.worldmodel[tc_cl_current_bsp_index]->numsurfaces; i++)
+					envmapidx[i] = Mod_NearestCubeForSurf(cl.worldmodel[tc_cl_current_bsp_index]->surfaces+i, envmap, nenvmap);
 			}
 #else
 			if (ZF_ReallocElements((void**)&envmapidx, &nenvmapidx, cl.worldmodel->numsurfaces, sizeof(*envmapidx)))
@@ -3094,7 +3094,7 @@ static void Mod_FindCubemaps(qboolean build)
 
 			Mod_BSPXRW_SetLump(&bspctx, "ENVMAP", envmap, nenvmap*sizeof(*envmap));
 #ifdef TEMPORALCORTEX
-			Mod_BSPXRW_SetLump(&bspctx, "SURFENVMAP", envmapidx, cl.worldmodel[cl_current_bsp_index]->numsurfaces*sizeof(*envmapidx));
+			Mod_BSPXRW_SetLump(&bspctx, "SURFENVMAP", envmapidx, cl.worldmodel[tc_cl_current_bsp_index]->numsurfaces*sizeof(*envmapidx));
 #else
 			Mod_BSPXRW_SetLump(&bspctx, "SURFENVMAP", envmapidx, cl.worldmodel->numsurfaces*sizeof(*envmapidx));
 #endif
@@ -3149,7 +3149,7 @@ static void Mod_Realign_f(void)
 {
 	struct bspxrw bspctx;
 #ifdef TEMPORALCORTEX
-	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[cl_current_bsp_index]->name))
+	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel[tc_cl_current_bsp_index]->name))
 #else
 	if (Mod_BSPXRW_Read(&bspctx, cl.worldmodel->name))
 #endif
@@ -3175,8 +3175,8 @@ static void Mod_BSPX_List_f(void)
 	struct bspxrw ctx;
 	char *fname = Cmd_Argv(1);
 #ifdef TEMPORALCORTEX
-	if (!*fname && cl.worldmodel[cl_current_bsp_index])
-		fname = cl.worldmodel[cl_current_bsp_index]->name;
+	if (!*fname && cl.worldmodel[tc_cl_current_bsp_index])
+		fname = cl.worldmodel[tc_cl_current_bsp_index]->name;
 #else
 	if (!*fname && cl.worldmodel)
 		fname = cl.worldmodel->name;
