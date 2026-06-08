@@ -8005,7 +8005,12 @@ void CLQW_ParseServerMessage (void)
 	int			i, j;
 	int			destsplit;
 #ifdef TEMPORALCORTEX
+	int			bspindex;
 	int			track;
+	long long	samplepos;
+	qboolean playing;
+	float time, duration;
+	char title[256];
 #endif
 	vec3_t ang;
 	float f;
@@ -8650,15 +8655,20 @@ void CLQW_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			tc_cl_current_bsp_index = MSG_ReadShort();
+			bspindex = MSG_ReadShort();
+
+			playing = S_GetMusicInfo(0, &time, &duration, title, sizeof(title));
+			tc_snd_positions[tc_cl_current_bsp_index] = time;
+
+			tc_cl_current_bsp_index = bspindex;
 			track = MSG_ReadShort();
-			Media_NumberedTrack( track, track, tc_cl_current_bsp_index );
+			Media_NumberedTrack(track, track, bspindex);
 
 			memset(cl.levelname, 0, sizeof(cl.levelname));
 
 			Q_strcpy(cl.levelname, MSG_ReadString());
 
-			switch(tc_cl_current_bsp_index)
+			switch(bspindex)
 			{
 				case TIME_PERIOD_PRESENT:
 					Q_strcat(cl.levelname, " (present)");
@@ -8673,8 +8683,8 @@ void CLQW_ParseServerMessage (void)
 
 			CSQC_TC_ChangeLevelName(cl.levelname);
 
-			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteShort( &cls.netchan.message, tc_cl_current_bsp_index );
+			MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
+			MSG_WriteShort (&cls.netchan.message, bspindex);
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:
@@ -9826,7 +9836,12 @@ void CLNQ_ParseServerMessage (void)
 	unsigned int u;
 	int			i, j;
 #ifdef TEMPORALCORTEX
+	short		bspindex;
 	int			track;
+	long long samplepos;
+	qboolean playing;
+	float time, duration;
+	char title[256];
 #endif
 	vec3_t		ang;
 	unsigned int cmdstart;
@@ -10554,14 +10569,16 @@ void CLNQ_ParseServerMessage (void)
 #ifdef TEMPORALCORTEX
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
-			tc_cl_current_bsp_index = MSG_ReadShort();
+			tc_cl_current_bsp_index = bspindex = MSG_ReadShort();
 			track = MSG_ReadShort();
-			Media_NumberedTrack( track, track, tc_cl_current_bsp_index );
+			Media_NumberedTrack( track, track, bspindex );
 
 			Q_strcpy(cl.levelname, MSG_ReadString());
 
+			playing = S_GetMusicInfo(0, &time, &duration, title, sizeof(title));
+
 			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteLong( &cls.netchan.message, tc_cl_current_bsp_index );
+			MSG_WriteShort( &cls.netchan.message, bspindex );
 
 			// CL_RefreshModels( tc_cl_current_bsp_index );
 			break;

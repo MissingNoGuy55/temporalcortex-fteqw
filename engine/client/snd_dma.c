@@ -45,6 +45,10 @@ static void S_StopAllSounds_f (void);
 static void S_UpdateCard(soundcardinfo_t *sc);
 static void S_ClearBuffer (soundcardinfo_t *sc);
 
+#ifdef TEMPORALCORTEX
+long long	tc_snd_positions[MAX_TIME_PERIODS];
+#endif
+
 // =======================================================================
 // Internal sound data & structures
 // =======================================================================
@@ -3474,7 +3478,11 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 		chan = &sc->channel[i];
 		if (!chan->sfx)
 		{
+#ifdef TEMPORALCORTEX
+			float time = tc_snd_positions[tc_cl_current_bsp_index];
+#else
 			float time = 0;
+#endif
 			sfx_t *newmusic;
 			if (!S_Music_Playing(i-MUSIC_FIRST))
 			{

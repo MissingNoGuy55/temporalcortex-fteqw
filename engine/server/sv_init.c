@@ -272,7 +272,7 @@ void SVQ1_CreateBaseline (void)
 		// create baselines for all player slots,
 		// and any other edict that has a visible model
 #ifdef TEMPORALCORTEX
-		if (entnum >= sv.allocated_client_slots+tc_sv_loaded_bsps && !svent->v->modelindex)
+		if (entnum >= sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps && !svent->v->modelindex)
 #else
 		if (entnum > sv.allocated_client_slots+1 && !svent->v->modelindex)
 #endif
@@ -283,13 +283,13 @@ void SVQ1_CreateBaseline (void)
 	//
 		SV_Snapshot_BuildStateQ1(&svent->baseline, svent, NULL, NULL);
 #ifdef TEMPORALCORTEX
-		if (entnum > tc_sv_loaded_bsps && entnum <= sv.allocated_client_slots + tc_sv_loaded_bsps)
+		if (entnum > tc_sv_loaded_bsps-tc_sv_unloaded_bsps && entnum <= sv.allocated_client_slots + tc_sv_loaded_bsps-tc_sv_unloaded_bsps)
 #else
 		if (entnum > 1 && entnum <= sv.allocated_client_slots)
 #endif
 		{
 #ifdef TEMPORALCORTEX
-			if (entnum > tc_sv_loaded_bsps && entnum <= 16 + tc_sv_loaded_bsps)
+			if (entnum > tc_sv_loaded_bsps-tc_sv_unloaded_bsps && entnum <= 16 + tc_sv_loaded_bsps-tc_sv_unloaded_bsps)
 #else
 			if (entnum > 1 && entnum <= 16 + 1)
 #endif
@@ -2389,11 +2389,15 @@ MSV_OpenUserDatabase();
 				else
 				{
 					Con_Printf("Switching to extended coord sizes\n");
+#ifndef TEMPORALCORTEX
 					SV_SetupNetworkBuffers(true);
+#endif
 				}
 			}
 #ifdef TEMPORALCORTEX
 		}
+
+		SV_SetupNetworkBuffers(true);
 #endif
 	}
 

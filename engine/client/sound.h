@@ -319,6 +319,10 @@ extern cvar_t snd_mixerthread;
 
 extern int		snd_blocked;
 
+#ifdef TEMPORALCORTEX
+extern long long	tc_snd_positions[MAX_TIME_PERIODS];
+#endif
+
 void S_LocalSound (const char *s);
 void S_LocalSound2 (const char *sound, int channel, float volume);
 qboolean S_LoadSound (sfx_t *s, qboolean forcedecode);

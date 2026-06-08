@@ -3729,12 +3729,12 @@ void SV_ChangeTimePeriod( int bspindex )
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 6 + Q_strlen(sv.mapname[tc_sv_current_bsp_index]);
+	buf.cursize = 6 + Q_strlen(sv.mapname[bspindex]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-	MSG_WriteShort (&sv.reliable_datagram, tc_sv_current_bsp_index);
+	MSG_WriteShort (&sv.reliable_datagram, bspindex);
 	MSG_WriteShort (&sv.reliable_datagram, track);
-	MSG_WriteString (&sv.reliable_datagram, sv.mapname[tc_sv_current_bsp_index]);
+	MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
@@ -3779,11 +3779,11 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	SZ_Clear (&buf);
 	buf.data = bufmem;
 	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 10 + sizeof(sv.modelname[0]);
+	buf.cursize = 6 + sizeof(sv.modelname[0]);
 	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&buf, svctc_timeperiod);
-	MSG_WriteLong (&buf, bspindex);
-	MSG_WriteLong (&buf, track );
+	MSG_WriteShort (&buf, bspindex);
+	MSG_WriteShort (&buf, track);
 	MSG_WriteString (&buf, sv.modelname[bspindex]);
 }
 

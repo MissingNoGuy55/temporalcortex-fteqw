@@ -3084,11 +3084,7 @@ void SV_UpdateToReliableMessages (void)
 			if (j)
 			{
 				if ((unsigned int)j >= svprogfuncs->edicttable_length)
-#ifdef TEMPORALCORTEX
-					j = i+tc_sv_loaded_bsps;
-#else
 					j = i+1;
-#endif
 				if (j != host_client->clientcamera)
 				{
 					if (host_client->fteprotocolextensions & PEXT_VIEW2)
@@ -3096,11 +3092,7 @@ void SV_UpdateToReliableMessages (void)
 						ClientReliableWrite_Begin(host_client, svc_setview, 4);
 						ClientReliableWrite_Entity(host_client, j);
 					}
-#ifdef TEMPORALCORTEX
-					if (j == i+tc_sv_loaded_bsps)
-#else
 					if (j == i+1)
-#endif
 						j = 0;	//self.
 					host_client->viewent = j;
 				}

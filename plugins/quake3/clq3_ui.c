@@ -1068,7 +1068,7 @@ static qintptr_t UI_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 
 	case UI_S_STARTBACKGROUNDTRACK:
 #ifdef TEMPORALCORTEX
-		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]), 0);
+		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]), (short)VM_LONG(arg[2]));
 #else
 		audiofuncs->ChangeMusicTrack(VM_POINTER(arg[0]), VM_POINTER(arg[1]));
 #endif
