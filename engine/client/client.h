@@ -925,6 +925,23 @@ typedef struct
 	} intermissionmode;	// don't change view angle, full screen, etc
 	float		completed_time;	// latched ffrom time at intermission start
 
+#ifdef TEMPORALCORTEX
+#ifdef CLIENTONLY
+	struct modelprecache_s
+	{
+		const char* name;
+		struct model_s* model;
+		struct modelprecache_s* next;
+	} modelprecache_t;
+
+	struct soundprecache_s
+	{
+		const char* name;
+		struct sfx_s* snd;
+		struct soundprecache_s* next;
+	} soundprecache_t;
+#endif
+#endif
 //
 // information that is static for the entire time connected to a server
 //
@@ -933,9 +950,17 @@ typedef struct
 	struct model_s		*model_precache_vwep[MAX_VWEP_MODELS];
 #endif
 	char				*model_name[MAX_PRECACHE_MODELS];
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s		*model_precache;
+#else
 	struct model_s		*model_precache[MAX_PRECACHE_MODELS];
+#endif
 	char				*sound_name[MAX_PRECACHE_SOUNDS];
+#ifdef TEMPORALCORTEX
+	struct soundprecache_s		*sound_precache;
+#else
 	struct sfx_s		*sound_precache[MAX_PRECACHE_SOUNDS];
+#endif
 	char				*particle_ssname[MAX_SSPARTICLESPRE];
 	int					particle_ssprecache[MAX_SSPARTICLESPRE];	//these are actually 1-based, so 0 can be used to lazy-init them. I cheat.
 
@@ -951,7 +976,11 @@ typedef struct
 #endif
 
 	char				model_csqcname[MAX_CSMODELS][MAX_QPATH];
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s		*model_csqcprecache;
+#else
 	struct model_s		*model_csqcprecache[MAX_CSMODELS];
+#endif
 	char				*particle_csname[MAX_CSPARTICLESPRE];
 	int					particle_csprecache[MAX_CSPARTICLESPRE];	//these are actually 1-based, so we can be lazy and do a simple negate.
 
@@ -1211,6 +1240,18 @@ void CL_SetInfoBlob (int pnum, const char *key, const char *value, size_t values
 char *CL_TryingToConnect(void);
 
 void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
+
+#ifdef TEMPORALCORTEX
+short CL_NumPrecaches();
+struct model_s *CL_FindPrecacheByName(const char* name);
+struct model_s *CL_FindPrecacheByModelIndex(short modelindex);
+struct sfx_s *CL_FindPrecacheBySoundIndex(short soundindex);
+struct model_s *CL_AddModelPrecache(const char* name, short timeperiod);
+struct sfx_s *CL_AddSoundPrecache(const char* name, short timeperiod);
+struct model_s *CSQC_FindPrecacheByName(const char* name);
+struct model_s *CSQC_FindPrecacheByModelIndex(short modelindex);
+struct model_s *CSQC_AddPrecache(const char* name, short timeperiod);
+#endif
 
 extern	int				cl_framecount;	//number of times the entity lists have been cleared+reset.
 extern	int				cl_numvisedicts;

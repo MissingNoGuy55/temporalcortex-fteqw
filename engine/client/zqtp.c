@@ -2932,8 +2932,11 @@ void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_
 	if (!pv->spectator && cl.teamplay && strcmp(info->team, TP_PlayerTeam()))
 	{
 		qboolean eyes;
+#ifdef TEMPORALCORTEX
+		eyes = state->modelindex && cl.model_precache[state->modelindex].model && !strcmp(cl.model_precache[state->modelindex].model->name, "progs/eyes.mdl");
+#else
 		eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
-
+#endif
 		if (state->effects & (EF_BLUE | EF_RED) || eyes)
 		{
 			vars.enemy_powerups = 0;
@@ -3328,8 +3331,11 @@ static void TP_FindPoint (void)
 		if ((rank < best || best < 0) && TP_IsItemVisible(&visitem))
 		{
 			qboolean teammate, eyes = false;
-
+#ifdef TEMPORALCORTEX
+			eyes = state->modelindex && cl.model_precache[state->modelindex].model && !strcmp(cl.model_precache[state->modelindex].model->name, "progs/eyes.mdl");
+#else
 			eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
+#endif
 			teammate = !!(cl.teamplay && !strcmp(info->team, TP_PlayerTeam()));
 
 			if (eyes && !(pointflags_dmm & it_eyes))
@@ -3349,8 +3355,11 @@ static void TP_FindPoint (void)
 	{
 		qboolean teammate, eyes;
 		char *name, buf[256] = {0};
-
+#ifdef TEMPORALCORTEX
+		eyes = beststate->modelindex && cl.model_precache[beststate->modelindex].model && !strcmp(cl.model_precache[beststate->modelindex].model->name, "progs/eyes.mdl");
+#else
 		eyes = beststate->modelindex && cl.model_precache[beststate->modelindex] && !strcmp(cl.model_precache[beststate->modelindex]->name, "progs/eyes.mdl");
+#endif
 		if (cl.teamfortress)
 		{
 			teammate = !strcmp(Utils_TF_ColorToTeam(bestinfo->rbottomcolor), TP_PlayerTeam());

@@ -71,23 +71,38 @@ int SV_ModelIndex (const char *name)
 
 	if (!name || !name[0])
 		return 0;
-
+#ifdef TEMPORALCORTEX
+	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i].model ; i++)
+		if (!strcmp(sv.strings.model_precache[i].name, name))
+			return i;
+	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i].model)
+	{
+#else
 	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], name))
 			return i;
 	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i])
 	{
+#endif
 		if (i!=MAX_PRECACHE_MODELS)
 		{
 #ifdef VM_Q1
 			if (svs.gametype == GT_Q1QVM)
+#ifdef TEMPORALCORTEX
+				sv.strings.model_precache[i].name = name;
+#else
 				sv.strings.model_precache[i] = name;
+#endif
 			else
 #endif
+#ifdef TEMPORALCORTEX
+				sv.strings.model_precache[i].name = PR_AddString(svprogfuncs, name, 0, false);
+#else
 				sv.strings.model_precache[i] = PR_AddString(svprogfuncs, name, 0, false);
+#endif
 			if (!strcmp(name + strlen(name) - 4, ".bsp"))
 #ifdef TEMPORALCORTEX
-				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[sv.world.worldmodel_indices[tc_sv_current_bsp_index]]));
+				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i].name, sv.strings.model_precache[sv.world.worldmodel_indices[tc_sv_current_bsp_index]].name));
 #else
 				sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 #endif
@@ -98,16 +113,20 @@ int SV_ModelIndex (const char *name)
 			{
 				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 				MSG_WriteShort(&sv.reliable_datagram, i);
-				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i]);
 #ifdef TEMPORALCORTEX
+				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i].name);
 				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+#else
+				MSG_WriteString(&sv.reliable_datagram, sv.strings.model_precache[i]);
 #endif
 #ifdef NQPROT
 				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 				MSG_WriteShort(&sv.nqreliable_datagram, i);
-				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i]);
 #ifdef TEMPORALCORTEX
+				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i].name);
 				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+#else
+				MSG_WriteString(&sv.nqreliable_datagram, sv.strings.model_precache[i]);
 #endif
 #endif
 			}
@@ -123,7 +142,15 @@ int SV_SafeModelIndex (char *name)
 
 	if (!name || !name[0])
 		return 0;
-
+#ifdef TEMPORALCORTEX
+	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i].model ; i++)
+		if (!strcmp(sv.strings.model_precache[i].name, name))
+			return i;
+	if (i==MAX_PRECACHE_MODELS || !sv.strings.model_precache[i].model)
+	{
+		return 0;
+	}
+#else
 	for (i=1 ; i<MAX_PRECACHE_MODELS && sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], name))
 			return i;
@@ -131,6 +158,7 @@ int SV_SafeModelIndex (char *name)
 	{
 		return 0;
 	}
+#endif
 	return i;
 }
 
@@ -645,6 +673,17 @@ void SV_UnspawnServer (void)	//terminate the running server.
 	{
 		BZ_Free(sv.world.model_time_periods);
 		sv.world.model_time_periods = NULL;
+	}
+
+	if (sv.strings.model_precache)
+	{
+		BZ_Free(sv.strings.model_precache);
+		sv.strings.model_precache = NULL;
+	}
+	if (sv.strings.sound_precache)
+	{
+		BZ_Free(sv.strings.sound_precache);
+		sv.strings.sound_precache = NULL;
 	}
 #endif
 
@@ -1533,8 +1572,8 @@ MSV_OpenUserDatabase();
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
 #ifdef TEMPORALCORTEX
-	sv.strings.sound_precache[0] = "";
-	sv.strings.model_precache[0] = "";
+	sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s) * i);
+	sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s) * i);
 
 	if (!sv.world.model_time_periods)
 	{
@@ -1563,13 +1602,13 @@ MSV_OpenUserDatabase();
 				subs = MAX_PRECACHE_MODELS-2;
 			}
 
-			sv.strings.model_precache[j] = sv.modelname[t];	//the qvm doesn't have access to this array
+			sv.strings.model_precache[j].name = sv.modelname[t];	//the qvm doesn't have access to this array
 			for (i=1 ; i<subs ; i++)
 			{
 				char *z, *s = va("*%u", i);
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
-				sv.strings.model_precache[i+j] = z;
+				SV_AddPrecache(z, t);
 				sv.models[i+j] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
 			}
 
@@ -1589,7 +1628,7 @@ MSV_OpenUserDatabase();
 		{
 			int subs;
 
-			sv.strings.model_precache[j] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
+			sv.strings.model_precache[j].name = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
 			sv.world.worldmodel_indices[t] = j;
 			sv.world.model_time_periods[j] = t;
 
@@ -1604,8 +1643,7 @@ MSV_OpenUserDatabase();
 
 			for (i=1 ; i<subs ; i++)
 			{
-				sv.strings.model_precache[i+j] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
-				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j], sv.modelname[t]), MLV_WARN);
+				sv.models[i+j] = SV_AddPrecache(PR_AddString(svprogfuncs, va("*%u", i), 0, false), t);
 				sv.world.model_time_periods[i+j] = t;
 
 				Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching model %s with time period %d; postfix %s\n", sv.strings.model_precache[i+j], sv.world.model_time_periods[i+j], sv.modelname[t]);

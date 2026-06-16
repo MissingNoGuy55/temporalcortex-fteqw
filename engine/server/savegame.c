@@ -2109,7 +2109,15 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 	{
 		if (!modelnames[i])
 			break;
+#ifdef TEMPORALCORTEX
+		struct modelprecache_s precache;
+		memset(&precache, 0, sizeof(precache));
+
+		precache.name = PR_AddString(svprogfuncs, modelnames[i], 0, false);
+		memcpy(&sv.strings.model_precache[i], &precache, sizeof(precache));
+#else
 		sv.strings.model_precache[i] = PR_AddString(svprogfuncs, modelnames[i], 0, false);
+#endif
 
 		Z_Free(modelnames[i]);
 	}
@@ -2117,8 +2125,15 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 	{
 		if (!soundnames[i])
 			break;
+#ifdef TEMPORALCORTEX
+		struct modelprecache_s precache;
+		memset(&precache, 0, sizeof(precache));
 
+		precache.name = PR_AddString(svprogfuncs, soundnames[i], 0, false);
+		memcpy(&sv.strings.sound_precache[i], &precache, sizeof(precache));
+#else
 		sv.strings.sound_precache[i] = PR_AddString(svprogfuncs, soundnames[i], 0, false);
+#endif
 
 		Z_Free(soundnames[i]);
 	}

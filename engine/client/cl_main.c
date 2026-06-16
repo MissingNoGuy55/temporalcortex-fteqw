@@ -964,6 +964,93 @@ static void CL_NullReadPacket(void)
 }
 #endif
 
+#ifdef TEMPORALCORTEX
+short CL_NumPrecaches()
+{
+	short i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = cl.model_precache; precache; precache = precache->next, i++)
+		;
+
+	return i;
+}
+
+struct model_s *CL_FindPrecacheByName(const char* name)
+{
+	struct modelprecache_s* precache;
+
+	for (precache = cl.model_precache; precache; precache = precache->next)
+		if (!strcmp(precache->name, name))
+			return precache->model;
+
+	return NULL;
+}
+
+struct model_s *CL_FindPrecacheByModelIndex(short modelindex)
+{
+	int i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+		if (i == modelindex)
+			return precache->model;
+
+	return NULL;
+}
+
+struct model_s *CL_AddModelPrecache(const char* name, short timeperiod)
+{
+	struct modelprecache_s* precache;
+
+	for (precache = cl.model_precache; precache->model; precache = precache->next)
+		;
+
+	precache->name = name;
+	precache->model = Mod_ForName (Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
+	precache->next = precache+1;
+
+	return NULL;
+}
+
+struct sfx_s *CL_AddSoundPrecache(const char* name, short timeperiod)
+{
+	struct soundprecache_s* precache;
+
+	for (precache = cl.sound_precache; precache->snd; precache = precache->next)
+		;
+
+	precache->name = name;
+	precache->snd = S_PrecacheSound(precache->name);
+	precache->next = precache+1;
+
+	return NULL;
+}
+
+struct model_s *CSQC_FindPrecacheByName(const char* name)
+{
+	int i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+		if (!strcmp(precache->name, name))
+			return precache->model;
+
+	return NULL;
+}
+
+struct model_s *CSQC_FindPrecacheByModelIndex(short modelindex)
+{
+	int i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+		if (i == modelindex)
+			return precache->model;
+
+	return NULL;
+}
+#endif
 
 struct resolvectx_s
 {

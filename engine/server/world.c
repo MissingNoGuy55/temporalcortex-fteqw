@@ -2309,9 +2309,11 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 		{
 			if (touch->modelindex <= 0 || touch->modelindex >= MAX_PRECACHE_MODELS)
 				continue;	//erk
-
+#ifdef TEMPORALCORTEX
+			model = cl.model_precache[touch->modelindex].model;
+#else
 			model = cl.model_precache[touch->modelindex];
-
+#endif
 			if (!model || model->loadstate != MLS_LOADED || !model->funcs.NativeTrace)
 				continue;
 			VectorCopy(model->mins, bmins);

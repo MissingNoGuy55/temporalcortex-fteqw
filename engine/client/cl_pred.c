@@ -139,7 +139,11 @@ void CLQ2_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 
 		if (ent->solidsize == ES_SOLID_BSP)
 		{	// special value for bmodel
+#ifdef TEMPORALCORTEX
+			cmodel = cl.model_precache[ent->modelindex].model;
+#else
 			cmodel = cl.model_precache[ent->modelindex];
+#endif
 			if (!cmodel)
 				continue;
 			angles = ent->angles;
@@ -220,7 +224,11 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 
 		if (ent->solidsize != ES_SOLID_BSP) // special value for bmodel
 			continue;
+#ifdef TEMPORALCORTEX
+		cmodel = cl.model_precache[ent->modelindex].model;
+#else
 		cmodel = cl.model_precache[ent->modelindex];
+#endif
 		if (!cmodel)
 			continue;
 
@@ -781,11 +789,19 @@ static void CL_DecodeStateSize(unsigned int solid, int modelindex, vec3_t mins, 
 {
 	if (solid == ES_SOLID_BSP)
 	{
+#ifdef TEMPORALCORTEX
+		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[modelindex].model && cl.model_precache[modelindex].model->loadstate == MLS_LOADED)
+		{
+			VectorCopy(cl.model_precache[modelindex].model->mins, mins);
+			VectorCopy(cl.model_precache[modelindex].model->maxs, maxs);
+		}
+#else
 		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[modelindex] && cl.model_precache[modelindex]->loadstate == MLS_LOADED)
 		{
 			VectorCopy(cl.model_precache[modelindex]->mins, mins);
 			VectorCopy(cl.model_precache[modelindex]->maxs, maxs);
 		}
+#endif
 		else
 		{
 			VectorClear(mins);

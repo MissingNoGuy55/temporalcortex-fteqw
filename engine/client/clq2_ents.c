@@ -2046,7 +2046,11 @@ unsigned int CLQ2_GatherSounds(vec3_t *positions, unsigned int *entnums, sfx_t *
 		s1 = &clq2_parse_entities[(frame->parse_entities+pnum)&(MAX_PARSE_ENTITIES-1)];
 		if (s1->u.q2.sound > 0 && s1->u.q2.sound < MAX_PRECACHE_SOUNDS)
 		{
+#ifdef TEMPORALCORTEX
+			sfx = cl.sound_precache[s1->u.q2.sound].snd;
+#else
 			sfx = cl.sound_precache[s1->u.q2.sound];
+#endif
 
 			if (sfx)
 			{
@@ -2420,7 +2424,11 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 			{
 				ent.skinnum = s1->skinnum;
 //				ent.skin = NULL;
+#ifdef TEMPORALCORTEX
+				ent.model = cl.model_precache[s1->modelindex].model;
+#else
 				ent.model = cl.model_precache[s1->modelindex];
+#endif
 			}
 		}
 
@@ -2637,8 +2645,11 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 					ent.model = Mod_ForName(va("players/%s/%s", "male", cl.q2visibleweapons[i]), MLV_WARN);
 			}
 			else
+#ifdef TEMPORALCORTEX
+				ent.model = cl.model_precache[s1->modelindex2].model;
+#else
 				ent.model = cl.model_precache[s1->modelindex2];
-
+#endif
 			// PMM - check for the defender sphere shell .. make it translucent
 			// replaces the previous version which used the high bit on modelindex2 to determine transparency
 /*			if (!Q_strcasecmp (cl.model_name[(s1->modelindex2)], "models/items/shell/tris.md2"))
@@ -2659,12 +2670,20 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 		}
 		if (s1->u.q2.modelindex3)
 		{
+#ifdef TEMPORALCORTEX
+			ent.model = cl.model_precache[s1->u.q2.modelindex3].model;
+#else
 			ent.model = cl.model_precache[s1->u.q2.modelindex3];
+#endif
 			V_AddEntity (&ent);
 		}
 		if (s1->u.q2.modelindex4)
 		{
+#ifdef TEMPORALCORTEX
+			ent.model = cl.model_precache[s1->u.q2.modelindex4].model;
+#else
 			ent.model = cl.model_precache[s1->u.q2.modelindex4];
+#endif
 			V_AddEntity (&ent);
 		}
 
@@ -2876,12 +2895,21 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 	AngleVectors(pv->simangles, r_refdef.weaponmatrix[0], r_refdef.weaponmatrix[1], r_refdef.weaponmatrix[2]);
 	VectorInverse(r_refdef.weaponmatrix[1]);
 	memcpy(r_refdef.weaponmatrix_bob, r_refdef.weaponmatrix, sizeof(r_refdef.weaponmatrix_bob));
+#ifdef TEMPORALCORTEX
+	if (om != cl.model_precache[ps->gunindex].model)
+	{
+		pv->vm.prevframe = pv->vm.oldframe = ps->gunframe;
+		pv->vm.lerptime = pv->vm.oldlerptime = cl.oldgametime;
+	}
+	pv->vm.oldmodel = cl.model_precache[ps->gunindex].model;
+#else
 	if (om != cl.model_precache[ps->gunindex])
 	{
 		pv->vm.prevframe = pv->vm.oldframe = ps->gunframe;
 		pv->vm.lerptime = pv->vm.oldlerptime = cl.oldgametime;
 	}
 	pv->vm.oldmodel = cl.model_precache[ps->gunindex];
+#endif
 	if (!pv->vm.oldmodel)
 		return;
 

@@ -1363,12 +1363,23 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 		return;
 	else
 	{
+#ifdef TEMPORALCORTEX
+		struct soundprecache_s* precache = SV_FindPrecacheByModelIndex()
+
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
 			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
 			if (!strcmp(sample, sv.strings.sound_precache[ctx.sampleidx]))
 				break;
 		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[ctx.sampleidx] )
 		{
+#else
+		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
+			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
+			if (!strcmp(sample, sv.strings.sound_precache[ctx.sampleidx]))
+				break;
+		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[ctx.sampleidx] )
+		{
+#endif
 			if (ctx.sampleidx < MAX_PRECACHE_SOUNDS)
 			{
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);

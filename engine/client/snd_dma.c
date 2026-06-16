@@ -2199,7 +2199,11 @@ void S_DoRestart (qboolean onlyifneeded)
 	{
 		if (!cl.sound_name[i])
 			break;
+#ifdef TEMPORALCORTEX
+		cl.sound_precache[i].snd = S_FindName (cl.sound_name[i], true, false);
+#else
 		cl.sound_precache[i] = S_FindName (cl.sound_name[i], true, false);
+#endif
 	}
 }
 
@@ -2776,6 +2780,19 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 			//VectorCopy(le->velocity, ch->velocity);	//fixme: bmodels should use their center rather than their origin. check le->state->solid?
 
 			//bmodels should report the center of the entity rather than the origin (which is frequently at 0 0 0 or merely used as a pivot)
+#ifdef TEMPORALCORTEX
+			struct modelprecache_s* precache;
+
+			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < CL_NumPrecaches())
+			{
+				if (cl.model_precache[midx].model && cl.model_precache[midx].model->loadstate == MLS_LOADED && cl.model_precache[midx].model->type == mod_brush)
+				{
+					//fixme: should probably deal with rotations.
+					VectorMA(ch->origin, 0.5, cl.model_precache[midx].model->mins, ch->origin);
+					VectorMA(ch->origin, 0.5, cl.model_precache[midx].model->maxs, ch->origin);
+				}
+			}
+#else
 			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < countof(cl.model_precache))
 			{
 				if (cl.model_precache[midx] && cl.model_precache[midx]->loadstate == MLS_LOADED && cl.model_precache[midx]->type == mod_brush)
@@ -2785,6 +2802,7 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 					VectorMA(ch->origin, 0.5, cl.model_precache[midx]->maxs, ch->origin);
 				}
 			}
+#endif
 		}
 		//FIXME: update rate to provide doppler
 	}

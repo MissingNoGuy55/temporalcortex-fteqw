@@ -4215,16 +4215,22 @@ TRACE(("dbg: Surf_NewMap: ui\n"));
 		q3->ui.Reset();
 #endif
 TRACE(("dbg: Surf_NewMap: tp\n"));
-	TP_NewMap();
 
 	for (i = 0; i < cl.num_statics; i++)
 	{
 		vec3_t mins, maxs;
 		//fixme: no rotation
+#ifdef TEMPORALCORTEX
+		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < MAX_PRECACHE_MODELS)
+			cl_static_entities[i].ent.model = cl.model_precache[cl_static_entities[i].mdlidx].model;
+		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < MAX_PRECACHE_MODELS)
+			cl_static_entities[i].ent.model = cl.model_csqcprecache[-cl_static_entities[i].mdlidx].model;
+#else
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < countof(cl.model_precache))
 			cl_static_entities[i].ent.model = cl.model_precache[cl_static_entities[i].mdlidx];
 		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < countof(cl.model_csqcprecache))
 			cl_static_entities[i].ent.model = cl.model_csqcprecache[-cl_static_entities[i].mdlidx];
+#endif
 		if (cl_static_entities[i].ent.model)
 		{
 			//unfortunately, we need to know the actual size so that we can get this right. bum.

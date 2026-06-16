@@ -146,6 +146,22 @@ typedef struct server_s
 
 	world_t world;
 
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s
+	{
+		const char* name;
+		struct model_s* model;
+		struct modelprecache_s* next;
+	} modelprecache_t;
+
+	struct soundprecache_s
+	{
+		const char* name;
+		struct sfx_s* snd;
+		struct soundprecache_s* next;
+	} soundprecache_t;
+#endif
+
 	union {
 #ifdef Q2SERVER
 		struct {
@@ -158,9 +174,15 @@ typedef struct server_s
 #ifdef HAVE_LEGACY
 			const char	*vw_model_precache[32];
 #endif
+#ifdef TEMPORALCORTEX
+			struct modelprecache_s *model_precache;	// NULL terminated
+			const char	**particle_precache;	// NULL terminated
+			struct soundprecache_s *sound_precache;	// NULL terminated
+#else
 			const char	*model_precache[MAX_PRECACHE_MODELS];	// NULL terminated
 			const char	*particle_precache[MAX_SSPARTICLESPRE];	// NULL terminated
 			const char	*sound_precache[MAX_PRECACHE_SOUNDS];	// NULL terminated
+#endif
 		};
 		const char *ptrs[1];
 	} strings;
@@ -1177,6 +1199,15 @@ void SV_ArgumentOverrides(void);
 int SV_CalcPing (client_t *cl, qboolean forcecalc);
 void SV_FullClientUpdate (client_t *client, client_t *to);
 char *SV_PlayerPublicAddress(client_t *cl);
+
+#ifdef TEMPORALCORTEX
+short SV_NumPrecaches();
+struct model_s *SV_FindPrecacheByName(const char* name);
+struct model_s *SV_FindPrecacheByModelIndex(short modelindex);
+struct sfx_s *SV_FindPrecacheBySoundIndex(short soundindex);
+struct model_s *SV_AddModelPrecache(const char* name, short timeperiod);
+struct sfx_s *SV_AddSoundPrecache(const char* name, short timeperiod);
+#endif
 
 void SV_GeneratePublicServerinfo(char *info, const char *endinfo);
 const char *SV_GetProtocolVersionString(void);	//decorate the protocol version field of server queries with extra features...

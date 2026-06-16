@@ -1200,6 +1200,82 @@ char *SV_PlayerPublicAddress(client_t *cl)
 	return va("prot %s %s", prot, ver);	//something so they can't confuse ip parsing so easily nor pass them off as some other protocol.
 }
 
+#ifdef TEMPORALCORTEX
+short SV_NumPrecaches()
+{
+	short i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = sv.strings.model_precache; precache->model; precache = precache->next, i++)
+		;
+
+	return i;
+}
+
+struct model_s *SV_FindPrecacheByName(const char* name)
+{
+	struct modelprecache_s* precache;
+
+	for (precache = sv.strings.model_precache; precache->model; precache = precache->next)
+		if (!strcmp(precache->name, name))
+			return precache->model;
+
+	return NULL;
+}
+
+struct model_s *SV_FindPrecacheByModelIndex(short modelindex)
+{
+	int i;
+	struct modelprecache_s* precache;
+
+	for (i = 0, precache = sv.strings.model_precache; precache->model; precache = precache->next, i++)
+		if (i == modelindex)
+			return precache->model;
+
+	return NULL;
+}
+
+struct sfx_s *SV_FindPrecacheBySoundIndex(short soundindex)
+{
+	int i;
+	struct soundprecache_s* precache;
+
+	for (i = 0, precache = sv.strings.sound_precache; precache->snd; precache = precache->next, i++)
+		if (i == soundindex)
+			return precache->snd;
+
+	return NULL;
+}
+
+struct model_s *SV_AddModelPrecache(const char* name, short timeperiod)
+{
+	struct modelprecache_s* precache;
+
+	for (precache = sv.strings.model_precache; precache->model; precache = precache->next)
+		;
+
+	precache->name = name;
+	precache->model = Mod_ForName (Mod_FixName(name, sv.modelname[timeperiod]), MLV_WARN);
+	precache->next = precache+1;
+
+	return precache->model;
+}
+
+struct sfx_s *SV_AddSoundPrecache(const char* name, short timeperiod)
+{
+	struct soundprecache_s* precache;
+
+	for (precache = sv.strings.sound_precache; precache->snd; precache = precache->next)
+		;
+
+	precache->name = name;
+	precache->snd = S_PrecacheSound(name);
+	precache->next = precache+1;
+
+	return precache->snd;
+}
+#endif
+
 /*
 ================
 SVC_Status

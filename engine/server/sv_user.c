@@ -1436,6 +1436,10 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 	if (client->prespawn_stage == PRESPAWN_SOUNDLIST)
 	{
+#ifdef TEMPORALCORTEX
+		struct soundprecache_s* precache_sound_info = sv.strings.sound_precache;
+#endif
+
 		if (ISQWCLIENT(client))
 		{
 			int maxclientsupportedsounds = 256;
@@ -1474,13 +1478,21 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					}
 				}
 				client->prespawn_idx++;
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= maxclientsupportedsounds || !precache_sound_info)
+#else
 				if (client->prespawn_idx >= maxclientsupportedsounds || !sv.strings.sound_precache[client->prespawn_idx])
+#endif
 				{
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
 					started = 0;
+#ifdef TEMPORALCORTEX
+					if (precache_sound_info && !(client->plimitwarned & PLIMIT_SOUNDS))
+#else
 					if (sv.strings.sound_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
+#endif
 					{
 						client->plimitwarned |= PLIMIT_SOUNDS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i sounds. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1491,7 +1503,13 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
+#ifdef TEMPORALCORTEX
+					MSG_WriteString (&client->netchan.message, precache_sound_info->name);
+
+				precache_sound_info = precache_sound_info->next;
+#else
 					MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
+#endif
 			}
 			if (started)
 			{
@@ -1506,10 +1524,17 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				client->prespawn_idx = 1;
 			while (client->netchan.message.cursize < maxsize)
 			{
+#ifdef TEMPORALCORTEX
+				if (client->prespawn_idx >= MAX_PRECACHE_SOUNDS || !precache_sound_info)
+				{
+					if (precache_sound_info && !(client->plimitwarned & PLIMIT_SOUNDS))
+					{
+#else
 				if (client->prespawn_idx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[client->prespawn_idx])
 				{
 					if (sv.strings.sound_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_SOUNDS))
 					{
+#endif
 						client->plimitwarned |= PLIMIT_SOUNDS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i sounds. Please upgrade or enable extensions.\n", client->prespawn_idx);
 					}
@@ -1520,9 +1545,13 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, 0x8000|client->prespawn_idx);
-				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
+				MSG_WriteString (&client->netchan.message, precache_sound_info->name);
 				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+
+				precache_sound_info = precache_sound_info->next;
+#else
+				MSG_WriteString (&client->netchan.message, sv.strings.sound_precache[client->prespawn_idx]);
 #endif
 				client->prespawn_idx++;
 			}
@@ -1575,6 +1604,10 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 	if (client->prespawn_stage == PRESPAWN_MODELLIST)
 	{
+#ifdef TEMPORALCORTEX
+		struct modelprecache_s* precache_model_info = sv.strings.model_precache;
+#endif
+
 		if (ISQWCLIENT(client))
 		{
 			started = false;
@@ -1606,14 +1639,14 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 
 				client->prespawn_idx++;
-				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
+				if (client->prespawn_idx >= client->maxmodels || !precache_model_info)
 				{
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
 
 					started = 0;
-					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+					if (precache_model_info && !(client->plimitwarned & PLIMIT_MODELS))
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1625,11 +1658,14 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				else
 				{
-					MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+					MSG_WriteString (&client->netchan.message, precache_model_info->name);
 #ifdef TEMPORALCORTEX
 					MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
 #endif
 				}
+#ifdef TEMPORALCORTEX
+				precache_model_info = precache_model_info->next;
+#endif
 			}
 
 			if (started)
@@ -1653,9 +1689,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				client->prespawn_idx = 1;
 			while (client->netchan.message.cursize < maxsize)
 			{
-				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
+				if (client->prespawn_idx >= client->maxmodels || !precache_model_info)
 				{
-					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+					if (precache_model_info && !(client->plimitwarned & PLIMIT_MODELS))
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1667,9 +1703,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
-				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+				MSG_WriteString (&client->netchan.message, precache_model_info->name);
 #ifdef TEMPORALCORTEX
 				MSG_WriteShort(&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
+
+				precache_model_info = precache_model_info->next;
 #endif
 				client->prespawn_idx++;
 			}

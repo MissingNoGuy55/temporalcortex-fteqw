@@ -706,7 +706,11 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 			if (e->playerindex >= 0 && e->playerindex <= MAX_CLIENTS)
 			{
 				//heads don't get skinned, only players (and weaponless players), they do still get recoloured.
+#ifdef TEMPORALCORTEX
+				if (model==cl.model_precache[cl_playerindex].model
+#else
 				if (model==cl.model_precache[cl_playerindex]
+#endif
 #ifdef HAVE_LEGACY
 					|| model==cl.model_precache_vwep[0]
 #endif
@@ -1774,7 +1778,11 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 	/*switch model if we're the player model, and the player skin says a new model*/
 	{
 		extern int cl_playerindex;
+#ifdef TEMPORALCORTEX
+		if (e->playerindex >= 0 && e->model == cl.model_precache[cl_playerindex].model)
+#else
 		if (e->playerindex >= 0 && e->model == cl.model_precache[cl_playerindex])
+#endif
 		{
 			clmodel = cl.players[e->playerindex].model;
 			if (!clmodel || clmodel->type != mod_alias)
