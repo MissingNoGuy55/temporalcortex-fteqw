@@ -1593,7 +1593,7 @@ MSV_OpenUserDatabase();
 			sv.world.worldmodel_indices[t] = j;
 			sv.world.model_time_periods[j] = t;
 
-			Con_DPrintf(CON_NOTICE "[SV] Precaching model %s with time period %d; postfix %s\n", sv.modelname[t], sv.world.model_time_periods[j], sv.modelname[t]);
+			Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching model %s with time period %d; postfix %s\n", sv.modelname[t], sv.world.model_time_periods[j], sv.modelname[t]);
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
 			if (subs > MAX_PRECACHE_MODELS-2)
@@ -1608,7 +1608,7 @@ MSV_OpenUserDatabase();
 				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j], sv.modelname[t]), MLV_WARN);
 				sv.world.model_time_periods[i+j] = t;
 
-				Con_DPrintf(CON_NOTICE "[SV] Precaching model %s with time period %d; postfix %s\n", sv.strings.model_precache[i+j], sv.world.model_time_periods[i+j], sv.modelname[t]);
+				Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching model %s with time period %d; postfix %s\n", sv.strings.model_precache[i+j], sv.world.model_time_periods[i+j], sv.modelname[t]);
 			}
 
 			j += i;
@@ -1653,7 +1653,7 @@ MSV_OpenUserDatabase();
 				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
 			}
 
-			j += subs;
+			j += i;
 		}
 #endif
 		// o++;
