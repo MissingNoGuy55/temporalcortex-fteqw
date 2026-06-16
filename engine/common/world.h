@@ -226,8 +226,9 @@ struct world_s
 	// Missi: Boolean arrays are usually a terrible idea, but in the general scope of FTEQW, and the numerous model_t derivatives,
 	// this is the better solution. (2026.5.17)
 	qboolean		disabled_levels[MAX_TIME_PERIODS];
-	int				worldmodel_indices[MAX_TIME_PERIODS];
-	int				world_indices[MAX_TIME_PERIODS];
+	short			worldmodel_indices[MAX_TIME_PERIODS];
+	short			world_indices[MAX_TIME_PERIODS];
+	short*			model_time_periods;
 #else
 	model_t			*worldmodel;
 #endif

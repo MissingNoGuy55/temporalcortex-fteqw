@@ -3674,8 +3674,6 @@ void SV_Download_f (void)
 #ifdef TEMPORALCORTEX
 void SV_ChangeTimePeriod( int bspindex )
 {
-	sizebuf_t buf;
-	qbyte bufmem[512];
 	int i, track;
 	edict_t *worldEdict, *ed;
 
@@ -3693,8 +3691,6 @@ void SV_ChangeTimePeriod( int bspindex )
 	if ( !worldEdict )
 		return;
 
-	tc_sv_current_bsp_index = bspindex;
-
 	for ( i = 0; i < sv.allocated_client_slots; i++ )
 	{
 		ed = svs.clients[i].edict;
@@ -3703,7 +3699,7 @@ void SV_ChangeTimePeriod( int bspindex )
 
 	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
 	// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
-	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
+	for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps; i < sv.world.num_edicts; i++ )
 	{
 		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 
@@ -3717,20 +3713,15 @@ void SV_ChangeTimePeriod( int bspindex )
 		// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
 		if ((int)ed->v->flags & FL_MONSTER)
 			ed->v->enemy = pr_global_struct->world;
-		// Missi: Check for the grappling hook and transport it (2026.6.1)
-		else if (!strncmp(PR_GetString(svprogfuncs, ed->v->classname), "hook", 4))
+
+		// Missi: HACK: Check for the grappling hook and transport it (2026.6.1)
+		// Missi: FIXME: This sucks as "hook" is a generic noun. Please get rid of this ASAP (2026.6.12)
+		if (!strncmp(PR_GetString(svprogfuncs, ed->v->classname), "hook", 4))
 			ed->bspnum = bspindex;
 	}
 
 	track = worldEdict->v->sounds;
 
-	memset( &bufmem, 0, sizeof( bufmem ) );
-
-	SZ_Clear (&buf);
-	buf.data = bufmem;
-	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 6 + Q_strlen(sv.mapname[bspindex]);
-	buf.packing = SZ_RAWBYTES;
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
 	MSG_WriteShort (&sv.reliable_datagram, bspindex);
 	MSG_WriteShort (&sv.reliable_datagram, track);
@@ -3769,11 +3760,6 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	{
 		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 		pEdict->v->enemy = pr_global_struct->world;
-
-		if ( pEdict->bspnum == bspindex )
-			World_LinkEdict( &sv.world, (wedict_t*)pEdict, true );	// Missi: Allow collision and interactions again (2025.9.23)
-		else
-			World_UnlinkEdict( (wedict_t*)pEdict );	// Missi: Disallow collision and interactions (2025.9.23)
 	}
 
 	SZ_Clear (&buf);
@@ -3792,12 +3778,11 @@ void SV_ChangeTimePeriod_f()
 	const char* pszArg;
 	int i;
 	char szPrintString[256];
+	const char* suffix;
 	trace_t tTrace;
 	client_t* pClient;
 	edict_t* pClientEdict;
-	qboolean bStuck;
-
-	bStuck = false;
+	qboolean bStuck = false;
 
 	if ( !(pszArg = Cmd_Argv(1)) )
 	{
@@ -3805,74 +3790,90 @@ void SV_ChangeTimePeriod_f()
 		return;
 	}
 
-	if ( sv.world.worldmodel[atoi(pszArg)] )
+	if ( Q_atoi(pszArg) < TIME_PERIOD_PRESENT || Q_atoi(pszArg) > TIME_PERIOD_FUTURE )
 	{
-		for ( i = 0; i < svs.allocated_client_slots; i++ )
-		{
-			pClient = &svs.clients[i];
-			pClientEdict = pClient->edict;
-
-			if ( !pClientEdict )
-				break;
-
-			tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, MOVE_NORMAL, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
-
-			if ( tTrace.allsolid )
-			{
-				if ( svs.allocated_client_slots == 1 )
-				{
-					switch( atoi(pszArg) )
-					{
-						case TIME_PERIOD_PRESENT:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the present!" );
-							break;
-						case TIME_PERIOD_PAST:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the past!" );
-							break;
-						case TIME_PERIOD_FUTURE:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the future!" );
-							break;
-					}
-				}
-				else
-				{
-					switch( atoi(pszArg) )
-					{
-						case TIME_PERIOD_PRESENT:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the present!", i, svs.clients[i].name );
-							break;
-						case TIME_PERIOD_PAST:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the past!", i, svs.clients[i].name );
-							break;
-						case TIME_PERIOD_FUTURE:
-							snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the future!", i, svs.clients[i].name );
-							break;
-					}
-				}
-
-				Con_Printf( "%s\n", szPrintString );
-				bStuck = true;
-			}
-		}
+		Con_Printf("Invalid time period requested!\n");
+		return;
 	}
-	else
+
+	if (!sv.world.worldmodel[Q_atoi(pszArg)])
 	{
-		switch( tc_sv_current_bsp_index )
+		const char* suffix_postfix = NULL;
+
+		switch( atoi(pszArg) )
 		{
 			case TIME_PERIOD_PRESENT:
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the present time period" );
+				suffix = "present";
+				suffix_postfix = "melancholy";
 				break;
 			case TIME_PERIOD_PAST:
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the past time period" );
+				suffix = "past";
+				suffix_postfix = "strange";
 				break;
 			case TIME_PERIOD_FUTURE:
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "This map can only be played in the future time period" );
+				suffix = "future";
+				suffix_postfix = "wretched";
 				break;
 			default:
+				suffix = "unknown";
+				suffix_postfix = "unknown";
 				break;
 		}
 
-		return;		// Missi: No worldmodel for that time period (2025.9.20)
+		if ( svs.allocated_client_slots == 1 )
+			snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix );
+		else
+			snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix );
+
+		for ( i = 0; i < svs.allocated_client_slots; i++ )
+#ifdef HAVE_CLIENT
+			SCR_CenterPrint(i, szPrintString, true);
+#elif defined(HAVE_SERVER)
+			Con_Printf(szPrintString);
+#endif
+
+		return;
+	}
+
+	for ( i = 0; i < svs.allocated_client_slots; i++ )
+	{
+		pClient = &svs.clients[i];
+		pClientEdict = pClient->edict;
+
+		if ( !pClientEdict )
+			break;
+
+		tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, MOVE_NORMAL, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
+
+		if ( tTrace.allsolid )
+		{
+			switch( atoi(pszArg) )
+			{
+				case TIME_PERIOD_PRESENT:
+					suffix = "present";
+					break;
+				case TIME_PERIOD_PAST:
+					suffix = "past";
+					break;
+				case TIME_PERIOD_FUTURE:
+					suffix = "future";
+					break;
+				default:
+					suffix = "unknown";
+					break;
+			}
+
+			if ( svs.allocated_client_slots == 1 )
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the %s!", suffix );
+			else
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!", i, svs.clients[i].name, suffix );
+#ifdef HAVE_CLIENT
+			SCR_CenterPrint( i, szPrintString, true );
+#elif defined(HAVE_SERVER)
+			Con_Printf( szPrintString );
+#endif
+			bStuck = true;
+		}
 	}
 
 	if (bStuck)

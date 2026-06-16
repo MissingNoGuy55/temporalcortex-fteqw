@@ -51,6 +51,7 @@ extern int	r_blockvidrestart;
 int tc_cl_loaded_bsps;
 int tc_cl_unloaded_bsps;
 int tc_cl_current_bsp_index;
+fogstate_t tc_cl_world_fog[MAX_TIME_PERIODS];
 #endif
 #endif
 
@@ -491,6 +492,10 @@ void CL_Quit_f (void)
 			return;
 		}
 	}
+
+#ifdef TEMPORALCORTEX
+	memset(cl.model_time_periods, 0, sizeof(cl.model_time_periods));
+#endif
 
 	TP_ExecTrigger("f_quit", true);
 	Cbuf_Execute();
@@ -2168,6 +2173,23 @@ void CL_BlendFog(fogstate_t *result, fogstate_t *oldf, float time, fogstate_t *n
 
 	result->time = time;
 }
+#ifdef TEMPORALCORTEX
+void CL_ResetFog(int ftype, short timeperiod)
+{
+	//blend from the current state, not the old state. this means things work properly if we've not reached the new state yet.
+	CL_BlendFog(&cl.oldfog[ftype], &cl.oldfog[ftype], realtime, &cl.fog[timeperiod][ftype]);
+
+	//reset the new state to defaults, to be filled in by the caller.
+	memset(&cl.fog[timeperiod][ftype], 0, sizeof(cl.fog[timeperiod][ftype]));
+	cl.fog[timeperiod][ftype].time = realtime;
+	cl.fog[timeperiod][ftype].density = 0;
+	cl.fog[timeperiod][ftype].colour[0] = //SRGBf(0.3);
+	cl.fog[timeperiod][ftype].colour[1] = //SRGBf(0.3);
+	cl.fog[timeperiod][ftype].colour[2] = SRGBf(0.3);
+	cl.fog[timeperiod][ftype].alpha = 1;
+	cl.fog[timeperiod][ftype].depthbias = 0;
+}
+#else
 void CL_ResetFog(int ftype)
 {
 	//blend from the current state, not the old state. this means things work properly if we've not reached the new state yet.
@@ -2188,6 +2210,7 @@ void CL_ResetFog(int ftype)
 	cl.fog[ftype].fadedepth = 128;
 	*/
 }
+#endif
 
 static void CL_ReconfigureCommands(int newgame)
 {
@@ -2415,10 +2438,18 @@ void CL_ClearState (qboolean gamestart)
 
 // wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
-
+#ifdef TEMPORALCORTEX
+	for (i = 0; i < MAX_TIME_PERIODS; i++)
+	{
+		CL_ResetFog(FOGTYPE_AIR, i);
+		CL_ResetFog(FOGTYPE_WATER, i);
+		CL_ResetFog(FOGTYPE_SKYROOM, i);
+	}
+#else
 	CL_ResetFog(FOGTYPE_AIR);
 	CL_ResetFog(FOGTYPE_WATER);
 	CL_ResetFog(FOGTYPE_SKYROOM);
+#endif
 
 	cl.mapstarttime = realtime;
 	cl.gamespeed = 1;
@@ -2489,6 +2520,10 @@ void CL_Disconnect (const char *reason)
 {
 	qbyte	final[13];
 	int i;
+
+#ifdef TEMPORALCORTEX
+	memset(cl.model_time_periods, 0, sizeof(cl.model_time_periods));
+#endif
 
 	if (reason)
 		Cvar_Set(&cl_disconnectreason, reason);
@@ -5489,11 +5524,82 @@ void CL_FTP_f(void)
 }
 #endif
 
+#ifdef TEMPORALCORTEX
+static void CL_SetFog(int ftype, int argc, float density, float r, float g, float b, float alpha, float depthbias, short timeperiod)
+{
+	vec3_t rgb;
+
+	switch(argc)
+	{
+	case 1:
+		break;
+	case 2:
+		cl.fog[timeperiod][ftype].density = density;
+		break;
+	case 3:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = rgb[1] = rgb[2] = r;
+		break;
+	case 4:
+		cl.fog[timeperiod][ftype].density = 0.05;	//make something up for vauge compat with fitzquake, so it doesn't get the default of 0
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
+		break;
+	case 5:
+	default:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
+		break;
+	case 6:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
+		cl.fog[timeperiod][ftype].alpha = alpha;
+		break;
+	case 7:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
+		cl.fog[timeperiod][ftype].alpha = alpha;
+		cl.fog[timeperiod][ftype].depthbias = depthbias;
+		break;
+	case 8:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
+		cl.fog[timeperiod][ftype].alpha = alpha;
+		cl.fog[timeperiod][ftype].depthbias = depthbias;
+		break;
+	}
+
+	if (rgb[0]>=2 || rgb[1]>=2 || rgb[2]>=2)	//we allow SOME slop for hdr fog... hopefully we won't need it. this is mostly just an issue when skyfog is enabled[default .5] ('why is my sky white on map FOO')
+		Con_Printf(CON_WARNING "Fog colour of %g %g %g exceeds standard 0-1 range\n", rgb[0], rgb[1], rgb[2]);
+	cl.fog[timeperiod][ftype].colour[0] = SRGBf(rgb[0]);
+	cl.fog[timeperiod][ftype].colour[1] = SRGBf(rgb[1]);
+	cl.fog[timeperiod][ftype].colour[2] = SRGBf(rgb[2]);
+
+	if (cls.state == ca_active)
+		cl.fog[timeperiod][ftype].time += 1;
+}
+#endif
+
 //fixme: make a cvar
 void CL_Fog_f(void)
 {
 	int ftype;
 	vec3_t rgb;
+#ifdef TEMPORALCORTEX
+	float density = 0.0f, alpha = 1.0f, depthbias = 0.0f;
+	short timeperiod;
+	int argc;
+#endif
+
 	if (!Q_strcasecmp(Cmd_Argv(0), "waterfog"))
 		ftype = FOGTYPE_WATER;
 	else if (!Q_strcasecmp(Cmd_Argv(0), "skyroomfog"))
@@ -5504,13 +5610,79 @@ void CL_Fog_f(void)
 	{
 		static const char *fognames[FOGTYPE_COUNT]={"fog","waterfog","skyroomfog"};
 		if (Cmd_ExecLevel != RESTRICT_INSECURE)
+#ifdef TEMPORALCORTEX
+			Con_Printf("Current %s %f (r:%f g:%f b:%f, a:%f bias:%f)\n", fognames[ftype], cl.fog[tc_cl_current_bsp_index][ftype].density, cl.fog[tc_cl_current_bsp_index][ftype].colour[0], cl.fog[tc_cl_current_bsp_index][ftype].colour[1], cl.fog[tc_cl_current_bsp_index][ftype].colour[2], cl.fog[tc_cl_current_bsp_index][ftype].alpha, cl.fog[tc_cl_current_bsp_index][ftype].depthbias);
+#else
 			Con_Printf("Current %s %f (r:%f g:%f b:%f, a:%f bias:%f)\n", fognames[ftype], cl.fog[ftype].density, cl.fog[ftype].colour[0], cl.fog[ftype].colour[1], cl.fog[ftype].colour[2], cl.fog[ftype].alpha, cl.fog[ftype].depthbias);
+#endif
 	}
 	else
 	{
+		// Missi: This function is now ran multiple times, ifdef'd this out for causing issues (2026.6.15)
+#ifndef TEMPORALCORTEX
 		CL_ResetFog(ftype);
+#endif
 		VectorSet(rgb, 0.3,0.3,0.3);
+#ifdef TEMPORALCORTEX
+		argc = Cmd_Argc();
 
+		switch(argc)
+		{
+		case 1:
+			break;
+		case 2:
+			density = atof(Cmd_Argv(1));
+			timeperiod = tc_cl_current_bsp_index;
+			break;
+		case 3:
+			density = atof(Cmd_Argv(1));
+			rgb[0] = rgb[1] = rgb[2] = atof(Cmd_Argv(2));
+			timeperiod = tc_cl_current_bsp_index;
+			break;
+		case 4:
+			density = 0.05;	//make something up for vauge compat with fitzquake, so it doesn't get the default of 0
+			rgb[0] = atof(Cmd_Argv(1));
+			rgb[1] = atof(Cmd_Argv(2));
+			rgb[2] = atof(Cmd_Argv(3));
+			timeperiod = tc_cl_current_bsp_index;
+		case 5:
+		default:
+			density = atof(Cmd_Argv(1));	//make something up for vauge compat with fitzquake, so it doesn't get the default of 0
+			rgb[0] = atof(Cmd_Argv(2));
+			rgb[1] = atof(Cmd_Argv(3));
+			rgb[2] = atof(Cmd_Argv(4));
+			timeperiod = tc_cl_current_bsp_index;
+			break;
+		case 6:
+			density = atof(Cmd_Argv(1));
+			rgb[0] = atof(Cmd_Argv(2));
+			rgb[1] = atof(Cmd_Argv(3));
+			rgb[2] = atof(Cmd_Argv(4));
+			alpha = atof(Cmd_Argv(5));
+			timeperiod = tc_cl_current_bsp_index;
+			break;
+		case 7:
+			density = atof(Cmd_Argv(1));
+			rgb[0] = atof(Cmd_Argv(2));
+			rgb[1] = atof(Cmd_Argv(3));
+			rgb[2] = atof(Cmd_Argv(4));
+			alpha = atof(Cmd_Argv(5));
+			depthbias = atof(Cmd_Argv(6));
+			timeperiod = tc_cl_current_bsp_index;
+			break;
+		case 8:
+			density = atof(Cmd_Argv(1));
+			rgb[0] = atof(Cmd_Argv(2));
+			rgb[1] = atof(Cmd_Argv(3));
+			rgb[2] = atof(Cmd_Argv(4));
+			alpha = atof(Cmd_Argv(5));
+			depthbias = atof(Cmd_Argv(6));
+			timeperiod = atof(Cmd_Argv(7));
+			break;
+		}
+
+ 		CL_SetFog(ftype, argc, density, rgb[0], rgb[1], rgb[2], alpha, depthbias, timeperiod);
+#else
 		switch(Cmd_Argc())
 		{
 		case 1:
@@ -5554,13 +5726,23 @@ void CL_Fog_f(void)
 		//if (Cmd_Argc() >= 8) cl.fog[ftype].end = atof(Cmd_Argv(7));
 		//if (Cmd_Argc() >= 9) cl.fog[ftype].height = atof(Cmd_Argv(8));
 		//if (Cmd_Argc() >= 10) cl.fog[ftype].fadedepth = atof(Cmd_Argv(9));
+#endif
+#ifdef TEMPORALCORTEX
+		if (Cmd_FromGamecode())
+			cl.fog_locked = !!cl.fog[timeperiod][ftype].density;
 
+#ifdef HAVE_LEGACY
+		if (cl.fog[timeperiod][ftype].colour[0] > 1 || cl.fog[timeperiod][ftype].colour[1] > 1 || cl.fog[timeperiod][ftype].colour[2] > 1)
+			Con_DPrintf(CON_WARNING "Fog is oversaturated. This can result in compatibility issues.\n");
+#endif
+#else
 		if (Cmd_FromGamecode())
 			cl.fog_locked = !!cl.fog[ftype].density;
 
 #ifdef HAVE_LEGACY
 		if (cl.fog[ftype].colour[0] > 1 || cl.fog[ftype].colour[1] > 1 || cl.fog[ftype].colour[2] > 1)
 			Con_DPrintf(CON_WARNING "Fog is oversaturated. This can result in compatibility issues.\n");
+#endif
 #endif
 	}
 }
@@ -5850,9 +6032,9 @@ extern int cl_playerindex;
 
 static void CL_ChangeTimePeriod_f()
 {
-	const char* pszArg = Cmd_Argv(1);
-	const char* pszTime = NULL;
-	char szString[256];
+	const char*	arg = Cmd_Argv(1);
+	const char*	suffix;
+	char	printstring[256];
 
 	// Missi: Don't get cheeky... (2025.9.17)
 	if ( cl.allocated_client_slots > 1 )
@@ -5861,34 +6043,44 @@ static void CL_ChangeTimePeriod_f()
 		return;
 	}
 
-	if ( !pszArg )
+	if ( !arg )
 	{
 		Con_Printf( "cl_changetimeperiod usage: \"cl_changetimeperiod [time period index]\"\n");
 		return;
 	}
 
-	if ( !cl.worldmodel[atoi(pszArg)] )
+	if (!cl.worldmodel[Q_atoi(arg)])
 	{
-		switch( tc_cl_current_bsp_index )
+		const char* suffix_postfix = NULL;
+
+		switch( atoi(arg) )
 		{
 			case TIME_PERIOD_PRESENT:
-				pszTime = "present";
+				suffix = "present";
+				suffix_postfix = "melancholy";
 				break;
 			case TIME_PERIOD_PAST:
-				pszTime = "past";
+				suffix = "past";
+				suffix_postfix = "strange";
 				break;
 			case TIME_PERIOD_FUTURE:
-				pszTime = "future";
+				suffix = "future";
+				suffix_postfix = "wretched";
 				break;
 			default:
-				pszTime = "unknown";
+				suffix = "unknown";
+				suffix_postfix = "unknown";
 				break;
 		}
 
-		snprintf( szString, sizeof( szString ), "This map can only be played in the %s time period.\n", pszTime );
-		SCR_CenterPrint( cl_playerindex, szString, true );
+		if ( cl.allocated_client_slots == 1 )
+			snprintf( printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix );
+		else
+			snprintf( printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix );
 
-		return;		// Missi: No worldmodel for this time period (2025.9.20)
+		SCR_CenterPrint(CL_TargettedSplit(true), printstring, true);
+
+		return;
 	}
 
 	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
@@ -5897,10 +6089,12 @@ static void CL_ChangeTimePeriod_f()
 	char cmd[64];
 	snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
 
-	r_worldentity.model = cl.worldmodel[atoi(pszArg)];
+	r_worldentity.model = cl.worldmodel[Q_atoi(arg)];
 
 	MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
 	MSG_WriteString( &cls.netchan.message, cmd );
+
+	R_SetSky(cl.skyname[Q_atoi(arg)], Q_atoi(arg));
 
 	//Cmd_ForwardToServer();
 }

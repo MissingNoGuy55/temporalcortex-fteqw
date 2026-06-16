@@ -2151,7 +2151,7 @@ void GLR_RenderView (void)
 		else
 			r_refdef.flags &= ~RDF_UNDERWATER;
 #ifdef TEMPORALCORTEX
-		if ( tc_r_timetravel_warp_intensity.value > 0.0f )
+		if ( tc_r_timetravel_warp_intensity.value > 0 )
 			r_refdef.flags |= TCRDF_TIMETRAVEL;
 #endif
 	}
@@ -2177,9 +2177,13 @@ void GLR_RenderView (void)
 	if (!r_refdef.globalfog.density)
 	{
 		extern cvar_t r_fog_linear;
-
-		int fogtype = ((r_refdef.flags & RDF_UNDERWATER) && cl.fog[FOGTYPE_WATER].density)?FOGTYPE_WATER:FOGTYPE_AIR;
-		CL_BlendFog(&r_refdef.globalfog, &cl.oldfog[fogtype], realtime, &cl.fog[fogtype]);
+#ifdef TEMPORALCORTEX
+		int fogtype = ((r_refdef.flags & RDF_UNDERWATER) && cl.fog[tc_cl_current_bsp_index][FOGTYPE_WATER].density)?FOGTYPE_WATER:FOGTYPE_AIR;
+		CL_BlendFog(&r_refdef.globalfog, &cl.oldfog[fogtype], realtime, &cl.fog[tc_cl_current_bsp_index][fogtype]);
+#else
+		int fogtype = ((r_refdef.flags & RDF_UNDERWATER) && cl.fog[tc_cl_current_bsp_index][FOGTYPE_WATER].density)?FOGTYPE_WATER:FOGTYPE_AIR;
+		CL_BlendFog(&r_refdef.globalfog, &cl.oldfog[fogtype], realtime, &cl.fog[tc_cl_current_bsp_index][fogtype]);
+#endif
 
 		if (!r_fog_linear.ival)
 			r_refdef.globalfog.density /= 64;	//FIXME

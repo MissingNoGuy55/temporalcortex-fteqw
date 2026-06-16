@@ -849,12 +849,18 @@ qboolean Wad_NextDownload ()
 	return true;
 }
 #endif
-
+#ifdef TEMPORALCORTEX
+void Mod_ParseInfoFromEntityLump(model_t *wmodel, short timeperiod)	//actually, this should be in the model code.
+#else
 void Mod_ParseInfoFromEntityLump(model_t *wmodel)	//actually, this should be in the model code.
+#endif
 {
 	char token[4096];
 	char key[128];
 	char skyname[128];
+#ifdef TEMPORALCORTEX
+	char timeperiod_string[16];
+#endif
 	const char *data = Mod_GetEntitiesString(wmodel);
 #ifdef PACKAGE_TEXWAD
 	mapskys_t *msky;
@@ -910,6 +916,10 @@ void Mod_ParseInfoFromEntityLump(model_t *wmodel)	//actually, this should be in 
 			key[2] = 'g';
 			key[3] = ' ';
 			Q_strncpyz(key+4, token, sizeof(key)-4);
+#ifdef TEMPORALCORTEX
+			snprintf(timeperiod_string, sizeof(timeperiod_string), " %d", timeperiod);
+			Q_strncpyz(key+Q_strlen(key), timeperiod_string, Q_strlen(timeperiod_string)+1);
+#endif
 			Cbuf_AddText(key, RESTRICT_INSECURE);
 			Cbuf_AddText("\n", RESTRICT_INSECURE);
 		}
@@ -1020,6 +1030,9 @@ void Mod_ParseInfoFromEntityLump(model_t *wmodel)	//actually, this should be in 
 		}
 #endif
 	}
-
+#ifdef TEMPORALCORTEX
+	R_SetSky(skyname, timeperiod);
+#else
 	R_SetSky(skyname);
+#endif
 }

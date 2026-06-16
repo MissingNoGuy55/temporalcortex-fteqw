@@ -4187,7 +4187,7 @@ void Surf_NewMap (model_t *worldmodel)
 #ifdef TEMPORALCORTEX
 		if (cl.worldmodel[num]->loadstate == MLS_LOADING)
 			COM_WorkerPartialSync(cl.worldmodel[num], &cl.worldmodel[num]->loadstate, MLS_LOADING);
-		Mod_ParseInfoFromEntityLump(cl.worldmodel[num]);
+		Mod_ParseInfoFromEntityLump(cl.worldmodel[num], num);
 #else
 		if (cl.worldmodel->loadstate == MLS_LOADING)
 			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);

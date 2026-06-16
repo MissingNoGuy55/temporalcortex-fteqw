@@ -2357,6 +2357,10 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 			World_UnlinkEdict (ent);	// Missi: It's basically a ghost at this point (2025.9.23)
 			return;
 		}
+		else
+		{
+			World_LinkEdict (w, ent, true);	// Missi: NOTE: Seems redundant, but needed for bmodel entities (2026.6.12)
+		}
 #endif
 		if (ent->lastruntime == w->framenum)
 			return;

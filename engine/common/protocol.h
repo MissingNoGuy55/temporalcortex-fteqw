@@ -370,6 +370,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef TEMPORALCORTEX
 #define svctc_timeperiod			95	// Missi: Temporal Cortex addition (2025.12.6)
 #define svctc_gamespeed				96	// Missi: Temporal Cortex addition (2025.12.6)
+#define svctc_timeperiod_queue		97	// Missi: Temporal Cortex addition (2026.6.12)
 #endif
 //fitz svcs
 #define svcfitz_skybox				37

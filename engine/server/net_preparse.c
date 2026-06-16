@@ -2587,7 +2587,11 @@ void NPP_MVDFlush(void)
 			int i;
 			int rpos, s;
 			i = buffer[1];
+#ifdef TEMPORALCORTEX
+			rpos = 3;
+#else
 			rpos = 2;
+#endif
 			while (1)
 			{
 				i++;
@@ -3231,7 +3235,11 @@ void NPP_MVDWriteByte(qbyte data, client_t *to, int broadcast)	//replacement wri
 		case svc_soundlist:
 			if (!data)
 				if (!buffer[bufferlen-1])	//two null bytes marks the last string
+#ifdef TEMPORALCORTEX
+					protocollen = bufferlen+3;
+#else
 					protocollen = bufferlen+2;
+#endif
 			break;
 
 		case svc_updateuserinfo:	//6 bytes then a string

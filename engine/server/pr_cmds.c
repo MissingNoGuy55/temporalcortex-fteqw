@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Missi: FIXME: This honestly should be dynamically allocated.
 // The way the logic works with this variable is a bit too complicated
 // at the moment. (2026.1.9)
-int	tc_edictnums[MAX_EDICTS];
+int*	tc_edictnums;
 #endif
 
 #ifndef CLIENTONLY
@@ -3151,7 +3151,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 					m = sv.strings.model_precache[i] = PR_AddString(prinst, m, 0, false);
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 #ifdef TEMPORALCORTEX
-					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1+tc_sv_current_bsp_index]));
+					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[sv.world.worldmodel_indices[tc_sv_current_bsp_index]]));
 #else
 					sv.models[i] = Mod_FindName(Mod_FixName(m, sv.strings.model_precache[1]));
 #endif
@@ -11500,47 +11500,6 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex );
 
 static int current_sv_entity_count;
 
-//void(entity player) timeperiod_queue;
-void QCBUILTIN PF_TimePeriod_Queue(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	edict_t* ent;
-	int entnum, i;
-	qboolean exists = false;
-
-	if ( svs.allocated_client_slots == 1 )
-		return;
-
-	ent = (edict_t*)G_EDICT( prinst, OFS_PARM0 );
-	entnum = NUM_FOR_EDICT( svprogfuncs, ent );
-
-	current_sv_entity_count = sv.world.num_edicts;
-
-	for ( i = 0; i < current_sv_entity_count; i++ )
-	{
-		if ( tc_edictnums[i] == entnum )
-		{
-			// Con_DPrintf( "Entity %s already exists in the time period trigger list!\n", PR_GetString( svprogfuncs, ent->v->classname ) );
-			exists = true;
-			break;
-		}
-
-		if ( !ent || ent->freetime > 0.0f || ent->v->deadflag == 2 )
-		{
-			// Con_DPrintf( "Entity %s already exists in the time period trigger list, but has been removed!\n", PR_GetString( svprogfuncs, ent->v->classname ) );
-			tc_edictnums[i] = 0;
-		}
-	}
-
-	if ( !exists )
-		tc_edictnums[i] = entnum;
-}
-
-#define CLEARLIST(list) \
-for (int i = 0; i < countof(list); i++) \
-{ \
-	list[i] = 0; \
-} \
-
 // void(float timeperiod) timeperiod_change
 void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
@@ -11554,12 +11513,8 @@ void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s 
 		ent->bspnum = bspnum;
 	}
 
-	CLEARLIST(tc_edictnums);
-
 	SV_ChangeTimePeriod( bspnum );
 }
-
-#undef CLEARLIST
 
 void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
@@ -12923,10 +12878,9 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	//end wrath extras
 #ifdef TEMPORALCORTEX
 	// Missi: Temporal Cortex extras (2025.12.17)
-	{"timeperiod_queue",									PF_TimePeriod_Queue,0,0,0,743,	"void(entity player)", "Adds into a static list of entities touching this entity."},
-	{"timeperiod_change",									PF_TimePeriod_Change,0,0,0,744,	"void(float timeperiod)", "Changes the time period on the server and relays it to all clients."},
-	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
-	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
+	{"timeperiod_change",									PF_TimePeriod_Change,0,0,0,743,	"void(float timeperiod)", "Changes the time period on the server and relays it to all clients."},
+	{"drawline3d",											PF_Fixme,0,0,0,744,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
+	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,745,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin

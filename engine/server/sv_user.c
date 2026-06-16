@@ -1498,7 +1498,6 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				//write end-of-packet
 				MSG_WriteByte (&client->netchan.message, 0);
 				MSG_WriteByte (&client->netchan.message, (client->prespawn_idx&0xff)?client->prespawn_idx&0xff:0xff);
-
 			}
 		}
 		else if (ISNQCLIENT(client) && client->fteprotocolextensions2)
@@ -1597,28 +1596,12 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					{
 						MSG_WriteByte (&client->netchan.message, svcfte_modellistshort);
 						MSG_WriteShort (&client->netchan.message, client->prespawn_idx);
-
-#ifdef TEMPORALCORTEX
-						for (t = 0; t < MAX_TIME_PERIODS; t++)
-						{
-							MSG_WriteShort (&client->netchan.message, sv.world.worldmodel_indices[t]);
-							MSG_WriteShort (&client->netchan.message, sv.world.world_indices[t]);
-						}
-#endif
 					}
 					else
 #endif
 					{
 						MSG_WriteByte (&client->netchan.message, svc_modellist);
 						MSG_WriteByte (&client->netchan.message, client->prespawn_idx);
-
-#ifdef TEMPORALCORTEX
-						for (t = 0; t < MAX_TIME_PERIODS; t++)
-						{
-							MSG_WriteShort (&client->netchan.message, sv.world.worldmodel_indices[t]);
-							MSG_WriteShort (&client->netchan.message, sv.world.world_indices[t]);
-						}
-#endif
 					}
 				}
 
@@ -1628,6 +1611,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
+
 					started = 0;
 					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
 					{
@@ -1640,7 +1624,12 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
+				{
 					MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
+#ifdef TEMPORALCORTEX
+					MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
+#endif
+				}
 			}
 
 			if (started)
@@ -1649,6 +1638,14 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteByte (&client->netchan.message, 0);
 				MSG_WriteByte (&client->netchan.message, (client->prespawn_idx&0xff)?client->prespawn_idx&0xff:0xff);
 			}
+
+#ifdef TEMPORALCORTEX
+			for (t = 0; t < MAX_TIME_PERIODS; t++)
+			{
+				MSG_WriteShort (&client->netchan.message, sv.world.worldmodel_indices[t]);
+				MSG_WriteShort (&client->netchan.message, sv.world.world_indices[t]);
+			}
+#endif
 		}
 		else if (ISNQCLIENT(client) && client->fteprotocolextensions2)
 		{
@@ -1672,7 +1669,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&client->netchan.message, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+				MSG_WriteShort(&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
 #endif
 				client->prespawn_idx++;
 			}
@@ -1712,11 +1709,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 
 			if (sv.strings.particle_precache[client->prespawn_idx])
 			{
-#ifdef TEMPORALCORTEX
-				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 8 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
-#else
 				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 4 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
-#endif
 				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
 				ClientReliableWrite_String (client, sv.strings.particle_precache[client->prespawn_idx]);
 #ifdef TEMPORALCORTEX
@@ -8956,8 +8949,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 		// is set up. (2025.12.6)
 		case clctc_timeperiod:
 			input = MSG_ReadShort();
-			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-				tc_sv_current_bsp_index = input;
+			tc_sv_current_bsp_index = input;
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();
@@ -9750,8 +9742,7 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
 		case clctc_timeperiod:
 			input = MSG_ReadShort();
-			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-				tc_sv_current_bsp_index = input;
+			tc_sv_current_bsp_index = input;
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();

@@ -959,18 +959,27 @@ typedef struct
 	qboolean			particle_csprecaches;	//says to not try to do any dp-compat hacks.
 
 	//used for q2 sky/configstrings
+#ifdef TEMPORALCORTEX
+	char skyname[MAX_TIME_PERIODS][MAX_QPATH];
+#else
 	char skyname[MAX_QPATH];
+#endif
 	float skyrotate;
 	qboolean skyautorotate;
 	vec3_t skyaxis;
 
 	qboolean	fog_locked;			//FIXME: make bitmask
-	fogstate_t	fog[FOGTYPE_COUNT];	//0 = air, 1 = water. if water has no density fall back on air.
+#ifdef TEMPORALCORTEX
+	fogstate_t	fog[MAX_TIME_PERIODS][FOGTYPE_COUNT];	//0 = air, 1 = water. if water has no density fall back on air.
+#else
+	fogstate_t	fog[FOGTYPE_COUNT];
+#endif
 	fogstate_t	oldfog[FOGTYPE_COUNT];
 
 #ifdef TEMPORALCORTEX
 	char		levelname[40];	// for display on solo scoreboard
 	char		mapname[MAX_TIME_PERIODS][40];
+	short		model_time_periods[MAX_PRECACHE_MODELS];
 #else
 	char		levelname[40];	// for display on solo scoreboard
 #endif

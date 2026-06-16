@@ -218,7 +218,11 @@ typedef struct
 	float time;	//timestamp for when its current.
 } fogstate_t;
 void CL_BlendFog(fogstate_t *result, fogstate_t *oldf, float time, fogstate_t *newf);
+#ifdef TEMPORALCORTEX
+void CL_ResetFog(int fogtype, short timeperiod);
+#else
 void CL_ResetFog(int fogtype);
+#endif
 
 typedef enum {
 	STEREO_OFF,
@@ -406,7 +410,11 @@ void QDECL Surf_RebuildLightmap_Callback (struct cvar_s *var, char *oldvalue);
 
 void R_Sky_Register(void);
 void R_SkyShutdown(void);
+#ifdef TEMPORALCORTEX
+void R_SetSky(const char *skyname, short timeperiod);
+#else
 void R_SetSky(const char *skyname);
+#endif
 texid_t R_GetDefaultEnvmap(void);
 
 #if defined(GLQUAKE)

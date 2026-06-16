@@ -639,6 +639,15 @@ unsigned SV_CheckModel(char *mdl)
 void SV_UnspawnServer (void)	//terminate the running server.
 {
 	int i;
+
+#ifdef TEMPORALCORTEX
+	if (sv.world.model_time_periods)
+	{
+		BZ_Free(sv.world.model_time_periods);
+		sv.world.model_time_periods = NULL;
+	}
+#endif
+
 	if (sv.state)
 	{
 		Con_TPrintf("Server ended\n");
@@ -905,10 +914,15 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;
+	tc_sv_unloaded_bsps = 0;
 	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
+
+	for (i = 0; i < MAX_TIME_PERIODS; i++)
+		tc_snd_positions[i] = 0;
 #endif
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
+	tc_sv_unloaded_bsps = 0;
 	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
@@ -1522,6 +1536,12 @@ MSV_OpenUserDatabase();
 	sv.strings.sound_precache[0] = "";
 	sv.strings.model_precache[0] = "";
 
+	if (!sv.world.model_time_periods)
+	{
+		sv.world.model_time_periods = BZ_Malloc(sizeof(short) * i);
+		memset(sv.world.model_time_periods, 0, sizeof(short) * i);
+	}
+
 	// Missi: HACK: sv.models cannot have any NULL entries, or
 	// else the logic behind the whole array collapses. (2026.5.29)
 	// Missi: FIXME: Fix this when re-writing the precaching.
@@ -1571,6 +1591,9 @@ MSV_OpenUserDatabase();
 
 			sv.strings.model_precache[j] = PR_AddString(svprogfuncs, sv.modelname[t], 0, false);
 			sv.world.worldmodel_indices[t] = j;
+			sv.world.model_time_periods[j] = t;
+
+			Con_DPrintf(CON_NOTICE "[SV] Precaching model %s with time period %d; postfix %s\n", sv.modelname[t], sv.world.model_time_periods[j], sv.modelname[t]);
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
 			if (subs > MAX_PRECACHE_MODELS-2)
@@ -1583,6 +1606,9 @@ MSV_OpenUserDatabase();
 			{
 				sv.strings.model_precache[i+j] = PR_AddString(svprogfuncs, va("*%u", i), 0, false);
 				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.model_precache[i+j], sv.modelname[t]), MLV_WARN);
+				sv.world.model_time_periods[i+j] = t;
+
+				Con_DPrintf(CON_NOTICE "[SV] Precaching model %s with time period %d; postfix %s\n", sv.strings.model_precache[i+j], sv.world.model_time_periods[i+j], sv.modelname[t]);
 			}
 
 			j += i;

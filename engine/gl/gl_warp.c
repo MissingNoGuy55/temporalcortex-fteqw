@@ -70,6 +70,100 @@ texid_t R_GetDefaultEnvmap(void)
 	return r_nulltex;
 }
 
+#ifdef TEMPORALCORTEX
+void R_SetSky(const char *sky, short timeperiod)
+{
+	int i;
+	const char *shadername;
+	extern cvar_t r_skyboxname;
+	if (sky)
+		Q_strncpyz(cl.skyname[timeperiod], sky, sizeof(cl.skyname));
+	else
+		sky = cl.skyname[timeperiod];
+	if (qrenderer <= QR_NONE)
+		return;	//not ready yet...
+	if (*r_skyboxname.string)	//override it with the user's preference
+		sky = r_skyboxname.string;
+
+	shadername = va("skybox_%s", sky);
+	if (!forcedsky || strcmp(shadername, forcedsky->name))
+	{
+		texnums_t tex;
+		forcedsky = NULL;	//fall back to regular skies if forcing fails.
+
+		if (!*sky)
+			return; //no need to do anything
+
+		memset(&tex, 0, sizeof(tex));
+
+		tex.base = R_LoadHiResTexture(sky, "env:gfx/env", IF_LOADNOW|IF_NOMIPMAP);
+		if (tex.base && tex.base->status == TEX_LOADING)
+			COM_WorkerPartialSync(tex.base, &tex.base->status, TEX_LOADING);
+		if (tex.base->width && TEXLOADED(tex.base))
+		{
+			forcedsky = R_RegisterShader(shadername, 0,
+				"{\n"
+					"sort sky\n"
+					"program defaultsky#EQUI\n"
+					"{\n"
+						"if !$unmaskedsky\n"	/* Q2/HL require the skybox to not draw over geometry, shouldn't we force it? --eukara */
+							"depthwrite\n"
+						"endif\n"
+						"map \"$diffuse\"\n"
+						"tcgen skybox\n"
+					"}\n"
+					"surfaceparm nodlight\n"
+				"surfaceparm sky\n"
+				"}");
+			R_BuildDefaultTexnums(&tex, forcedsky, IF_WORLDTEX);
+			return;
+		}
+
+		//if we have cubemaps then we can just go and use a cubemap for our skybox
+		if (sh_config.havecubemaps)
+		{
+			memset(&tex, 0, sizeof(tex));
+			tex.reflectcube = R_LoadHiResTexture(sky, "env:gfx/env", IF_LOADNOW|IF_TEXTYPE_CUBE|IF_NOMIPMAP|IF_CLAMP);
+			if (tex.reflectcube && tex.reflectcube->status == TEX_LOADING)
+				COM_WorkerPartialSync(tex.reflectcube, &tex.reflectcube->status, TEX_LOADING);
+			if (tex.reflectcube->width && TEXLOADED(tex.reflectcube))
+			{
+				forcedsky = R_RegisterShader(shadername, 0,
+					"{\n"
+						"sort sky\n"
+						"program defaultskybox\n"
+						"{\n"
+							"if !$unmaskedsky\n"	/* Q2/HL require the skybox to not draw over geometry, shouldn't we force it? --eukara */
+								"depthwrite\n"
+							"endif\n"
+							"map \"$cube:$reflectcube\"\n"
+							"tcgen skybox\n"
+						"}\n"
+						"surfaceparm nodlight\n"
+					"surfaceparm sky\n"
+					"}");
+				R_BuildDefaultTexnums(&tex, forcedsky, IF_WORLDTEX);
+				return;
+			}
+		}
+
+		//crappy old path that I still need to fix up a bit
+		//unlike cubemaps, this works on gl1.1/gles1, and also works with the different faces as different sizes.
+		forcedsky = R_RegisterShader(shadername, 0, va("{\nsort sky\nskyparms \"%s\" 512 -\nsurfaceparm nodlight\n}", sky));
+		//check that we actually got some textures.
+		//we accept the skybox if even 1 face is valid.
+		//we ignore the replacement only request if all are invalid.
+		for (i = 0; i < 6; i++)
+		{
+			extern texid_t missing_texture;
+			if (forcedsky->skydome && forcedsky->skydome->farbox_textures[i] != missing_texture)
+				break;
+		}
+		if (i == 6)	//couldn't find ANY sky textures.
+			forcedsky = NULL;
+	}
+}
+#else
 void R_SetSky(const char *sky)
 {
 	int i;
@@ -162,6 +256,7 @@ void R_SetSky(const char *sky)
 			forcedsky = NULL;
 	}
 }
+#endif
 
 struct skylist_s
 {
@@ -251,19 +346,32 @@ static void R_ForceSky_f(void)
 	{
 		if (*r_skyboxname.string)
 			Con_Printf("Current user skybox is %s\n", r_skyboxname.string);
+#ifdef TEMPORALCORTEX
+		else if (*cl.skyname[tc_cl_current_bsp_index])
+			Con_Printf("Current per-map skybox is %s\n", cl.skyname[tc_cl_current_bsp_index]);
+#else
 		else if (*cl.skyname)
 			Con_Printf("Current per-map skybox is %s\n", cl.skyname);
+#endif
 		else
 			Con_Printf("no skybox forced.\n");
 	}
 	else
 	{
+#ifdef TEMPORALCORTEX
+		R_SetSky(Cmd_Argv(1), tc_cl_current_bsp_index);
+#else
 		R_SetSky(Cmd_Argv(1));
+#endif
 	}
 }
 void QDECL R_SkyBox_Changed (struct cvar_s *var, char *oldvalue)
 {
+#ifdef TEMPORALCORTEX
+	R_SetSky(NULL, tc_cl_current_bsp_index);
+#else
 	R_SetSky(NULL);
+#endif
 //	Shader_NeedReload(false);
 }
 
@@ -320,11 +428,19 @@ qboolean R_DrawSkyroom(shader_t *skyshader)
 	r_refdef.areabitsknown = false;	//recalculate areas clientside.
 	r_refdef.sceneareas = NULL;
 
+#ifdef TEMPORALCORTEX
+	if (cl.fog[tc_cl_current_bsp_index][FOGTYPE_SKYROOM].density)
+	{
+		CL_BlendFog(&r_refdef.globalfog, &cl.oldfog[FOGTYPE_SKYROOM], realtime, &cl.fog[tc_cl_current_bsp_index][FOGTYPE_SKYROOM]);
+		r_refdef.globalfog.density/=64;
+	}
+#else
 	if (cl.fog[FOGTYPE_SKYROOM].density)
 	{
 		CL_BlendFog(&r_refdef.globalfog, &cl.oldfog[FOGTYPE_SKYROOM], realtime, &cl.fog[FOGTYPE_SKYROOM]);
 		r_refdef.globalfog.density/=64;
 	}
+#endif
 
 	/*work out where the camera should be (use the same angles)*/
 	VectorCopy(r_refdef.skyroom_pos, r_refdef.vieworg);
