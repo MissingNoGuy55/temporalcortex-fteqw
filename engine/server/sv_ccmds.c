@@ -2385,6 +2385,8 @@ static void SV_Status_f (void)
 	float pi, po, bi, bo;
 #ifdef TEMPORALCORTEX
 	const char*	str;
+	struct modelprecache_s *model_precache;
+	struct soundprecache_s *sound_precache;
 #endif
 
 	int columns = 80;
@@ -2585,6 +2587,14 @@ static void SV_Status_f (void)
 			count++;
 		}
 		Con_TPrintf("entities         : %i/%i/%i (mem: %.1f%%)\n", count, sv.world.num_edicts, sv.world.max_edicts, 100.0*(sv.world.progs->stringtablesize/(double)sv.world.progs->stringtablemaxsize));
+#ifdef TEMPORALCORTEX
+		for (model_precache = sv.strings.model_precache; model_precache->model; model_precache = model_precache->next)
+			;
+		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
+		for (sound_precache = sv.strings.sound_precache; sound_precache->snd; sound_precache = sound_precache->next)
+			;
+		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
+#else
 		for (count = 1; count < MAX_PRECACHE_MODELS; count++)
 			if (!sv.strings.model_precache[count])
 				break;
@@ -2593,6 +2603,7 @@ static void SV_Status_f (void)
 			if (!sv.strings.sound_precache[count])
 				break;
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
+#endif
 
 		for (count = 1; count < MAX_SSPARTICLESPRE; count++)
 			if (!sv.strings.particle_precache[count])
@@ -3555,6 +3566,13 @@ void SV_ReallyEvilHack_f(void)
 void SV_PrecacheList_f(void)
 {
 	unsigned int i;
+#ifdef TEMPORALCORTEX
+	unsigned int j;
+	struct modelprecache_s* model_precache;
+	struct soundprecache_s* sound_precache;
+	const char* part_precache;
+#endif
+
 	char *group = Cmd_Argv(1);
 	if (sv.state != ss_active)
 	{
@@ -3571,6 +3589,29 @@ void SV_PrecacheList_f(void)
 		}
 	}
 #endif
+#ifdef TEMPORALCORTEX
+	if (!*group || !strncmp(group, "model", 5))
+	{
+		for (i = 0, model_precache = sv.strings.model_precache; model_precache->model; i++, model_precache = model_precache->next)
+		{
+			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, model_precache->name, Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]));
+		}
+	}
+	if (!*group || !strncmp(group, "sound", 5))
+	{
+		for (i = 0, sound_precache = sv.strings.sound_precache; sound_precache->snd; i++, sound_precache = sound_precache->next)
+		{
+			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, model_precache->name, model_precache->name);
+		}
+	}
+	if (!*group || !strncmp(group, "part", 4))
+	{
+		for (i = 0, part_precache = *sv.strings.particle_precache; part_precache; i++, part_precache++)
+		{
+			Con_Printf("part  %u: %s\n", i, part_precache);
+		}
+	}
+#else
 	if (!*group || !strncmp(group, "model", 5))
 	{
 		for (i = 0; i < MAX_PRECACHE_MODELS; i++)
@@ -3595,6 +3636,7 @@ void SV_PrecacheList_f(void)
 				Con_Printf("part  %u: %s\n", i, sv.strings.particle_precache[i]);
 		}
 	}
+#endif
 }
 
 void SV_MemInfo_f(void)

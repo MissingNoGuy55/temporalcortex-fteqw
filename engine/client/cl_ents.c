@@ -2336,7 +2336,7 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 		}
 
 #ifdef TEMPORALCORTEX
-		if (ps->modelindex <= CL_NumPrecaches() && cl.model_precache[ps->modelindex].model && cl.model_precache[ps->modelindex].model->loadstate == MLS_LOADED)
+		if (ps->modelindex <= CL_NumModelPrecaches() && cl.model_precache[ps->modelindex].model && cl.model_precache[ps->modelindex].model->loadstate == MLS_LOADED)
 			model = cl.model_precache[ps->modelindex].model;
 #else
 		if (ps->modelindex <= countof(cl.model_precache) && cl.model_precache[ps->modelindex] && cl.model_precache[ps->modelindex]->loadstate == MLS_LOADED)
@@ -3717,7 +3717,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 			{
 				if (stat->mdlidx > -MAX_CSMODELS)
 #ifdef TEMPORALCORTEX
-					clmodel = CSQC_FindPrecacheByModelIndex(-stat->mdlidx);
+					clmodel = CSQC_FindPrecacheByModelIndex(-stat->mdlidx)->model;
 #else
 					clmodel = cl.model_csqcprecache[-stat->mdlidx];
 #endif
@@ -3726,7 +3726,7 @@ void CL_LinkStaticEntities(void *pvs, int *areas)
 			{
 				if (stat->mdlidx < MAX_PRECACHE_MODELS)
 #ifdef TEMPORALCORTEX
-					clmodel = CL_FindPrecacheByModelIndex(stat->mdlidx);
+					clmodel = CL_FindPrecacheByModelIndex(stat->mdlidx)->model;
 #else
 					clmodel = cl.model_precache[stat->mdlidx];
 #endif
@@ -4577,7 +4577,7 @@ void CL_LinkPacketEntities (void)
 			if (CL_FilterModelindex(state->modelindex, state->frame))
 				continue;
 #ifdef TEMPORALCORTEX
-			model = CL_FindPrecacheByModelIndex(state->modelindex);
+			model = CL_FindPrecacheByModelIndex(state->modelindex)->model;
 #else
 			model = cl.model_precache[state->modelindex];
 #endif
@@ -4617,7 +4617,7 @@ void CL_LinkPacketEntities (void)
 #endif
 			if (state->modelindex2 && state->modelindex2 < MAX_PRECACHE_MODELS)
 #ifdef TEMPORALCORTEX
-			model2 = CL_FindPrecacheByModelIndex(state->modelindex2);
+			model2 = CL_FindPrecacheByModelIndex(state->modelindex2)->model;
 #else
 			model2 = cl.model_precache[state->modelindex2];
 #endif
@@ -4679,7 +4679,7 @@ void CL_LinkPacketEntities (void)
 
 		if (cl_r2g.value && state->modelindex == cl_rocketindex && cl_rocketindex != -1 && cl_grenadeindex != -1)
 #ifdef TEMPORALCORTEX
-			model = CL_FindPrecacheByModelIndex(cl_grenadeindex);
+			model = CL_FindPrecacheByModelIndex(cl_grenadeindex)->model;
 #else
 			model = cl.model_precache[cl_grenadeindex];
 #endif
@@ -5038,7 +5038,7 @@ void CL_LinkProjectiles (void)
 		memset(ent, 0, sizeof(*ent));
 
 #ifdef TEMPORALCORTEX
-		ent->model = CL_FindPrecacheByModelIndex(pr->modelindex);
+		ent->model = CL_FindPrecacheByModelIndex(pr->modelindex)->model;
 #else
 		ent->model = cl.model_precache[pr->modelindex];
 #endif
@@ -5632,7 +5632,7 @@ void CL_AddFlagModels (entity_t *ent, int team)
 
 	newent = CL_NewTempEntity ();
 #ifdef TEMPORALCORTEX
-	newent->model = CL_FindPrecacheByModelIndex(cl_flagindex);
+	newent->model = CL_FindPrecacheByModelIndex(cl_flagindex)->model;
 #else
 	newent->model = cl.model_precache[cl_flagindex];
 #endif
@@ -5756,7 +5756,7 @@ void CL_LinkPlayers (void)
 #endif
 
 #ifdef TEMPORALCORTEX
-		if (info->spectator || state->modelindex >= CL_NumPrecaches())
+		if (info->spectator || state->modelindex >= CL_NumModelPrecaches())
 #else
 		if (info->spectator || state->modelindex >= countof(cl.model_precache))
 #endif
@@ -5773,7 +5773,7 @@ void CL_LinkPlayers (void)
 #endif
 		{
 #ifdef TEMPORALCORTEX
-			model = CL_FindPrecacheByModelIndex(state->modelindex);
+			model = CL_FindPrecacheByModelIndex(state->modelindex)->model;
 #else
 			model = cl.model_precache[state->modelindex];
 #endif
@@ -6121,7 +6121,7 @@ void CL_LinkViewModel(void)
 		ent.model = NULL;
 	if (!ent.model)
 #ifdef TEMPORALCORTEX
-		ent.model = CL_FindPrecacheByModelIndex(pv->stats[STAT_WEAPONMODELI]);
+		ent.model = CL_FindPrecacheByModelIndex(pv->stats[STAT_WEAPONMODELI])->model;
 #else
 		ent.model = cl.model_precache[pv->stats[STAT_WEAPONMODELI]];
 #endif
@@ -6277,7 +6277,7 @@ void CL_SetSolidEntities (void)
 			if (state->modelindex <= 0)
 				continue;
 #ifdef TEMPORALCORTEX
-			mod = CL_FindPrecacheByModelIndex(state->modelindex);
+			mod = CL_FindPrecacheByModelIndex(state->modelindex)->model;
 #else
 			mod = cl.model_precache[state->modelindex];
 #endif

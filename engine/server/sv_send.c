@@ -1364,13 +1364,13 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		struct soundprecache_s* precache = SV_FindPrecacheByModelIndex()
+		struct soundprecache_s* precache = SV_FindPrecacheBySoundIndex(ctx.sampleidx);
 
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
-			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
-			if (!strcmp(sample, sv.strings.sound_precache[ctx.sampleidx]))
+			&& precache->name ; ctx.sampleidx++)
+			if (!strcmp(sample, precache->name))
 				break;
-		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[ctx.sampleidx] )
+		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !precache->name )
 		{
 #else
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
@@ -1384,7 +1384,11 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 			{
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
 				//late precache it. use multicast to ensure that its sent NOW (and to all). normal reliables would mean it would arrive after the svc_sound
+#ifdef TEMPORALCORTEX
+				CL_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), tc_sv_current_bsp_index);
+#else
 				sv.strings.sound_precache[ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
+#endif
 				Con_DPrintf("Delayed sound precache: %s\n", sample);
 				MSG_WriteByte(&sv.multicast, svcfte_precache);
 				MSG_WriteShort(&sv.multicast, ctx.sampleidx+PC_SOUND);
@@ -1585,7 +1589,19 @@ void SV_FindModelNumbers (void)
 	sv_nailmodel = -1;
 	sv_supernailmodel = -1;
 	sv_playermodel = -1;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
 
+	for (i = 0, model_precache = sv.strings.model_precache; model_precache->name ; model_precache = model_precache->next, i++)
+	{
+		if (!strcmp(model_precache->name,"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
+			sv_nailmodel = i;
+		if (!strcmp(model_precache->name,"progs/s_spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
+			sv_supernailmodel = i;
+		if (!strcmp(model_precache->name,"progs/player.mdl"))
+			sv_playermodel = i;
+	}
+#else
 	for (i=0 ; i<MAX_PRECACHE_MODELS ; i++)
 	{
 		if (!sv.strings.model_precache[i])
@@ -1597,6 +1613,7 @@ void SV_FindModelNumbers (void)
 		if (!strcmp(sv.strings.model_precache[i],"progs/player.mdl"))
 			sv_playermodel = i;
 	}
+#endif
 }
 
 void SV_SendFixAngle(client_t *client, sizebuf_t *msg, int fixtype, qboolean roll)

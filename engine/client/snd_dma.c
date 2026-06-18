@@ -2783,8 +2783,10 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 #ifdef TEMPORALCORTEX
 			struct modelprecache_s* precache;
 
-			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < CL_NumPrecaches())
+			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < CL_NumModelPrecaches())
 			{
+				precache = CL_FindPrecacheByModelIndex(midx);
+
 				if (cl.model_precache[midx].model && cl.model_precache[midx].model->loadstate == MLS_LOADED && cl.model_precache[midx].model->type == mod_brush)
 				{
 					//fixme: should probably deal with rotations.

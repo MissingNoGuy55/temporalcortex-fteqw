@@ -4837,7 +4837,11 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 #endif
 				{
 					lerpents_t *le = cl.lerpents+ctx.entity;
+#ifdef TEMPORALCORTEX
+					ctx.model = CL_FindPrecacheByModelIndex(le->entstate->modelindex)->model;
+#else
 					ctx.model = cl.model_precache[le->entstate->modelindex];
+#endif
 					if (le->entstate)
 						VectorSubtract(ctx.center, le->origin, ctx.center);
 					else
@@ -7594,7 +7598,11 @@ static void PScript_DrawParticleTypes (void)
 								else if ((unsigned)ctx.entity < (unsigned)cl.maxlerpents)
 								{	//this trace hit a door or something.
 									lerpents_t *le = cl.lerpents+ctx.entity;
+#ifdef TEMPORALCORTEX
+									model = CL_FindPrecacheByModelIndex(le->entstate->modelindex)->model;
+#else
 									model = cl.model_precache[le->entstate->modelindex];
+#endif
 									VectorSubtract(p->org, le->origin, ctx.center);
 									//FIXME: rotate center+normal around entity.
 								}

@@ -2274,7 +2274,11 @@ void R_DrawNameTags(void)
 			for (i=0 ; i<pak->num_entities ; i++)
 			{
 				state = &pak->entities[i];
+#ifdef TEMPORALCORTEX
+				mod = CL_FindPrecacheByModelIndex(state->modelindex)->model;
+#else
 				mod = cl.model_precache[state->modelindex];
+#endif
 				if (mod && mod->loadstate == MLS_LOADED)
 					VectorInterpolate(mod->mins, 0.5, mod->maxs, org);
 				else

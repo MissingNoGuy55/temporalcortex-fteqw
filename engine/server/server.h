@@ -150,6 +150,7 @@ typedef struct server_s
 	struct modelprecache_s
 	{
 		const char* name;
+		int index;
 		struct model_s* model;
 		struct modelprecache_s* next;
 	} modelprecache_t;
@@ -157,6 +158,7 @@ typedef struct server_s
 	struct soundprecache_s
 	{
 		const char* name;
+		int index;
 		struct sfx_s* snd;
 		struct soundprecache_s* next;
 	} soundprecache_t;
@@ -1201,12 +1203,15 @@ void SV_FullClientUpdate (client_t *client, client_t *to);
 char *SV_PlayerPublicAddress(client_t *cl);
 
 #ifdef TEMPORALCORTEX
-short SV_NumPrecaches();
-struct model_s *SV_FindPrecacheByName(const char* name);
-struct model_s *SV_FindPrecacheByModelIndex(short modelindex);
-struct sfx_s *SV_FindPrecacheBySoundIndex(short soundindex);
-struct model_s *SV_AddModelPrecache(const char* name, short timeperiod);
-struct sfx_s *SV_AddSoundPrecache(const char* name, short timeperiod);
+short SV_NumModelPrecaches();
+short SV_NumSoundPrecaches();
+short SV_NumParticlePrecaches();
+struct modelprecache_s *SV_FindPrecacheByModelName(const char* name);
+struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex);
+struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name);
+struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex);
+struct modelprecache_s *SV_AddModelPrecache(const char* name, short timeperiod);
+struct soundprecache_s *SV_AddSoundPrecache(const char* name, short timeperiod);
 #endif
 
 void SV_GeneratePublicServerinfo(char *info, const char *endinfo);

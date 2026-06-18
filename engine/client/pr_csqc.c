@@ -714,6 +714,26 @@ static int CS_FindModel(const char *name, int *free)
 
 static model_t *CSQC_GetModelForIndex(int index)
 {
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+
+	if (index >= 0 && index < MAX_PRECACHE_MODELS)
+	{
+		model_precache = CSQC_FindPrecacheByModelIndex(index);
+
+		return model_precache->model;
+	}
+	else if (index < 0 && index > -MAX_CSMODELS)
+	{
+		model_precache = CSQC_FindPrecacheByModelIndex(-index);
+
+		if (!model_precache->model)
+			model_precache->model = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[tc_cl_current_bsp_index]?csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname:NULL), MLV_WARN);
+		return model_precache->model;
+	}
+	else
+		return NULL;
+#else
 	if (index == 0)
 		return NULL;
 	else if (index > 0 && index < MAX_PRECACHE_MODELS)
@@ -721,15 +741,12 @@ static model_t *CSQC_GetModelForIndex(int index)
 	else if (index < 0 && index > -MAX_CSMODELS)
 	{
 		if (!cl.model_csqcprecache[-index])
-#ifdef TEMPORALCORTEX
-			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[tc_cl_current_bsp_index]?csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname:NULL), MLV_WARN);
-#else
 			cl.model_csqcprecache[-index] = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel?csqc_world.worldmodel->publicname:NULL), MLV_WARN);
-#endif
 		return cl.model_csqcprecache[-index];
 	}
 	else
 		return NULL;
+#endif
 }
 
 static model_t *CSQC_GetModelForName(const char *modelname)
@@ -747,8 +764,11 @@ static model_t *CSQC_GetModelForName(const char *modelname)
 		Con_DPrintf("Late caching model \"%s\"\n", modelname);
 		Q_strncpyz(cl.model_csqcname[-freei], modelname, sizeof(cl.model_csqcname[-freei]));	//allocate a slot now
 		modelindex = freei;
-
+#ifdef TEMPORALCORTEX
+		// cl.model_csqcprecache[-freei] = NULL;
+#else
 		cl.model_csqcprecache[-freei] = NULL;
+#endif
 	}
 	return CSQC_GetModelForIndex(modelindex);
 }
@@ -3152,6 +3172,9 @@ static void QCBUILTIN PF_cs_pointcontentsmask(pubprogfuncs_t *prinst, struct glo
 static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int modelindex)
 {
 	model_t *model;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 	
 	if (ent->readonly)
 	{
@@ -3165,20 +3188,31 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 		if (modelindex <= -MAX_CSMODELS)
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_csqcname[-modelindex], true);
-		if (!cl.model_csqcprecache[-modelindex])
 #ifdef TEMPORALCORTEX
-			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), MLV_WARN);
+		model_precache = CSQC_AddModelPrecache(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), tc_cl_current_bsp_index);
+
+		if (!model_precache->name)
+			CL_AddModelPrecache(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), tc_cl_current_bsp_index);
+
+		model = CSQC_GetModelForIndex(-modelindex);
 #else
+		if (!cl.model_csqcprecache[-modelindex])
 			cl.model_csqcprecache[-modelindex] = Mod_ForName(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel->publicname), MLV_WARN);
-#endif
+
 		model = cl.model_csqcprecache[-modelindex];
+#endif
 	}
 	else
 	{
 		if (modelindex >= MAX_PRECACHE_MODELS || !cl.model_name[modelindex])
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_name[modelindex], true);
+#ifdef TEMPORALCORTEX
+		model_precache = CL_FindPrecacheByModelIndex(modelindex);
+		model = model_precache->model;
+#else
 		model = cl.model_precache[modelindex];
+#endif
 	}
 	if (model)
 	{
@@ -3237,8 +3271,9 @@ static void QCBUILTIN PF_cs_SetModel(pubprogfuncs_t *prinst, struct globalvars_s
 		Con_DPrintf("Late caching model \"%s\"\n", modelname);
 		Q_strncpyz(cl.model_csqcname[-freei], modelname, sizeof(cl.model_csqcname[-freei]));	//allocate a slot now
 		modelindex = freei;
-
+#ifndef TEMPORALCORTEX
 		cl.model_csqcprecache[-freei] = NULL;
+#endif
 	}
 
 	mod = csqc_setmodel(prinst, ent, modelindex);
@@ -3257,10 +3292,22 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 	int modelindex, freei;
 	const char *fixedname;
 	int i;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	if (!*modelname)
 		return 0;
-
+#ifdef TEMPORALCORTEX
+	for (i = 0, model_precache = cl.model_precache; model_precache->model; model_precache = model_precache->next, i++)	//Make sure that the server specified model is loaded..
+	{
+		if (!strcmp(cl.model_name[i], modelname))
+		{
+			CL_AddModelPrecache(modelname, tc_cl_current_bsp_index);
+			break;
+		}
+	}
+#else
 	for (i = 1; i < MAX_PRECACHE_MODELS; i++)	//Make sure that the server specified model is loaded..
 	{
 		if (!cl.model_name[i])
@@ -3268,14 +3315,11 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 		if (!strcmp(cl.model_name[i], modelname))
 		{
 			if (!cl.model_precache[i])
-#ifdef TEMPORALCORTEX
-				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), MLV_WARN);
-#else
 				cl.model_precache[i] = Mod_ForName(Mod_FixName(modelname, csqc_world.worldmodel->publicname), MLV_WARN);
-#endif
 			break;
 		}
 	}
+#endif
 
 	modelindex = CS_FindModel(modelname, &freei);	//now load it
 
@@ -3292,7 +3336,11 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 		modelindex = freei;
 
 		CL_CheckOrEnqueDownloadFile(modelname, modelname, 0);
+#ifdef TEMPORALCORTEX
+		CSQC_AddModelPrecache(fixedname, tc_cl_current_bsp_index);
+#else
 		cl.model_csqcprecache[-freei] = Mod_ForName(fixedname, MLV_WARN);
+#endif
 	}
 
 	return modelindex;
@@ -5637,7 +5685,8 @@ void CSQC_EntStateToCSQC(unsigned int flags, float lerptime, entity_state_t *src
 
 	CSQC_LerpStateToCSQC(le, ent, flags & RSES_NOLERP);
 
-	model = cl.model_precache[src->modelindex];
+#ifdef TEMPORALCORTEX
+	model = CSQC_GetModelForIndex(src->modelindex);
 	if (!(flags & RSES_NOTRAILS))
 	{
 		//use entnum as a test to see if its new (if the old origin isn't usable)
@@ -6586,6 +6635,11 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 	image_t *img;
 //	shader_t *sh;
 	sfx_t *sfx;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+	struct soundprecache_s *sound_precache;
+#endif
+
 	G_FLOAT(OFS_RETURN) = RESSTATE_NOTKNOWN;
 	switch(restype)
 	{
@@ -6593,15 +6647,27 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		idx = CS_FindModel(resname, &idx2);
 		if (idx < 0)
 		{
+#ifdef TEMPORALCORTEX
+			mod = CSQC_GetModelForIndex(-idx);
+			if (!mod && doload && cl.model_csqcname[-idx][0])
+				mod = Mod_ForName(Mod_FixName(cl.model_csqcname[-idx], cl.model_name[cl.model_time_periods[cl.worldmodel_indices[tc_cl_current_bsp_index]]]), MLV_WARN);
+#else
 			mod = cl.model_csqcprecache[-idx];
 			if (!cl.model_csqcprecache[-idx] && doload && cl.model_csqcname[-idx][0])
 				mod = cl.model_csqcprecache[-idx] = Mod_ForName(Mod_FixName(cl.model_csqcname[-idx], cl.model_name[1]), MLV_WARN);
+#endif
 		}
 		else if (idx > 0)
 		{
+#ifdef TEMPORALCORTEX
+			mod = CSQC_GetModelForIndex(idx);
+			if (!mod && doload)
+				mod = Mod_ForName(Mod_FixName(cl.model_name[idx], cl.model_name[1]), MLV_WARN);
+#else
 			mod = cl.model_precache[idx];
 			if (!cl.model_precache[idx] && doload && cl.model_name[idx])
 				mod = cl.model_precache[idx] = Mod_ForName(Mod_FixName(cl.model_name[idx], cl.model_name[1]), MLV_WARN);
+#endif
 		}
 		else
 			return;
@@ -6632,6 +6698,16 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		return;
 	case RESTYPE_SOUND:
 		sfx = NULL;
+#ifdef TEMPORALCORTEX
+		for (idx = 1, sound_precache = cl.sound_precache ; sound_precache->snd; sound_precache = sound_precache->next, idx++)
+		{
+			if (!strcmp(cl.sound_name[idx], resname))
+			{
+				sfx = sound_precache->snd;
+				break;
+			}
+		}
+#else
 		for (idx=1 ; idx<MAX_PRECACHE_SOUNDS; idx++)
 		{
 			if (!strcmp(cl.sound_name[idx], resname))
@@ -6640,6 +6716,7 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 				break;
 			}
 		}
+#endif
 		if (!sfx)
 			sfx = S_FindName(resname, doload, false);
 		if (!sfx)
@@ -8230,7 +8307,11 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 	csqc_deprecated_warned = !!cl_csqc_nodeprecate.ival;
 	memset(cl.model_csqcname, 0, sizeof(cl.model_csqcname));
+#ifdef TEMPORALCORTEX
+	memset(cl.model_csqcprecache, 0, sizeof(*cl.model_csqcprecache) * 16385);
+#else
 	memset(cl.model_csqcprecache, 0, sizeof(cl.model_csqcprecache));
+#endif
 
 	csqcprogparms.progsversion = PROGSTRUCT_VERSION;
 	csqcprogparms.ReadFile = CSQC_PRLoadFile;
@@ -8518,14 +8599,16 @@ void CSQC_RendererRestarted(qboolean initing)
 	{	//FIXME: this might be awkward in the purecsqc case.
 #ifdef TEMPORALCORTEX
 		csqc_world.worldmodel[tc_cl_current_bsp_index] = cl.worldmodel[tc_cl_current_bsp_index];
+
+		memset(cl.model_csqcprecache, 0, sizeof(*cl.model_csqcprecache) * 16385);
 #else
 		csqc_world.worldmodel = cl.worldmodel;
-#endif
 
 		for (i = 0; i < MAX_CSMODELS; i++)
 		{
 			cl.model_csqcprecache[i] = NULL;
 		}
+#endif
 	}
 
 	//FIXME: registered shaders
@@ -10022,4 +10105,5 @@ void QCBUILTIN PF_CL_NumLoadedBSPs (pubprogfuncs_t *prinst, struct globalvars_s 
 {
 	G_FLOAT(OFS_RETURN) = tc_cl_loaded_bsps;
 }
+#endif
 #endif

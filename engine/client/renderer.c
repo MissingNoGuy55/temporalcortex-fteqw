@@ -1504,6 +1504,7 @@ qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 	int i, j;
 #ifdef TEMPORALCORTEX
 	int t;
+	struct modelprecache_s *model_precache;
 #endif
 	double start = Sys_DoubleTime();
 
@@ -1735,13 +1736,14 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			SV_UnspawnServer();
 		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
-			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+			model_precache = SV_FindPrecacheByModelIndex(i);
+
+			if (model_precache && (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
 			{
-				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i] && (!strcmp(sv.strings.model_precache[i] + strlen(sv.strings.model_precache[i]) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
-					sv.models[i] = Mod_FindName(Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[tc_sv_current_bsp_index]));
-				else
-					sv.models[i] = NULL;
+				sv.models[i] = Mod_FindName(Mod_FixName(model_precache->name, SV_FindPrecacheByModelIndex(cl.worldmodel_indices[tc_cl_current_bsp_index])->name));
 			}
+			else
+				sv.models[i] = NULL;
 
 			World_ClearWorld (&sv.world, true);
 //			ent = sv.world.edicts;
@@ -1954,8 +1956,21 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 					break;
 
 				TRACE(("dbg: R_ApplyRenderer: reloading model %s\n", cl.model_name[i]));
+#ifdef TEMPORALCORTEX
+				model_precache = CL_FindPrecacheByModelIndex(i);
+
+				if (oldwm == model_precache->model)
+#else
 				if (oldwm == cl.model_precache[i])
+#endif
 					wmidx = i;
+#ifdef TEMPORALCORTEX
+				if (i == wmidx)
+					CL_AddModelPrecache(cl.model_name[i], tc_cl_current_bsp_index);
+				else
+					// Missi: Come back to this later. Probably not correct (2026.6.17)
+					CL_AddModelPrecache(Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[tc_cl_current_bsp_index]]), tc_cl_current_bsp_index);
+#else
 #ifdef Q2CLIENT	//skip vweps
 				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
 					cl.model_precache[i] = NULL;
@@ -1965,6 +1980,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 						cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_SILENT);
 					else
 						cl.model_precache[i] = Mod_FindName (Mod_FixName(cl.model_name[i], cl.model_name[1]));
+#endif
 			}
 
 #ifdef HAVE_LEGACY
@@ -1983,20 +1999,26 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 				if (!cl.model_csqcname[i][0])
 					break;
 
+#ifdef TEMPORALCORTEX
+				if (oldwm == CSQC_FindPrecacheByModelIndex(i)->model)
+#else
 				if (oldwm == cl.model_csqcprecache[i])
+#endif
 					wmidx = -i;
 
+#ifndef TEMPORALCORTEX
 				cl.model_csqcprecache[i] = NULL;
+#endif
 				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
 #ifdef TEMPORALCORTEX
-				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1+tc_cl_current_bsp_index]), MLV_SILENT);
+				CSQC_AddModelPrecache(cl.model_csqcname[i], tc_cl_current_bsp_index);
 #else
 				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
 #endif
 			}
 #ifdef TEMPORALCORTEX
 			if (wmidx < 0)
-				cl.worldmodel[t] = cl.model_csqcprecache[-wmidx];
+				cl.worldmodel[t] = CSQC_FindPrecacheByModelIndex(-wmidx)->model;
 			else
 #else
 			if (wmidx < 0)
@@ -2005,7 +2027,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-				cl.worldmodel[t] = cl.model_precache[wmidx];
+				cl.worldmodel[t] = CL_FindPrecacheByModelIndex(wmidx)->model;
 #else
 				cl.worldmodel = cl.model_precache[wmidx];
 #endif

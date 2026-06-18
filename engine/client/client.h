@@ -930,16 +930,18 @@ typedef struct
 	struct modelprecache_s
 	{
 		const char* name;
+		int index;
 		struct model_s* model;
 		struct modelprecache_s* next;
-	} modelprecache_t;
+	};
 
 	struct soundprecache_s
 	{
 		const char* name;
+		int index;
 		struct sfx_s* snd;
 		struct soundprecache_s* next;
-	} soundprecache_t;
+	};
 #endif
 #endif
 //
@@ -1242,15 +1244,18 @@ char *CL_TryingToConnect(void);
 void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
 
 #ifdef TEMPORALCORTEX
-short CL_NumPrecaches();
-struct model_s *CL_FindPrecacheByName(const char* name);
-struct model_s *CL_FindPrecacheByModelIndex(short modelindex);
-struct sfx_s *CL_FindPrecacheBySoundIndex(short soundindex);
-struct model_s *CL_AddModelPrecache(const char* name, short timeperiod);
-struct sfx_s *CL_AddSoundPrecache(const char* name, short timeperiod);
-struct model_s *CSQC_FindPrecacheByName(const char* name);
-struct model_s *CSQC_FindPrecacheByModelIndex(short modelindex);
-struct model_s *CSQC_AddPrecache(const char* name, short timeperiod);
+short CL_NumModelPrecaches();
+short CL_NumSoundPrecaches();
+struct modelprecache_s *CL_FindPrecacheByModelName(const char* name);
+struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex);
+struct modelprecache_s *CL_AddModelPrecache(const char* name, short timeperiod);
+struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name);
+struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex);
+struct soundprecache_s *CL_AddSoundPrecache(const char* name, short timeperiod);
+struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name);
+struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex);
+struct modelprecache_s *CSQC_AddModelPrecache(const char* name, short timeperiod);
+short CSQC_NumModelPrecaches();
 #endif
 
 extern	int				cl_framecount;	//number of times the entity lists have been cleared+reset.

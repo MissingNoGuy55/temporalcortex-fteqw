@@ -3603,13 +3603,16 @@ void MP_RendererRestarted(void)
 		return;
 #ifdef TEMPORALCORTEX
 	menu_world.worldmodel[tc_cl_current_bsp_index] = cl.worldmodel[tc_cl_current_bsp_index];
+
+	memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s) * 16835);
 #else
 	menu_world.worldmodel = cl.worldmodel;
-#endif
+
 	for (i = 0; i < MAX_CSMODELS; i++)
 	{
 		cl.model_csqcprecache[i] = NULL;
 	}
+#endif
 
 	//FIXME: registered shaders
 

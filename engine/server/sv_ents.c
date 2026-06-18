@@ -3356,11 +3356,19 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 {
 	int i;
 	gibfilter_t *gf;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
 
+	for (i = 0, model_precache = sv.strings.model_precache; model_precache->name; model_precache = model_precache->next, i++)
+		if (!strcmp(model_precache->name, modelname))
+			break;
+	if (!model_precache->model)
+#else
 	for (i=1; sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], modelname))
 			break;
 	if (!sv.strings.model_precache[i])
+#endif
 	{
 		if (allowwarn)
 			Con_Printf("Filtered model \"%s\" was not precached\n", modelname);
@@ -3503,6 +3511,11 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 
 	int i;
 	state->number = NUM_FOR_EDICT(svprogfuncs, ent);
+
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+	struct soundprecache_s *sound_precache;
+#endif
 
 	state->u.q1.msec = 0;
 	state->u.q1.pmovetype = 0;
@@ -3688,7 +3701,13 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	if (((int)ent->v->flags & FL_CLASS_DEPENDENT) && client && client->playerclass)	//hexen2 wierdness.
 	{
 		char modname[MAX_QPATH];
+#ifdef TEMPORALCORTEX
+		model_precache = SV_FindPrecacheByModelIndex(state->modelindex);
+
+		Q_strncpyz(modname, model_precache->name, sizeof(modname));
+#else
 		Q_strncpyz(modname, sv.strings.model_precache[state->modelindex], sizeof(modname));
+#endif
 		if (strlen(modname)>5)
 		{
 			modname[strlen(modname)-5] = client->playerclass+'0';
@@ -3730,6 +3749,28 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	{
 		if (progstype == PROG_TENEBRAE)
 		{
+#ifdef TEMPORALCORTEX
+			model_precache = SV_FindPrecacheByModelIndex(state->modelindex);
+
+			//tenebrae has some hideous hacks
+			if (!strcmp(model_precache->name, "progs/w_light.spr") ||
+				!strcmp(model_precache->name, "progs/b_light.spr") ||
+				!strcmp(model_precache->name, "progs/s_light.spr") ||
+				!strcmp(model_precache->name, "progs/flame.mdl") ||
+				!strcmp(model_precache->name, "progs/flame2.mdl"))
+			{
+				//fixme: add some default colours
+				state->lightpflags |= PFLAGS_FULLDYNAMIC;
+				if (!state->light[3])
+					state->light[3] = 350;
+			}
+			if (!strcmp (model_precache->name, "progs/lavaball.mdl"))
+			{
+				state->lightpflags |= PFLAGS_FULLDYNAMIC;
+				state->skinnum = 17;
+				state->light[3] = 270;
+			}
+#else
 			//tenebrae has some hideous hacks
 			if (!strcmp(sv.strings.model_precache[state->modelindex], "progs/w_light.spr") ||
 				!strcmp(sv.strings.model_precache[state->modelindex], "progs/b_light.spr") ||
@@ -3748,6 +3789,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 				state->skinnum = 17;
 				state->light[3] = 270;
 			}
+#endif
 		}
 		if (state->effects && client && ISQWCLIENT(client))	//don't send extra nq effects to a qw client.
 		{

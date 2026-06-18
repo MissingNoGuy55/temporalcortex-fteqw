@@ -715,10 +715,15 @@ void SVNQ_New_f (void)
 		{
 			if (!host_client->supportedprotocols && !host_client->fteprotocolextensions && !host_client->fteprotocolextensions2)
 			{
+#ifndef TEMPORALCORTEX
 				for (modelcount = 1; modelcount < MAX_PRECACHE_MODELS && sv.strings.model_precache[modelcount]; modelcount++)
 					;
 				for (soundcount = 1; soundcount < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[soundcount]; soundcount++)
 					;
+#else
+				modelcount = SV_NumModelPrecaches();
+				soundcount = SV_NumSoundPrecaches();
+#endif
 				if (modelcount > 255 || soundcount > 255 || sv.world.num_edicts > 600)
 				{
 					Q_snprintfz (message, sizeof(message), "\x02\n"
@@ -896,7 +901,7 @@ void SVNQ_New_f (void)
 		{
 			if (!sv.world.worldmodel_indices[i])
 				continue;
-			MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[sv.world.worldmodel_indices[i]]);
+			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[i])->name);
 		}
 #else
 		if (sv.strings.model_precache[1])
@@ -907,6 +912,17 @@ void SVNQ_New_f (void)
 	}
 	else
 	{
+#ifdef TEMPORALCORTEX
+		//fixme: don't send too many models.
+		for (i = 0; i < SV_NumModelPrecaches() ; i++)
+			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheByModelIndex(i)->name);
+		MSG_WriteByte (&host_client->netchan.message, 0);
+
+		//fixme: don't send too many sounds.
+		for (i = 0; SV_NumSoundPrecaches() ; i++)
+			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheBySoundIndex(i)->name);
+		MSG_WriteByte (&host_client->netchan.message, 0);
+#else
 		//fixme: don't send too many models.
 		for (i = 1; sv.strings.model_precache[i] ; i++)
 			MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[i]);
@@ -916,6 +932,7 @@ void SVNQ_New_f (void)
 		for (i = 1; sv.strings.sound_precache[i] ; i++)
 			MSG_WriteString (&host_client->netchan.message, sv.strings.sound_precache[i]);
 		MSG_WriteByte (&host_client->netchan.message, 0);
+#endif
 	}
 
 	if (allow_download.value && (protext1||protext2||ISDPCLIENT(host_client)))
