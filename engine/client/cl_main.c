@@ -1035,37 +1035,78 @@ struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex)
 
 struct modelprecache_s *CL_AddModelPrecache(const char* name, short timeperiod)
 {
+	int i;
 	struct modelprecache_s* precache;
 
-	for (precache = cl.model_precache; precache->model; precache = precache->next)
-		;
+	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+		if (!strcmp(precache->name, name))
+			return precache;
 
-	if (!Mod_FindName(name))
-		precache->model = Mod_ForName (Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
+	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+	{
+		if (i > MAX_PRECACHE_MODELS)
+		{
+			Host_EndGame("CL_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
+			return NULL;
+		}
+	}
+
+	precache->model = Mod_FindName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]));
+
 	if (precache->model)
 	{
+		Con_DPrintf( CON_WARNING "[TEMPORAL CORTEX] [CL] Found model %s on client; probably listen server host. Not precaching.\n", name );
 		precache->name = name;
-		precache->next = precache+1;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 	}
+	else
+	{
+		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [CL] Precaching model %s\n", name );
+		precache->model = Mod_ForName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
+		precache->name = name;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
+	}
+
+	memset(precache->next, 0, sizeof(struct modelprecache_s));
 
 	return precache;
 }
 
 struct soundprecache_s *CL_AddSoundPrecache(const char* name, short int timeperiod)
 {
+	int i;
 	struct soundprecache_s* precache;
 
-	for (precache = cl.sound_precache; precache->snd; precache = precache->next)
-		;
+	for (i = 0, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
+		if (!strcmp(precache->name, name))
+			return precache;
 
-	precache = precache->next;
+	for (i = 0, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
+	{
+		if (i > MAX_PRECACHE_SOUNDS)
+		{
+			Host_EndGame("CL_AddSoundPrecache: i == MAX_PRECACHE_SOUNDS\n");
+			return NULL;
+		}
+	}
 
-	if (!S_FindName(name, false, false))
-		precache->snd = S_PrecacheSound(precache->name);
+	precache->snd = S_FindName(name, false, false);
+
 	if (precache->snd)
 	{
 		precache->name = name;
-		precache->next = precache+1;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
+	}
+	else
+	{
+		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [CL] Precaching sound %s\n", name );
+		precache->snd = S_PrecacheSound(name);
+		precache->name = name;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
 	}
 
 	return precache;
@@ -1096,18 +1137,40 @@ struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex)
 
 struct modelprecache_s *CSQC_AddModelPrecache(const char* name, short timeperiod)
 {
+	int i;
 	struct modelprecache_s* precache;
 
-	for (precache = cl.model_csqcprecache; precache->model; precache = precache->next)
-		;
+	for (i = 0, precache = cl.model_csqcprecache; precache->model; precache = precache->next, i++)
+		if (!strcmp(precache->name, name))
+			return precache;
 
-	if (!Mod_FindName(name))
-		precache->model = Mod_ForName (Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
+	for (i = 0, precache = cl.model_csqcprecache; precache->model; precache = precache->next, i++)
+	{
+		if (i > MAX_PRECACHE_MODELS)
+		{
+			Host_EndGame("CL_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
+			return NULL;
+		}
+	}
+
+	precache->model = Mod_FindName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]));
+
 	if (precache->model)
 	{
 		precache->name = name;
-		precache->next = precache+1;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 	}
+	else
+	{
+		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [CSQC] Precaching model %s\n", name );
+		precache->model = Mod_ForName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
+		precache->name = name;
+		precache->index = i;
+		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
+	}
+
+	memset(precache->next, 0, sizeof(struct modelprecache_s));
 
 	return precache;
 }

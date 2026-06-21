@@ -2295,6 +2295,10 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 	model_t *model;
 	framestate_t fstate;
 
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
+
 	if (parenttagent >= cl.maxlerpents)
 	{
 		Con_Printf("tag entity out of range!\n");
@@ -2336,8 +2340,10 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 		}
 
 #ifdef TEMPORALCORTEX
-		if (ps->modelindex <= CL_NumModelPrecaches() && cl.model_precache[ps->modelindex].model && cl.model_precache[ps->modelindex].model->loadstate == MLS_LOADED)
-			model = cl.model_precache[ps->modelindex].model;
+		model_precache = CL_FindPrecacheByModelIndex(ps->modelindex);
+
+		if (ps->modelindex <= CL_NumModelPrecaches() && model_precache->model && model_precache->model->loadstate == MLS_LOADED)
+			model = model_precache->model;
 #else
 		if (ps->modelindex <= countof(cl.model_precache) && cl.model_precache[ps->modelindex] && cl.model_precache[ps->modelindex]->loadstate == MLS_LOADED)
 			model = cl.model_precache[ps->modelindex];
@@ -2400,7 +2406,8 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 				ang = cl.inframes[parsecountmod].playerstate[parenttagent-1].viewangles;
 			}
 #ifdef TEMPORALCORTEX
-			model = cl.model_precache[cl.inframes[parsecountmod].playerstate[parenttagent-1].modelindex].model;
+			model_precache = CL_FindPrecacheByModelIndex(cl.inframes[parsecountmod].playerstate[parenttagent-1].modelindex);
+			model = model_precache->model;
 #else
 			model = cl.model_precache[cl.inframes[parsecountmod].playerstate[parenttagent-1].modelindex];
 #endif
@@ -3101,6 +3108,9 @@ void CLQ1_AddVisibleBBoxes(void)
 	int i;
 	shader_t *s;
 	vec3_t min, max, size;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	#pragma message("Temporary Code: BBoxes calling R2D_Flush")
 	/*
@@ -3161,16 +3171,18 @@ void CLQ1_AddVisibleBBoxes(void)
 					if (state->modelindex <= 0)
 						continue;
 #ifdef TEMPORALCORTEX
-					if (!cl.model_precache[state->modelindex].model)
+					model_precache = CL_FindPrecacheByModelIndex(state->modelindex);
+
+					if (!model_precache->model)
 #else
 					if (!cl.model_precache[state->modelindex])
 #endif
 						continue;
 					/*this makes non-inline bsp objects non-solid for prediction*/
 #ifdef TEMPORALCORTEX
-					if ((cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS) || ((*cl.model_precache[state->modelindex].model->name == '*' || cl.model_precache[state->modelindex].model->numsubmodels) && cl.model_precache[state->modelindex].model->hulls[1].firstclipnode))
+					if ((cls.fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS) || ((*model_precache->model->name == '*' || model_precache->model->numsubmodels) && model_precache->model->hulls[1].firstclipnode))
 					{
-						mod = cl.model_precache[state->modelindex].model;
+						mod = model_precache->model;
 						VectorAdd(state->origin, mod->mins, min);
 						VectorAdd(state->origin, mod->maxs, max);
 						CLQ1_AddOrientedCube(s, min, max, NULL, 0.1, 0, 0, 1);

@@ -4791,7 +4791,6 @@ static void QCBUILTIN PF_precache_file (pubprogfuncs_t *prinst, struct globalvar
 int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean queryonly)
 {
 #ifdef TEMPORALCORTEX
-	int		i;
 	struct soundprecache_s* sound_precache;
 
 	if (s[0] <= ' ')
@@ -4833,9 +4832,8 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 #endif
 		}
 	}
-	if (!queryonly)
-		PR_BIError (prinst, "PF_precache_sound: overflow");
-	return 0;
+
+	return sound_precache->index;
 #else
 	int		i;
 	int		t;
@@ -4885,9 +4883,9 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			}
 			return i;
 		}
-	}
 		if (!strcmp(sv.strings.sound_precache[i], s))
 			return i;
+	}
 	if (!queryonly)
 		PR_BIError (prinst, "PF_precache_sound: overflow");
 	return 0;
@@ -4935,7 +4933,6 @@ static void QCBUILTIN PF_soundnameforindex (pubprogfuncs_t *prinst, struct globa
 int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean queryonly)
 {
 #ifdef TEMPORALCORTEX
-	int		i;
 	struct modelprecache_s* model_precache;
 
 	if (s[0] <= ' ')
@@ -4944,67 +4941,67 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		return 0;
 	}
 
-	for (model_precache = sv.strings.model_precache; ; model_precache = model_precache->next)
+	model_precache = SV_FindPrecacheByModelName(s);
+
+	if (!model_precache)
 	{
-		if (!model_precache->model)
+		if (strlen(s)>=MAX_QPATH-1)	//probably safest to keep this.
 		{
-			if (strlen(s)>=MAX_QPATH-1)	//probably safest to keep this.
-			{
-				PR_BIError (prinst, "Precache name too long");
-				return 0;
-			}
-			if (queryonly)
-				return 0;
+			PR_BIError (prinst, "Precache name too long");
+			return 0;
+		}
+		if (queryonly)
+			return 0;
 #ifdef VM_Q1
-			if (svs.gametype == GT_Q1QVM)
-				model_precache = SV_AddModelPrecache(s, tc_sv_current_bsp_index);
-			else
+		if (svs.gametype == GT_Q1QVM)
+			model_precache = SV_AddModelPrecache(s, tc_sv_current_bsp_index);
+		else
 #endif
-				model_precache = SV_AddModelPrecache(PR_AddString(prinst, s, 0, false), tc_sv_current_bsp_index);
+			model_precache = SV_AddModelPrecache(PR_AddString(prinst, s, 0, false), tc_sv_current_bsp_index);
 
-			s = model_precache->name;
+		s = model_precache->name;
 
-			if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
+		if (!strcmp(s + strlen(s) - 4, ".bsp") || sv_gameplayfix_setmodelrealbox.ival)
 #ifdef TEMPORALCORTEX
-				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
+			sv.models[model_precache->index] = Mod_ForName(Mod_FixName(s, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
 #else
-				sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname), MLV_WARNSYNC);
+			sv.models[i] = Mod_ForName(Mod_FixName(s, sv.modelname), MLV_WARNSYNC);
 #endif
-			else
-			{
-				/*touch the file, so any packs will be referenced*/
-				FS_FLocateFile(s, FSLF_IFFOUND, NULL);
-			}
+		else
+		{
+			/*touch the file, so any packs will be referenced*/
+			FS_FLocateFile(s, FSLF_IFFOUND, NULL);
+		}
 
-			if (sv.state != ss_loading)
-			{
-				Con_DPrintf("Delayed model precache: %s\n", s);
-				MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
-				MSG_WriteShort(&sv.reliable_datagram, i);
-				MSG_WriteString(&sv.reliable_datagram, s);
+		if (sv.state != ss_loading)
+		{
+			Con_DPrintf("Delayed model precache: %s\n", s);
+			MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+			MSG_WriteShort(&sv.reliable_datagram, model_precache->index);
+#else
+			MSG_WriteShort(&sv.reliable_datagram, i);
+#endif
+			MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef TEMPORALCORTEX
+			MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #ifdef NQPROT
-				MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
-				MSG_WriteShort(&sv.nqreliable_datagram, i);
-				MSG_WriteString(&sv.nqreliable_datagram, s);
+			MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 #ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+			MSG_WriteShort(&sv.nqreliable_datagram, model_precache->index);
+#else
+			MSG_WriteShort(&sv.nqreliable_datagram, i);
+#endif
+			MSG_WriteString(&sv.nqreliable_datagram, s);
+#ifdef TEMPORALCORTEX
+			MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
 #endif
 #endif
-			}
-
-			return i;
-		}
-		if (!strcmp(model_precache->name, s))
-		{
-			return i;
 		}
 	}
-	if (!queryonly)
-		PR_BIError (prinst, "PF_precache_model: overflow");
-	return 0;
+
+	return model_precache->index;
 #else
 	int		i;
 

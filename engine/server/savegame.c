@@ -458,11 +458,6 @@ void LoadModelsAndSounds(vfsfile_t *f)
 		if (*str)
 			SV_Error("Too many model precaches in loadgame cache");
 	}
-	if (!sv.strings.sound_precache)
-	{
-		sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s) * 16385); // PR_AddString(svprogfuncs, "", 0, false);
-		memset(sv.strings.sound_precache, 0, sizeof(struct soundprecache_s) * 16385);
-	}
 
 	for (i=0; i < MAX_PRECACHE_SOUNDS; i++)
 	{

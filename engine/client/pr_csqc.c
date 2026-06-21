@@ -719,7 +719,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 
 	if (index >= 0 && index < MAX_PRECACHE_MODELS)
 	{
-		model_precache = CSQC_FindPrecacheByModelIndex(index);
+		model_precache = CL_FindPrecacheByModelIndex(index);
 
 		return model_precache->model;
 	}
@@ -3189,10 +3189,10 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_csqcname[-modelindex], true);
 #ifdef TEMPORALCORTEX
-		model_precache = CSQC_AddModelPrecache(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), tc_cl_current_bsp_index);
+		model_precache = CSQC_AddModelPrecache(cl.model_csqcname[-modelindex], tc_cl_current_bsp_index);
 
-		if (!model_precache->name)
-			CL_AddModelPrecache(Mod_FixName(cl.model_csqcname[-modelindex], csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname), tc_cl_current_bsp_index);
+		if (!model_precache)
+			CL_AddModelPrecache(cl.model_csqcname[-modelindex], tc_cl_current_bsp_index);
 
 		model = CSQC_GetModelForIndex(-modelindex);
 #else
@@ -3208,7 +3208,7 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_name[modelindex], true);
 #ifdef TEMPORALCORTEX
-		model_precache = CL_FindPrecacheByModelIndex(modelindex);
+		model_precache = CL_FindPrecacheByModelIndex(modelindex-1);
 		model = model_precache->model;
 #else
 		model = cl.model_precache[modelindex];
@@ -3299,7 +3299,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 	if (!*modelname)
 		return 0;
 #ifdef TEMPORALCORTEX
-	for (i = 0, model_precache = cl.model_precache; model_precache->model; model_precache = model_precache->next, i++)	//Make sure that the server specified model is loaded..
+	for (i = 1, model_precache = cl.model_precache; model_precache->model; model_precache = model_precache->next, i++)	//Make sure that the server specified model is loaded..
 	{
 		if (!strcmp(cl.model_name[i], modelname))
 		{
@@ -8223,6 +8223,7 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
+	struct modelprecache_s *model_precache;
 #endif
 	string_t *str;
 	csqcedict_t *worldent;
@@ -8307,11 +8308,6 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 	csqc_deprecated_warned = !!cl_csqc_nodeprecate.ival;
 	memset(cl.model_csqcname, 0, sizeof(cl.model_csqcname));
-#ifdef TEMPORALCORTEX
-	memset(cl.model_csqcprecache, 0, sizeof(*cl.model_csqcprecache) * 16385);
-#else
-	memset(cl.model_csqcprecache, 0, sizeof(cl.model_csqcprecache));
-#endif
 
 	csqcprogparms.progsversion = PROGSTRUCT_VERSION;
 	csqcprogparms.ReadFile = CSQC_PRLoadFile;
@@ -8361,6 +8357,7 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 	csqc_world.keydestmask = kdm_game;
 
 	csqctime = Sys_DoubleTime();
+
 	if (!csqcprogs)
 	{
 		int csprogsnum = -1;
@@ -8373,6 +8370,7 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 		csqc_world.usesolidcorpse = true;
 		PR_Configure(csqcprogs, PR_ReadBytesString(pr_csqc_memsize.string), MAX_PROGS, pr_enable_profiling.ival);
 #ifdef TEMPORALCORTEX
+		// Missi: FIXME: Should handle it all here, but the logic is too complicated to refactor it right now (2026.6.20)
 		for (t = 0; t < MAX_TIME_PERIODS; t++)
 		{
 			if (!cl.worldmodel[t])

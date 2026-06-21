@@ -1212,6 +1212,7 @@ struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name);
 struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex);
 struct modelprecache_s *SV_AddModelPrecache(const char* name, short timeperiod);
 struct soundprecache_s *SV_AddSoundPrecache(const char* name, short timeperiod);
+void SV_ClearPrecaches();
 #endif
 
 void SV_GeneratePublicServerinfo(char *info, const char *endinfo);

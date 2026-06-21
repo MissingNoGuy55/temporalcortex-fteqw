@@ -1327,6 +1327,9 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	qboolean	use_phs;
 	qboolean	reliable = chflags & CF_SV_RELIABLE;
 	struct startsoundcontext_s ctx;
+#ifdef TEMPORALCORTEX
+	struct soundprecache_s *sound_precache;
+#endif
 
 	if (volume < 0 || volume > 255)
 	{
@@ -1364,22 +1367,21 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		struct soundprecache_s* precache = SV_FindPrecacheBySoundIndex(ctx.sampleidx);
-
-		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
-			&& precache->name ; ctx.sampleidx++)
-			if (!strcmp(sample, precache->name))
+		for (ctx.sampleidx=1, sound_precache = sv.strings.sound_precache; ctx.sampleidx<MAX_PRECACHE_SOUNDS
+			&& sound_precache->name ; ctx.sampleidx++, sound_precache = sound_precache->next)
+			if (!strcmp(sample, sound_precache->name))
 				break;
-		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !precache->name )
-		{
+
+		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sound_precache->name )
 #else
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
 			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
 			if (!strcmp(sample, sv.strings.sound_precache[ctx.sampleidx]))
 				break;
+
 		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[ctx.sampleidx] )
-		{
 #endif
+		{
 			if (ctx.sampleidx < MAX_PRECACHE_SOUNDS)
 			{
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
