@@ -821,9 +821,8 @@ void CL_DownloadFinished(qdownload_t *dl)
 {
 	int i;
 #ifdef TEMPORALCORTEX
-	int j, t;
+	int t;
 	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
 #endif
 	char ext[8];
 
@@ -861,12 +860,12 @@ void CL_DownloadFinished(qdownload_t *dl)
 			{
 				if (cl.model_name[i] && !strcmp(cl.model_name[i], filename))
 				{
-					model_precache = CL_AddModelPrecache(cl.model_name[i], t);
+					model_precache = CL_AddModelPrecache(cl.model_name[i], cl.model_time_periods[i]);
 
 					if (model_precache->model && model_precache->model->loadstate == MLS_FAILED)
 						model_precache->model->loadstate = MLS_NOTLOADED;
 					CL_CheckModelResources(cl.model_name[i]);
-					for (j = 0; j < MAX_TIME_PERIODS; j++)
+					for (int j = 0; j < MAX_TIME_PERIODS; j++)
 					{
 						if (i == cl.worldmodel_indices[t])
 						{
@@ -1331,8 +1330,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
-	struct modelprecache_s *model_precache = NULL;
-	struct soundprecache_s *sound_precache = NULL;
+	struct modelprecache_s *model_precache;
 #endif
 
 	float giveuptime = Sys_DoubleTime()+1;	//small things get padded into a single frame
@@ -1482,7 +1480,12 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 				if ( ( !cls.timedemo && i != 1 ) && ( mod_precache.ival != 1 ) )
 					model_precache = CL_FindPrecacheByModelName(cl.model_name[i]);
 				else
-					model_precache = CL_AddModelPrecache (cl.model_name[i], tc_cl_current_bsp_index);
+					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_time_periods[i]);
+
+#ifdef TEMPORALCORTEX
+				if (model_precache && model_precache->model)
+					Con_DPrintf("[TEMPORAL CORTEX] [CL] Successfully loaded %s\n", model_precache->name);
+#endif
 
 				S_ExtraUpdate();
 
@@ -1552,7 +1555,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 		for (t = 0; t < MAX_TIME_PERIODS; t++)
 		{
 			// Missi: Invalid worlds are always 0 (2026.6.15)
-			if (!cl.model_name[cl.worldmodel_indices[t]])
+			if (!cl.worldmodel_indices[t])
 				continue;
 
 			model_precache = CL_FindPrecacheByModelName(cl.model_name[cl.worldmodel_indices[t]]);
@@ -1752,8 +1755,8 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 #ifdef TEMPORALCORTEX
 		if (!cl.sound_precache)
 		{
-			cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS);
-			memset(cl.sound_precache, 0, sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS);
+			cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS + 1);
+			memset(cl.sound_precache, 0, sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS + 1);
 		}
 #endif
 
@@ -1771,7 +1774,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-			cl.sound_precache[i].snd = S_PrecacheSound (cl.sound_name[i]);
+			CL_AddSoundPrecache(cl.sound_name[i], tc_cl_current_bsp_index);
 #else
 			cl.sound_precache[i] = S_PrecacheSound (cl.sound_name[i]);
 #endif
@@ -1987,7 +1990,7 @@ void CL_RequestNextDownload (void)
 		}
 
 		stage = 0;
-		stage = CL_LoadModels(stage, false, i);
+		stage = CL_LoadModels(stage, false, tc_cl_current_bsp_index);
 
 		current_loading_size = cl.contentstage;
 		if (stage < 0)
@@ -5045,9 +5048,6 @@ static void CL_ParseModellist (qboolean lots)
 	int	nummodels;
 	char	*str;
 	int n;
-#ifdef TEMPORALCORTEX
-	int t;
-#endif
 
 // precache models and note certain default indexes
 	if (lots)
@@ -5058,7 +5058,6 @@ static void CL_ParseModellist (qboolean lots)
 	for (;;)
 	{
 		str = MSG_ReadString ();
-
 		if (!str[0])
 			break;
 		nummodels++;
@@ -5066,9 +5065,11 @@ static void CL_ParseModellist (qboolean lots)
 #ifdef TEMPORALCORTEX
 		cl.model_time_periods[nummodels] = MSG_ReadShort();
 #endif
+
 		if (nummodels>=MAX_PRECACHE_MODELS)
 			Host_EndGame ("Server sent too many model_precache");
 		Z_StrDupPtr(&cl.model_name[nummodels], str);
+
 		if (nummodels==1)
 			SCR_ImageName(cl.model_name[nummodels]);
 
@@ -5356,7 +5357,7 @@ parsemodelindex:
 		}
 		else if (cl.contentstage)
 #ifdef TEMPORALCORTEX
-			CL_AddModelPrecache (cl.model_name[i], tc_cl_current_bsp_index);
+			CL_AddModelPrecache (cl.model_name[i], cl.model_time_periods[i]);
 #else
 			cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_WARN);
 #endif
@@ -5810,6 +5811,9 @@ static void CLQW_ParseStartSoundPacket(void)
 	int 	volume;
 	float 	attenuation;
 	int		i;
+#ifdef TEMPORALCORTEX
+	struct soundprecache_s *sound_precache;
+#endif
 
 	channel = MSG_ReadShort();
 
@@ -5842,7 +5846,11 @@ static void CLQW_ParseStartSoundPacket(void)
 			S_StopSound(ent, channel);
 		else
 #ifdef TEMPORALCORTEX
-			S_StartSound (ent, channel, CL_FindPrecacheBySoundIndex(sound_num)->snd, pos, NULL, volume/255.0, attenuation, 0, 0, 0);
+		{
+			sound_precache = CL_FindPrecacheBySoundIndex(sound_num);
+
+			S_StartSound (ent, channel, sound_precache->snd, pos, NULL, volume/255.0, attenuation, 0, 0, 0);
+		}
 #else
 			S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, NULL, volume/255.0, attenuation, 0, 0, 0);
 #endif
@@ -6002,6 +6010,9 @@ static void CLNQ_ParseStartSoundPacket(void)
 	float	pitchadj;
 	float	timeofs;
 	unsigned int flags;
+#ifdef TEMPORALCORTEX
+	struct soundprecache_s *sound_precache;
+#endif
 
 	field_mask = MSG_ReadByte();
 
@@ -6081,7 +6092,11 @@ static void CLNQ_ParseStartSoundPacket(void)
 			S_StopSound(ent, channel);
 		else
 #ifdef TEMPORALCORTEX
-			S_StartSound (ent, channel, CL_FindPrecacheBySoundIndex(sound_num)->snd, pos, vel, volume/255.0, attenuation, timeofs, pitchadj, flags);
+		{
+			sound_precache = CL_FindPrecacheBySoundIndex(sound_num);
+
+			S_StartSound (ent, channel, sound_precache->snd, pos, vel, volume/255.0, attenuation, timeofs, pitchadj, flags);
+		}
 #else
 			S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, vel, volume/255.0, attenuation, timeofs, pitchadj, flags);
 #endif
@@ -7933,7 +7948,9 @@ static void CL_ParsePrecache(void)
 	case PC_SOUND:
 		if (i >= 1 && i < MAX_PRECACHE_SOUNDS)
 		{
+#ifndef TEMPORALCORTEX
 			sfx_t *sfx;
+#endif
 
 			if (S_HaveOutput())
 				CL_CheckOrEnqueDownloadFile(va("sound/%s", s), NULL, DLLF_ALLOWWEB);

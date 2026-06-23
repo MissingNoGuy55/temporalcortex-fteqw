@@ -621,10 +621,12 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 	{
 		model_t *mod;
 #ifdef TEMPORALCORTEX
+		wedict_t *wedict = WEDICT_NUM_PB(svprogfuncs, tc_sv_current_bsp_index);
+
 		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex);
 
-		if (!sv.models[modelindex] && model_precache->name)
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
+		if (!sv.models[modelindex] && model_precache)
+			sv.models[modelindex] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[wedict->bspnum]), MLV_WARN);
 #else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
 			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
@@ -3120,6 +3122,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	model_t	*mod;
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s *model_precache;
+	struct modelprecache_s *model_precache_world;
 #endif
 
 	if (!e)
@@ -3144,64 +3147,63 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	else
 	{
 #ifdef TEMPORALCORTEX
-		model_precache = SV_FindPrecacheByModelName(m);
-
-		if (model_precache)
+		for (i = 1, model_precache = sv.strings.model_precache; model_precache->model; model_precache = model_precache->next, i++)
 		{
-#ifdef VM_Q1
-			if (svs.gametype != GT_Q1QVM)
-#endif
-				m = model_precache->name;
-		}
-	}
-	if (i==MAX_PRECACHE_MODELS || !model_precache)
-	{
-		if (i!=MAX_PRECACHE_MODELS)
-		{
-#ifdef VM_Q1
-			if (svs.gametype == GT_Q1QVM)
-				SV_AddModelPrecache(m, tc_sv_current_bsp_index);	//in a qvm, we expect the caller to have used a static location.
-			else
-#endif
-				m = PR_AddString(prinst, m, 0, false);
-			if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
-				sv.models[i] = Mod_FindName(Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]));
-			Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
-
-			if (sv.state != ss_loading)
+			if (!strcmp(model_precache->name, m))
 			{
-				int j;
-				Con_DPrintf("Delayed model precache: %s\n", m);
-
-				for (j = 0; j < sv.allocated_client_slots; j++)
+#ifdef VM_Q1
+				if (svs.gametype != GT_Q1QVM)
+#endif
+					m = model_precache->name;
+				break;
+			}
+		}
+		if (i==MAX_PRECACHE_MODELS || !model_precache->next)
+		{
+			if (i!=MAX_PRECACHE_MODELS)
+			{
+#ifdef VM_Q1
+				if (svs.gametype == GT_Q1QVM)
+					model_precache = SV_AddModelPrecache(m, e->bspnum);	//in a qvm, we expect the caller to have used a static location.
+				else
+#endif
+					m = model_precache->name = PR_AddString(prinst, m, 0, false);
+				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 				{
-					if (svs.clients[j].state < cs_connected)
-						continue;
-					if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+					model_precache_world = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[e->bspnum]);
+					sv.models[i] = Mod_FindName(Mod_FixName(m, model_precache_world->name));
+				}
+				Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
+
+				if (sv.state != ss_loading)
+				{
+					int j;
+					Con_DPrintf("Delayed model precache: %s\n", m);
+
+					for (j = 0; j < sv.allocated_client_slots; j++)
 					{
-#ifdef TEMPORALCORTEX
-						ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+6);
-#else
-						ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
-#endif
-						ClientReliableWrite_Short (&svs.clients[j], i);
-						ClientReliableWrite_String (&svs.clients[j], m);
-#ifdef TEMPORALCORTEX
-						ClientReliableWrite_Short(&svs.clients[j], sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
-#endif
-					}
-					else
-					{
-						//client doesn't support this... reset the connection so they're forced to reload everything.
-						//SV_StuffcmdToClient(&svs.clients[j], "cmd new\n");
+						if (svs.clients[j].state < cs_connected)
+							continue;
+						if (ISDPCLIENT(&svs.clients[j]) || (svs.clients[j].fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
+						{
+							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
+							ClientReliableWrite_Short (&svs.clients[j], i);
+							ClientReliableWrite_String (&svs.clients[j], m);
+							ClientReliableWrite_Short (&svs.clients[j], sv.world.worldmodel_indices[e->bspnum]);
+						}
+						else
+						{
+							//client doesn't support this... reset the connection so they're forced to reload everything.
+							//SV_StuffcmdToClient(&svs.clients[j], "cmd new\n");
+						}
 					}
 				}
 			}
-		}
-		else
-		{
-			PR_BIError (prinst, "no precache: %s\n", m);
-			return;
+			else
+			{
+				PR_BIError (prinst, "no precache: %s\n", m);
+				return;
+			}
 		}
 #else
 		for (i=1; sv.strings.model_precache[i] ; i++)
@@ -3319,6 +3321,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			{
 #ifdef TEMPORALCORTEX
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
+				Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Setting model on entity %s to %s\n", PR_GetString(svprogfuncs, e->v->classname), Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]));
 #else
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
 #endif

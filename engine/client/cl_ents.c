@@ -3170,6 +3170,7 @@ void CLQ1_AddVisibleBBoxes(void)
 				{	/*bsp model size*/
 					if (state->modelindex <= 0)
 						continue;
+
 #ifdef TEMPORALCORTEX
 					model_precache = CL_FindPrecacheByModelIndex(state->modelindex);
 
@@ -4563,7 +4564,11 @@ void CL_LinkPacketEntities (void)
 		}
 
 		// if set to invisible, skip
+#ifdef TEMPORALCORTEX
+		if (state->modelindex<0 || (state->effects & NQEF_NODRAW))
+#else
 		if (state->modelindex<1 || (state->effects & NQEF_NODRAW))
+#endif
 		{
 			if (state->tagindex == 0xffff)
 			{
@@ -5859,7 +5864,6 @@ void CL_LinkPlayers (void)
 				CL_NewDlight(j+1, org, radius, 0.1, colour[0], colour[1], colour[2])->flags &= ~LFLAG_FLASHBLEND;
 			}
 		}
-
 		if (state->modelindex < 1)
 			continue;
 
@@ -6288,6 +6292,7 @@ void CL_SetSolidEntities (void)
 		{	/*bsp model size*/
 			if (state->modelindex <= 0)
 				continue;
+
 #ifdef TEMPORALCORTEX
 			mod = CL_FindPrecacheByModelIndex(state->modelindex)->model;
 #else

@@ -522,13 +522,13 @@ static void PDECL SV_SaveMemoryReset (pubprogfuncs_t *progfuncs, void *ctx)
 	struct soundprecache_s *sound_precache;
 
 	//model names are pointers to vm-accessible memory. as that memory is going away, we need to destroy and recreate, which requires preserving them.
-	for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+	for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 	{
 		if ((model_precache = SV_FindPrecacheByModelIndex(i))->model == NULL)
 			break;
 		SV_AddModelPrecache(PR_AddString(svprogfuncs, model_precache->name, 0, false), tc_sv_current_bsp_index);
 	}
-	for (i = 0; i < MAX_PRECACHE_SOUNDS; i++)
+	for (i = 1; i < MAX_PRECACHE_SOUNDS; i++)
 	{
 		if ((sound_precache = SV_FindPrecacheBySoundIndex(i))->snd == NULL)
 			break;

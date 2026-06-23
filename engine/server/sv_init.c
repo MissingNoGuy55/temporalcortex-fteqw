@@ -75,7 +75,7 @@ int SV_ModelIndex (const char *name)
 	if (!name || !name[0])
 		return 0;
 
-	for (i = 0, model_precache = sv.strings.model_precache ; model_precache->model ; model_precache = model_precache->next, i++)
+	for (i = 1, model_precache = sv.strings.model_precache ; model_precache->model ; model_precache = model_precache->next, i++)
 		if (!strcmp(model_precache->name, name))
 			return i;
 	if (i==MAX_PRECACHE_MODELS || !model_precache->next)
@@ -165,10 +165,10 @@ int SV_SafeModelIndex (char *name)
 	if (!name || !name[0])
 		return 0;
 #ifdef TEMPORALCORTEX
-	for (model_precache = sv.strings.model_precache ; model_precache->name && model_precache->model ; model_precache = model_precache->next)
+	for (i = 0, model_precache = sv.strings.model_precache ; model_precache->name && model_precache->model ; model_precache = model_precache->next, i++)
 		if (!strcmp(model_precache->name, name))
 			return model_precache->index;
-	if (!model_precache->model)
+	if (i == MAX_PRECACHE_MODELS || !model_precache->next)
 	{
 		return 0;
 	}
@@ -963,7 +963,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef TEMPORALCORTEX
 	int			t, l, o;
 	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
 #endif
 	extern int sv_allow_cheats;
 	size_t fsz;
@@ -1590,8 +1589,7 @@ MSV_OpenUserDatabase();
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
 #ifdef TEMPORALCORTEX
-	if (sv.strings.model_precache && sv.strings.sound_precache)
-		SV_ClearPrecaches();
+	SV_ClearPrecaches();
 
 	sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
 	sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
@@ -1600,6 +1598,9 @@ MSV_OpenUserDatabase();
 	memset(sv.strings.sound_precache, 0, sizeof(struct soundprecache_s));
 	memset(sv.strings.model_precache, 0, sizeof(struct modelprecache_s));
 	memset(sv.strings.particle_precache, 0, sizeof(const char*) * MAX_SSPARTICLESPRE );
+
+	for (t = 0; t < MAX_TIME_PERIODS; t++)
+		sv.world.worldmodel_indices[t] = 0;
 
 	if (!sv.world.model_time_periods)
 	{
@@ -1628,14 +1629,14 @@ MSV_OpenUserDatabase();
 				subs = MAX_PRECACHE_MODELS-2;
 			}
 
-			sv.strings.model_precache[j].name = sv.modelname[t];	//the qvm doesn't have access to this array
+			SV_AddModelPrecache(sv.modelname[t], t);	//the qvm doesn't have access to this array
 			for (i=1 ; i<subs ; i++)
 			{
 				char *z, *s = va("*%u", i);
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
 				model_precache = SV_AddModelPrecache(z, t);
-				sv.models[i+j] = Mod_ForName (Mod_FixName(z, sv.modelname[t]), MLV_WARN);
+				sv.models[i+j] = model_precache->model;
 			}
 
 			j += i;
@@ -1670,10 +1671,8 @@ MSV_OpenUserDatabase();
 			for (i=1 ; i<subs ; i++)
 			{
 				model_precache = SV_AddModelPrecache(PR_AddString(svprogfuncs, va("*%u", i), 0, false), t);
-				sv.models[i+j] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[t]), MLV_WARN);
+				sv.models[i+j] = model_precache->model;
 				sv.world.model_time_periods[i+j] = t;
-
-				// Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching model %s with time period %d; postfix %s\n", precache->name, sv.world.model_time_periods[i+j], sv.modelname[t]);
 			}
 
 			j += i;
@@ -2002,7 +2001,9 @@ MSV_OpenUserDatabase();
 #ifdef VM_Q1
 			if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
 #endif
-			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[t])->name, true);
+			model_precache = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[t]);
+
+			svprogfuncs->SetStringField(svprogfuncs, ent, &ent->v->model, model_precache->name, true);
 			ent->v->modelindex = sv.world.worldmodel_indices[t];		// world model
 			ent->v->solid = SOLID_BSP;
 			ent->v->movetype = MOVETYPE_PUSH;

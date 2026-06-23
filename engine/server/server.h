@@ -146,24 +146,6 @@ typedef struct server_s
 
 	world_t world;
 
-#ifdef TEMPORALCORTEX
-	struct modelprecache_s
-	{
-		const char* name;
-		int index;
-		struct model_s* model;
-		struct modelprecache_s* next;
-	} modelprecache_t;
-
-	struct soundprecache_s
-	{
-		const char* name;
-		int index;
-		struct sfx_s* snd;
-		struct soundprecache_s* next;
-	} soundprecache_t;
-#endif
-
 	union {
 #ifdef Q2SERVER
 		struct {

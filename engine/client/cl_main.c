@@ -965,6 +965,26 @@ static void CL_NullReadPacket(void)
 #endif
 
 #ifdef TEMPORALCORTEX
+void SV_ClearPrecaches()
+{
+	struct modelprecache_s *next_model;
+	struct soundprecache_s *next_sound;
+
+	while(sv.strings.model_precache)
+	{
+		next_model = sv.strings.model_precache->next;
+		BZ_Free(sv.strings.model_precache);
+		sv.strings.model_precache = next_model;
+	}
+
+	while(sv.strings.model_precache)
+	{
+		next_sound = sv.strings.sound_precache->next;
+		BZ_Free(sv.strings.sound_precache);
+		sv.strings.sound_precache = next_sound;
+	}
+}
+
 short CL_NumModelPrecaches()
 {
 	short i;
@@ -1003,7 +1023,7 @@ struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex)
 	short i;
 	struct modelprecache_s* precache;
 
-	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+	for (i = 1, precache = cl.model_precache; precache->model; precache = precache->next, i++)
 		if (i == modelindex)
 			return precache;
 
@@ -1026,8 +1046,8 @@ struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex)
 	short i;
 	struct soundprecache_s* precache;
 
-	for (i = 0, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
-		if (i == soundindex)
+	for (i = 1, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
+		if (precache->index == soundindex)
 			return precache;
 
 	return NULL;
@@ -1036,38 +1056,17 @@ struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex)
 struct modelprecache_s *CL_AddModelPrecache(const char* name, short timeperiod)
 {
 	int i;
-	struct modelprecache_s* precache;
+	struct modelprecache_s *precache = cl.model_precache;
 
-	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
+	for (i = 1; precache->model; precache = precache->next, i++)
 		if (!strcmp(precache->name, name))
 			return precache;
 
-	for (i = 0, precache = cl.model_precache; precache->model; precache = precache->next, i++)
-	{
-		if (i > MAX_PRECACHE_MODELS)
-		{
-			Host_EndGame("CL_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
-			return NULL;
-		}
-	}
-
-	precache->model = Mod_FindName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]));
-
-	if (precache->model)
-	{
-		Con_DPrintf( CON_WARNING "[TEMPORAL CORTEX] [CL] Found model %s on client; probably listen server host. Not precaching.\n", name );
-		precache->name = name;
-		precache->index = i;
-		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
-	}
-	else
-	{
-		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [CL] Precaching model %s\n", name );
-		precache->model = Mod_ForName(Mod_FixName(name, cl.model_name[cl.model_time_periods[cl.worldmodel_indices[timeperiod]]]), MLV_WARN);
-		precache->name = name;
-		precache->index = i;
-		precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
-	}
+	Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [CL] Precaching model %s; time period %d; postfix %s\n", name, timeperiod, cl.model_name[cl.worldmodel_indices[timeperiod]]);
+	precache->model = Mod_ForName(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]), MLV_WARN);
+	precache->name = name;
+	precache->index = i;
+	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 
 	memset(precache->next, 0, sizeof(struct modelprecache_s));
 
@@ -1077,20 +1076,11 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, short timeperiod)
 struct soundprecache_s *CL_AddSoundPrecache(const char* name, short int timeperiod)
 {
 	int i;
-	struct soundprecache_s* precache;
+	struct soundprecache_s* precache = cl.sound_precache;
 
-	for (i = 0, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
+	for (i = 1; precache->snd; precache = precache->next, i++)
 		if (!strcmp(precache->name, name))
 			return precache;
-
-	for (i = 0, precache = cl.sound_precache; precache->snd; precache = precache->next, i++)
-	{
-		if (i > MAX_PRECACHE_SOUNDS)
-		{
-			Host_EndGame("CL_AddSoundPrecache: i == MAX_PRECACHE_SOUNDS\n");
-			return NULL;
-		}
-	}
 
 	precache->snd = S_FindName(name, false, false);
 
@@ -1108,6 +1098,8 @@ struct soundprecache_s *CL_AddSoundPrecache(const char* name, short int timeperi
 		precache->index = i;
 		precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
 	}
+
+	memset(precache->next, 0, sizeof(struct soundprecache_s));
 
 	return precache;
 }
@@ -1144,9 +1136,9 @@ struct modelprecache_s *CSQC_AddModelPrecache(const char* name, short timeperiod
 		if (!strcmp(precache->name, name))
 			return precache;
 
-	for (i = 0, precache = cl.model_csqcprecache; precache->model; precache = precache->next, i++)
+	for (i = 1, precache = cl.model_csqcprecache; precache->model; precache = precache->next, i++)
 	{
-		if (i > MAX_PRECACHE_MODELS)
+		if (i == MAX_PRECACHE_MODELS)
 		{
 			Host_EndGame("CL_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
 			return NULL;
@@ -5751,6 +5743,9 @@ static void CL_SetFog(int ftype, int argc, float density, float r, float g, floa
 {
 	vec3_t rgb;
 
+	for (int i = 0; i < 3; i++)
+		rgb[i] = 1.0f;
+
 	switch(argc)
 	{
 	case 1:
@@ -5769,7 +5764,6 @@ static void CL_SetFog(int ftype, int argc, float density, float r, float g, floa
 		rgb[2] = b;
 		break;
 	case 5:
-	default:
 		cl.fog[timeperiod][ftype].density = density;
 		rgb[0] = r;
 		rgb[1] = g;
@@ -5797,6 +5791,12 @@ static void CL_SetFog(int ftype, int argc, float density, float r, float g, floa
 		rgb[2] = b;
 		cl.fog[timeperiod][ftype].alpha = alpha;
 		cl.fog[timeperiod][ftype].depthbias = depthbias;
+		break;
+	default:
+		cl.fog[timeperiod][ftype].density = density;
+		rgb[0] = r;
+		rgb[1] = g;
+		rgb[2] = b;
 		break;
 	}
 
@@ -5847,6 +5847,7 @@ void CL_Fog_f(void)
 		VectorSet(rgb, 0.3,0.3,0.3);
 #ifdef TEMPORALCORTEX
 		argc = Cmd_Argc();
+		timeperiod = TIME_PERIOD_PRESENT;
 
 		switch(argc)
 		{
@@ -5868,7 +5869,6 @@ void CL_Fog_f(void)
 			rgb[2] = atof(Cmd_Argv(3));
 			timeperiod = tc_cl_current_bsp_index;
 		case 5:
-		default:
 			density = atof(Cmd_Argv(1));	//make something up for vauge compat with fitzquake, so it doesn't get the default of 0
 			rgb[0] = atof(Cmd_Argv(2));
 			rgb[1] = atof(Cmd_Argv(3));
@@ -5900,6 +5900,13 @@ void CL_Fog_f(void)
 			alpha = atof(Cmd_Argv(5));
 			depthbias = atof(Cmd_Argv(6));
 			timeperiod = atof(Cmd_Argv(7));
+			break;
+		default:
+			density = atof(Cmd_Argv(1));	//make something up for vauge compat with fitzquake, so it doesn't get the default of 0
+			rgb[0] = atof(Cmd_Argv(2));
+			rgb[1] = atof(Cmd_Argv(3));
+			rgb[2] = atof(Cmd_Argv(4));
+			timeperiod = tc_cl_current_bsp_index;
 			break;
 		}
 

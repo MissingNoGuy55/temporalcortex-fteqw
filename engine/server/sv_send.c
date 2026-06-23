@@ -1367,7 +1367,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		for (ctx.sampleidx=1, sound_precache = sv.strings.sound_precache; ctx.sampleidx<MAX_PRECACHE_SOUNDS
+		for (ctx.sampleidx=0, sound_precache = sv.strings.sound_precache; ctx.sampleidx<MAX_PRECACHE_SOUNDS
 			&& sound_precache->name ; ctx.sampleidx++, sound_precache = sound_precache->next)
 			if (!strcmp(sample, sound_precache->name))
 				break;
@@ -1387,7 +1387,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
 				//late precache it. use multicast to ensure that its sent NOW (and to all). normal reliables would mean it would arrive after the svc_sound
 #ifdef TEMPORALCORTEX
-				CL_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), tc_sv_current_bsp_index);
+				SV_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), tc_sv_current_bsp_index);
 #else
 				sv.strings.sound_precache[ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
 #endif

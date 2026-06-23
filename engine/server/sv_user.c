@@ -891,6 +891,9 @@ void SVNQ_New_f (void)
 #ifdef TEMPORALCORTEX
 		for (i = 0; i < MAX_TIME_PERIODS; i++)
 		{
+			if (!sv.world.worldmodel_indices[i])
+				continue;
+
 			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[i])->name);
 		}
 #else

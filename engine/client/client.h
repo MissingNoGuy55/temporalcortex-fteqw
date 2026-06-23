@@ -925,25 +925,6 @@ typedef struct
 	} intermissionmode;	// don't change view angle, full screen, etc
 	float		completed_time;	// latched ffrom time at intermission start
 
-#ifdef TEMPORALCORTEX
-#ifdef CLIENTONLY
-	struct modelprecache_s
-	{
-		const char* name;
-		int index;
-		struct model_s* model;
-		struct modelprecache_s* next;
-	};
-
-	struct soundprecache_s
-	{
-		const char* name;
-		int index;
-		struct sfx_s* snd;
-		struct soundprecache_s* next;
-	};
-#endif
-#endif
 //
 // information that is static for the entire time connected to a server
 //
@@ -1945,4 +1926,6 @@ int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq);
 int CLTC_Record_Lightstyles(sizebuf_t *buf, int seq);
 int CLTC_RecordInitialPlayers(sizebuf_t *buf, int seq, qboolean isnq);
 int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
+
+void CL_ClearPrecaches();
 #endif

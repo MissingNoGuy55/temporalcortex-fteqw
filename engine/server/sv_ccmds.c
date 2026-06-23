@@ -3567,7 +3567,6 @@ void SV_PrecacheList_f(void)
 {
 	unsigned int i;
 #ifdef TEMPORALCORTEX
-	unsigned int j;
 	struct modelprecache_s* model_precache;
 	struct soundprecache_s* sound_precache;
 	const char* part_precache;

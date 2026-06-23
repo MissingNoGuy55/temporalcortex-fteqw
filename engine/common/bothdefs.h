@@ -1179,6 +1179,24 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 #define dem_stats		5
 #define dem_all			6
 
+#ifdef TEMPORALCORTEX
+	// Missi: Precache structures shared by the client and server (2026.6.22)
+	struct modelprecache_s
+	{
+		const char* name;
+		int index;
+		struct model_s* model;
+		struct modelprecache_s* next;
+	};
+
+	struct soundprecache_s
+	{
+		const char* name;
+		int index;
+		struct sfx_s* snd;
+		struct soundprecache_s* next;
+	};
+#endif
 
 #if 0 //fuck sake, just build it in an older chroot.
 /*

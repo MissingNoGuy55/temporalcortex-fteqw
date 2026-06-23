@@ -1966,10 +1966,10 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 					wmidx = i;
 #ifdef TEMPORALCORTEX
 				if (i == wmidx)
-					CL_AddModelPrecache(cl.model_name[i], tc_cl_current_bsp_index);
+					CL_AddModelPrecache(cl.model_name[i], cl.model_time_periods[i]);
 				else
 					// Missi: Come back to this later. Probably not correct (2026.6.17)
-					CL_AddModelPrecache(Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[tc_cl_current_bsp_index]]), tc_cl_current_bsp_index);
+					CL_AddModelPrecache(Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[cl.model_time_periods[i]]]), cl.model_time_periods[i]);
 #else
 #ifdef Q2CLIENT	//skip vweps
 				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')

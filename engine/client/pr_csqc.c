@@ -3208,7 +3208,7 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_name[modelindex], true);
 #ifdef TEMPORALCORTEX
-		model_precache = CL_FindPrecacheByModelIndex(modelindex-1);
+		model_precache = CL_FindPrecacheByModelIndex(modelindex);
 		model = model_precache->model;
 #else
 		model = cl.model_precache[modelindex];
@@ -3303,7 +3303,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 	{
 		if (!strcmp(cl.model_name[i], modelname))
 		{
-			CL_AddModelPrecache(modelname, tc_cl_current_bsp_index);
+			CL_AddModelPrecache(modelname, cl.model_time_periods[i]);
 			break;
 		}
 	}
@@ -8454,8 +8454,13 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 
 		csqc_world.physicstime = 0;
 #ifdef TEMPORALCORTEX
-		if (!csqc_world.worldmodel[tc_cl_current_bsp_index])
-			csqc_world.worldmodel[tc_cl_current_bsp_index] = Mod_ForName("", MLV_SILENT);
+		for (i = 0; i < MAX_TIME_PERIODS; i++)
+		{
+			if (!cl.worldmodel_indices[i])
+				continue;
+
+			csqc_world.worldmodel[i] = Mod_ForName(cl.model_name[cl.worldmodel_indices[i]], MLV_SILENT);
+		}
 #else
 		if (!csqc_world.worldmodel)
 			csqc_world.worldmodel = Mod_ForName("", MLV_SILENT);
@@ -9559,8 +9564,13 @@ void CSQC_MapEntityEdited(int modelindex, int idx, const char *newe)
 	if (!csqcprogs || !csqcg.CSQC_MapEntityEdited)
 		return;
 
+#ifdef TEMPORALCORTEX
+	if (modelindex != cl.worldmodel_indices[tc_cl_current_bsp_index])
+		return;
+#else
 	if (modelindex != 1)
 		return;
+#endif
 
 	pr_globals = PR_globals(csqcprogs, PR_CURRENT);
 	G_INT(OFS_PARM0) = idx;

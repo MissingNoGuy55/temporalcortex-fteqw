@@ -2009,8 +2009,13 @@ static unsigned int World_ContentsOfLinks (world_t *w, areagridlink_t *node, vec
 //			//FIXME: recurse!
 
 		mdlidx = touch->v->modelindex;
+#ifdef TEMPORALCORTEX
+		if (mdlidx < 0)
+			continue;
+#else
 		if (!mdlidx)
 			continue;
+#endif
 		model = w->Get_CModel(w, mdlidx);
 		if (!model || (model->type != mod_brush && model->type != mod_heightmap) || model->loadstate != MLS_LOADED)
 			continue;
