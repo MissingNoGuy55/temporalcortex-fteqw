@@ -1081,7 +1081,7 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 			}
 			else
 			{
-				if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
+				if (!strcmp(precache->publicname, Mod_FixName(precache->name, cl.model_name[cl.worldmodel_indices[timeperiod]])))
 					return precache;
 			}
 		}

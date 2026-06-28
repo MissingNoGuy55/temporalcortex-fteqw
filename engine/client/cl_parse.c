@@ -3930,9 +3930,8 @@ static void CLQW_ParseServerData (void)
 #endif
 	}
 
-	// Missi: Level name (2026.1.6)
+	// get the full level name
 	str = MSG_ReadString ();
-
 	Q_strncpyz (cl.levelname, str, sizeof(cl.levelname));
 
 	if (cl.protocol_qw >= 25)
@@ -4162,7 +4161,7 @@ static void CLQ2_ParseServerData (void)
 
 	Q_strncpyz (cl.levelname, str, sizeof(cl.levelname));
 
-#ifdef TEMPORALCORTEX
+#if 0
 	str = MSG_ReadString();
 
 	Q_strncpyz (cl.mapname[tc_cl_current_bsp_index], str, sizeof(cl.mapname[tc_cl_current_bsp_index]));

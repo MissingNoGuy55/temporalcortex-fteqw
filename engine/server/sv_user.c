@@ -1248,8 +1248,16 @@ void SV_SendClientPrespawnInfo(client_t *client)
 	svcustomtents_t *ctent;
 	int maxsize;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache = NULL;
-	struct soundprecache_s *sound_precache = NULL;
+	static struct modelprecache_s *model_precache = NULL;
+	static struct soundprecache_s *sound_precache = NULL;
+
+	if (client->prespawn_idx == 0)
+	{
+		if (!model_precache || model_precache != sv.strings.model_precache)
+			model_precache = sv.strings.model_precache;
+		if (!sound_precache || sound_precache != sv.strings.sound_precache)
+			sound_precache = sv.strings.sound_precache;
+	}
 #endif
 	//much of this function is written to fill packets enough to overflow them (assuming max packet sizes are large enough), but some bits are lazy and just backbuffer as needed.
 	//FIXME: have per-stage indicies, to allow returning to a previous stage when new precaches or whatever get added
@@ -1454,9 +1462,6 @@ void SV_SendClientPrespawnInfo(client_t *client)
 #endif
 			started = false;
 
-			if (!sound_precache)
-				sound_precache = sv.strings.sound_precache;
-
 			//allows stalling for the soundlist command, for compat.
 			if (!client->prespawn_allow_soundlist)
 				if (!(client->fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
@@ -1516,7 +1521,6 @@ void SV_SendClientPrespawnInfo(client_t *client)
 		{
 			if (client->prespawn_idx < 1)
 			{
-				sound_precache = sv.strings.sound_precache;
 				sound_precache = sound_precache->next;
 				client->prespawn_idx = 1;
 			}
@@ -1538,6 +1542,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteShort(&client->netchan.message, PC_SOUND|client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sound_precache->name);
 				MSG_WriteShort (&client->netchan.message, TIME_PERIOD_PRESENT);
+
+				Con_DPrintf(CON_NOTICE "Sending sound %s to client %d\n", sound_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
+
 				client->prespawn_idx++;
 				sound_precache = sound_precache->next;
 			}
@@ -1693,9 +1700,6 @@ void SV_SendClientPrespawnInfo(client_t *client)
 		{
 			started = false;
 
-			if (!model_precache)
-				model_precache = sv.strings.model_precache->next;
-
 			//allows stalling for the modellist command, for compat.
 			if (!client->prespawn_allow_modellist)
 				if (!(client->fteprotocolextensions2 & PEXT2_REPLACEMENTDELTAS))
@@ -1721,6 +1725,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					}
 				}
 				client->prespawn_idx++;
+				model_precache = model_precache->next;
 
 				if (client->prespawn_idx >= client->maxmodels || !model_precache)
 				{
@@ -1743,7 +1748,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				{
 					MSG_WriteString (&client->netchan.message, model_precache->name);
 					MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
-					model_precache = model_precache->next;
+					Con_DPrintf(CON_NOTICE "Sending model %s to client %d\n", model_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
 				}
 			}
 			if (started)
@@ -1757,11 +1762,6 @@ void SV_SendClientPrespawnInfo(client_t *client)
 		{
 			if (client->prespawn_idx < 1)
 			{
-				if (!model_precache)
-				{
-					model_precache = sv.strings.model_precache;
-					model_precache = model_precache->next;
-				}
 				client->prespawn_idx = 1;
 			}
 			while (client->netchan.message.cursize < maxsize)

@@ -3305,7 +3305,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 			break;
 		if (!strcmp(cl.model_name[i], modelname))
 		{
-			CL_AddModelPrecache(modelname, sv.strings.model_precache, tc_cl_current_bsp_index, true);
+			CL_AddModelPrecache(modelname, cl.model_precache, tc_cl_current_bsp_index, true);
 			break;
 		}
 	}
