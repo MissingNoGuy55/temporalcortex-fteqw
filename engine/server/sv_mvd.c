@@ -1772,17 +1772,6 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 	// send full levelname
 	MSG_WriteString (&buf, svs.name);
 
-	// send full mapname
-	char out[64];
-
-#ifdef TEMPORALCORTEX
-	COM_FileBase( sv.world.worldmodel[tc_sv_current_bsp_index]->name, out, sizeof( out ) );
-#else
-	COM_FileBase( sv.world.worldmodel->name, out, sizeof( out ) );
-#endif
-
-	MSG_WriteString (&buf, out );
-
 	// send the movevars
 	MSG_WriteFloat(&buf, movevars.gravity);
 	MSG_WriteFloat(&buf, movevars.stopspeed);

@@ -2588,10 +2588,10 @@ static void SV_Status_f (void)
 		}
 		Con_TPrintf("entities         : %i/%i/%i (mem: %.1f%%)\n", count, sv.world.num_edicts, sv.world.max_edicts, 100.0*(sv.world.progs->stringtablesize/(double)sv.world.progs->stringtablemaxsize));
 #ifdef TEMPORALCORTEX
-		for (model_precache = sv.strings.model_precache; model_precache->model; model_precache = model_precache->next)
+		for (count = 1, model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next, count++)
 			;
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
-		for (sound_precache = sv.strings.sound_precache; sound_precache->snd; sound_precache = sound_precache->next)
+		for (count = 1, sound_precache = sv.strings.sound_precache->next; sound_precache; sound_precache = sound_precache->next, count++)
 			;
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 #else
@@ -3591,16 +3591,16 @@ void SV_PrecacheList_f(void)
 #ifdef TEMPORALCORTEX
 	if (!*group || !strncmp(group, "model", 5))
 	{
-		for (i = 0, model_precache = sv.strings.model_precache; model_precache->model; i++, model_precache = model_precache->next)
+		for (i = 0, model_precache = sv.strings.model_precache->next; model_precache; i++, model_precache = model_precache->next)
 		{
 			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, model_precache->name, Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))
 	{
-		for (i = 0, sound_precache = sv.strings.sound_precache; sound_precache->snd; i++, sound_precache = sound_precache->next)
+		for (i = 0, sound_precache = sv.strings.sound_precache->next; sound_precache; i++, sound_precache = sound_precache->next)
 		{
-			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, model_precache->name, model_precache->name);
+			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sound_precache->name, sound_precache->name);
 		}
 	}
 	if (!*group || !strncmp(group, "part", 4))

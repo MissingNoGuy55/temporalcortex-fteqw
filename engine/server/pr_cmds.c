@@ -588,7 +588,7 @@ static void PDECL PR_SSQC_Relocated(pubprogfuncs_t *pr, char *oldb, char *newb, 
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s* model_precache;
 
-	for (model_precache = sv.strings.model_precache; model_precache->model; model_precache = model_precache->next)
+	for (model_precache = sv.strings.model_precache; model_precache; model_precache = model_precache->next)
 	{
 		if (model_precache->name >= oldb && model_precache->name < oldb+oldlen)
 			model_precache->name += newb - oldb;
@@ -621,12 +621,10 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 	{
 		model_t *mod;
 #ifdef TEMPORALCORTEX
-		wedict_t *wedict = WEDICT_NUM_PB(svprogfuncs, tc_sv_current_bsp_index);
-
-		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex);
+		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex, sv.strings.model_precache);
 
 		if (!sv.models[modelindex] && model_precache)
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[wedict->bspnum]), MLV_WARN);
+			sv.models[modelindex] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
 #else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
 			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
@@ -3121,8 +3119,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	int		i;
 	model_t	*mod;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
-	struct modelprecache_s *model_precache_world;
+	struct modelprecache_s *model_precache, *world;
 #endif
 
 	if (!e)
@@ -3140,38 +3137,44 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 		PR_RunWarning(prinst, "%s edict %i was free\n", "setmodel", e->entnum);
 		return;
 	}
-
+#ifdef TEMPORALCORTEX
 // check to see if model was properly precached
 	if (!m || !*m)
 		i = 0;
 	else
 	{
-#ifdef TEMPORALCORTEX
-		for (i = 1, model_precache = sv.strings.model_precache; model_precache->model; model_precache = model_precache->next, i++)
+		for (i=1, model_precache = sv.strings.model_precache->next ; model_precache ; model_precache = model_precache->next, i++)
 		{
 			if (!strcmp(model_precache->name, m))
 			{
+				if (!strcmp(model_precache->publicname, Mod_FixName(model_precache->name, sv.modelname[sv.world.model_time_periods[i]])))
+				{
 #ifdef VM_Q1
-				if (svs.gametype != GT_Q1QVM)
+					if (svs.gametype != GT_Q1QVM)
 #endif
-					m = model_precache->name;
-				break;
+						m = model_precache->name;
+					break;
+				}
 			}
 		}
-		if (i==MAX_PRECACHE_MODELS || !model_precache->next)
+		if (i==MAX_PRECACHE_MODELS || !model_precache)
 		{
 			if (i!=MAX_PRECACHE_MODELS)
 			{
 #ifdef VM_Q1
 				if (svs.gametype == GT_Q1QVM)
-					model_precache = SV_AddModelPrecache(m, e->bspnum);	//in a qvm, we expect the caller to have used a static location.
+					model_precache = SV_AddModelPrecache(m, sv.strings.model_precache, e->bspnum);	//in a qvm, we expect the caller to have used a static location.
 				else
 #endif
-					m = model_precache->name = PR_AddString(prinst, m, 0, false);
+				{
+					m = PR_AddString(prinst, m, 0, false);
+					model_precache = SV_AddModelPrecache(m, sv.strings.model_precache, e->bspnum);
+				}
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 				{
-					model_precache_world = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[e->bspnum]);
-					sv.models[i] = Mod_FindName(Mod_FixName(m, model_precache_world->name));
+					world = SV_FindPrecacheByModelIndex(1, sv.strings.model_precache);
+
+					sv.models[i] = Mod_FindName(Mod_FixName(m, world->name));
 				}
 				Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
 
@@ -3189,7 +3192,6 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 							ClientReliableWrite_Begin (&svs.clients[j], ISNQCLIENT(&svs.clients[j])?svcdp_precache:svcfte_precache, strlen(m)+4);
 							ClientReliableWrite_Short (&svs.clients[j], i);
 							ClientReliableWrite_String (&svs.clients[j], m);
-							ClientReliableWrite_Short (&svs.clients[j], sv.world.worldmodel_indices[e->bspnum]);
 						}
 						else
 						{
@@ -3205,7 +3207,13 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 				return;
 			}
 		}
+	}
 #else
+// check to see if model was properly precached
+	if (!m || !*m)
+		i = 0;
+	else
+	{
 		for (i=1; sv.strings.model_precache[i] ; i++)
 		{
 			if (!strcmp(sv.strings.model_precache[i], m))
@@ -3260,11 +3268,16 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 				return;
 			}
 		}
-#endif
 	}
+#endif
 
 	prinst->SetStringField(prinst, e, &e->v->model, m, true);
+
+#ifdef TEMPORALCORTEX
 	e->v->modelindex = i;
+#else
+	e->v->modelindex = i;
+#endif
 
 	// if it is an inline model, get the size information for it
 	if (m && (m[0] == '*' || (*m&&progstype == PROG_H2)))
@@ -3872,16 +3885,22 @@ PF_ambientsound
 void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float attenuation)
 {
 	staticsound_state_t *state;
-	int		soundnum;
+
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache;
+	struct soundprecache_s *sound_precache = sv.strings.sound_precache;
+#else
+	int		soundnum;
 #endif
 
 	// check to see if samp was properly precached
+#ifdef TEMPORALCORTEX
+	for (sound_precache = sound_precache->next ; sound_precache->snd; sound_precache = sound_precache->next)
+#else
 	for (soundnum=1 ; ; soundnum++)
+#endif
 	{
 #ifdef TEMPORALCORTEX
-		if (soundnum == MAX_PRECACHE_SOUNDS || (sound_precache = SV_FindPrecacheBySoundIndex(soundnum)) == NULL)
+		if (sound_precache->index == MAX_PRECACHE_SOUNDS || !sound_precache->name)
 #else
 		if (soundnum == MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[soundnum])
 #endif
@@ -3906,7 +3925,11 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 	state = &sv_staticsounds[sv.num_static_sounds++];
 	memset(state, 0, sizeof(*state));
 	VectorCopy(pos, state->position);
+#ifdef TEMPORALCORTEX
+	state->soundnum = sound_precache->index;
+#else
 	state->soundnum = soundnum;
+#endif
 	state->volume = bound(0, (int)(vol*255), 255);
 	state->attenuation = bound(0,attenuation*64,255);
 }
@@ -4803,7 +4826,7 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		return 0;
 	}
 
-	sound_precache = SV_FindPrecacheBySoundName(s);
+	sound_precache = SV_FindPrecacheBySoundName(s, sv.strings.sound_precache);
 
 	if (!sound_precache)
 	{
@@ -4812,10 +4835,10 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 
 #ifdef VM_Q1
 		if (svs.gametype == GT_Q1QVM)
-			sound_precache = SV_AddSoundPrecache(s, tc_sv_current_bsp_index);
+			sound_precache = SV_AddSoundPrecache(s, sv.strings.sound_precache, tc_sv_current_bsp_index);
 		else
 #endif
-			sound_precache = SV_AddSoundPrecache(PR_AddString(prinst, s, 0, false), tc_sv_current_bsp_index);
+			sound_precache = SV_AddSoundPrecache(PR_AddString(prinst, s, 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
 
 		/*touch the file, so any packs will be referenced*/
 		FS_FLocateFile(s, FSLF_IFFOUND, NULL);
@@ -4826,12 +4849,16 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
 			MSG_WriteShort(&sv.reliable_datagram, sound_precache->index+PC_SOUND);
 			MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef TEMPORALCORTEX
 			MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+#endif
 #ifdef NQPROT
 			MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
 			MSG_WriteShort(&sv.nqreliable_datagram, sound_precache->index+PC_SOUND);
 			MSG_WriteString(&sv.nqreliable_datagram, s);
+#ifdef TEMPORALCORTEX
 			MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+#endif
 #endif
 		}
 	}
@@ -4919,7 +4946,7 @@ static void QCBUILTIN PF_soundnameforindex (pubprogfuncs_t *prinst, struct globa
 {
 	int idx = G_FLOAT(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache = SV_FindPrecacheBySoundIndex(idx);
+	struct soundprecache_s *sound_precache = SV_FindPrecacheBySoundIndex(idx, sv.strings.sound_precache);
 
 	if (idx >= 0 && idx < MAX_PRECACHE_SOUNDS && sound_precache->snd)
 		RETURN_TSTRING(sound_precache->name);
@@ -4944,7 +4971,7 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		return 0;
 	}
 
-	model_precache = SV_FindPrecacheByModelName(s);
+	model_precache = SV_AddModelPrecache(s, sv.strings.model_precache, tc_sv_current_bsp_index);
 
 	if (!model_precache)
 	{
@@ -4957,10 +4984,10 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 			return 0;
 #ifdef VM_Q1
 		if (svs.gametype == GT_Q1QVM)
-			model_precache = SV_AddModelPrecache(s, tc_sv_current_bsp_index);
+			model_precache = SV_AddModelPrecache(s, sv.strings.model_precache, tc_sv_current_bsp_index);
 		else
 #endif
-			model_precache = SV_AddModelPrecache(PR_AddString(prinst, s, 0, false), tc_sv_current_bsp_index);
+			model_precache = SV_AddModelPrecache(PR_AddString(prinst, s, 0, false), sv.strings.model_precache, tc_sv_current_bsp_index);
 
 		s = model_precache->name;
 
@@ -4978,27 +5005,27 @@ int PF_precache_model_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 
 		if (sv.state != ss_loading)
 		{
+#ifdef TEMPORALCORTEX
 			Con_DPrintf("Delayed model precache: %s\n", s);
 			MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
-#ifdef TEMPORALCORTEX
 			MSG_WriteShort(&sv.reliable_datagram, model_precache->index);
-#else
-			MSG_WriteShort(&sv.reliable_datagram, i);
-#endif
 			MSG_WriteString(&sv.reliable_datagram, s);
-#ifdef TEMPORALCORTEX
-			MSG_WriteShort(&sv.reliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
-#endif
+			MSG_WriteShort(&sv.reliable_datagram, tc_sv_current_bsp_index);
 #ifdef NQPROT
 			MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
-#ifdef TEMPORALCORTEX
 			MSG_WriteShort(&sv.nqreliable_datagram, model_precache->index);
-#else
-			MSG_WriteShort(&sv.nqreliable_datagram, i);
-#endif
 			MSG_WriteString(&sv.nqreliable_datagram, s);
-#ifdef TEMPORALCORTEX
-			MSG_WriteShort(&sv.nqreliable_datagram, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+			MSG_WriteShort(&sv.nqreliable_datagram, tc_sv_current_bsp_index);
+#endif
+#else
+			Con_DPrintf("Delayed model precache: %s\n", s);
+			MSG_WriteByte(&sv.reliable_datagram, svcfte_precache);
+			MSG_WriteShort(&sv.reliable_datagram, i);
+			MSG_WriteString(&sv.reliable_datagram, s);
+#ifdef NQPROT
+			MSG_WriteByte(&sv.nqreliable_datagram, svcdp_precache);
+			MSG_WriteShort(&sv.nqreliable_datagram, i);
+			MSG_WriteString(&sv.nqreliable_datagram, s);
 #endif
 #endif
 		}
@@ -5100,9 +5127,9 @@ static void QCBUILTIN PF_modelnameforindex (pubprogfuncs_t *prinst, struct globa
 {
 	int idx = G_FLOAT(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(idx);
+	struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(idx, sv.strings.model_precache);
 
-	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && model_precache->model)
+	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && model_precache->name)
 		RETURN_TSTRING(model_precache->name);
 	else
 		G_INT(OFS_RETURN) = 0;
@@ -11351,7 +11378,7 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 	{
 #ifdef TEMPORALCORTEX
 	case RESTYPE_MODEL:
-		for (idx=0, model_precache = sv.strings.model_precache ; idx<MAX_PRECACHE_MODELS && model_precache->model ; model_precache = model_precache->next, idx++)
+		for (idx=1, model_precache = sv.strings.model_precache->next ; idx<MAX_PRECACHE_MODELS && model_precache ; model_precache = model_precache->next, idx++)
 		{
 			if (!strcmp(model_precache->name, resname))
 			{
@@ -11386,7 +11413,7 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 		}
 		break;
 	case RESTYPE_SOUND:
-		for (idx=1, sound_precache = sv.strings.sound_precache ; idx<MAX_PRECACHE_SOUNDS && sound_precache->snd ; sound_precache = sound_precache->next, idx++)
+		for (idx=1, sound_precache = sv.strings.sound_precache->next ; idx<MAX_PRECACHE_SOUNDS && sound_precache ; sound_precache = sound_precache->next, idx++)
 		{
 			if (!strcmp(sound_precache->name, resname))
 			{

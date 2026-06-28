@@ -2290,6 +2290,9 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 	trace_t trace;
 	static framestate_t framestate;	//meh
 	int skip;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	if ((clip->type & MOVE_ENTCHAIN) || !pe)
 		return;
@@ -2315,7 +2318,12 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 			if (touch->modelindex <= 0 || touch->modelindex >= MAX_PRECACHE_MODELS)
 				continue;	//erk
 #ifdef TEMPORALCORTEX
-			model = cl.model_precache[touch->modelindex].model;
+#if defined(HAVE_SERVER)
+			model_precache = SV_FindPrecacheByModelIndex(touch->modelindex, sv.strings.model_precache);
+#elif defined(HAVE_CLIENT)
+			model_precache = CL_FindPrecacheByModelIndex(touch->modelindex, cl.model_precache);
+#endif
+			model = model_precache->model;
 #else
 			model = cl.model_precache[touch->modelindex];
 #endif

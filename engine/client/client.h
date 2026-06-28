@@ -1227,15 +1227,15 @@ void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
 #ifdef TEMPORALCORTEX
 short CL_NumModelPrecaches();
 short CL_NumSoundPrecaches();
-struct modelprecache_s *CL_FindPrecacheByModelName(const char* name);
-struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex);
-struct modelprecache_s *CL_AddModelPrecache(const char* name, short timeperiod);
-struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name);
-struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex);
-struct soundprecache_s *CL_AddSoundPrecache(const char* name, short timeperiod);
-struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name);
-struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex);
-struct modelprecache_s *CSQC_AddModelPrecache(const char* name, short timeperiod);
+struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
+struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
+struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod, qboolean csqc);
+struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
+struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
+struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecache_s *head, short timeperiod);
+struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
+struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
+//struct modelprecache_s *CSQC_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod);
 short CSQC_NumModelPrecaches();
 #endif
 

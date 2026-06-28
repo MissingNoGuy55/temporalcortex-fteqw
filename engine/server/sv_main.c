@@ -1201,92 +1201,90 @@ char *SV_PlayerPublicAddress(client_t *cl)
 }
 
 #ifdef TEMPORALCORTEX
-short SV_NumModelPrecaches()
+inline short SV_NumModelPrecaches()
 {
 	short i;
 	struct modelprecache_s* precache;
 
-	for (i = 0, precache = sv.strings.model_precache; precache->model; precache = precache->next, i++)
+	for (i = 1, precache = sv.strings.model_precache->next; precache; precache = precache->next, i++)
 		;
 
 	return i;
 }
 
-short SV_NumSoundPrecaches()
+inline short SV_NumSoundPrecaches()
 {
 	short i;
 	struct soundprecache_s* precache;
 
-	for (i = 0, precache = sv.strings.sound_precache; precache->snd; precache = precache->next, i++)
+	for (i = 1, precache = sv.strings.sound_precache->next; precache; precache = precache->next, i++)
 		;
 
 	return i;
 }
 
-short SV_NumParticlePrecaches()
+inline short SV_NumParticlePrecaches()
 {
 	short i;
 	const char* precache;
 
-	for (i = 0, precache = *sv.strings.particle_precache; precache; precache++, i++)
+	for (i = 1, precache = *sv.strings.particle_precache; precache; precache++, i++)
 		;
 
 	return i;
 }
 
-struct modelprecache_s *SV_FindPrecacheByModelName(const char* name)
+struct modelprecache_s *SV_FindPrecacheByModelName(const char* name, struct modelprecache_s *head)
 {
 	struct modelprecache_s* precache;
 
-	for (precache = sv.strings.model_precache; precache->model; precache = precache->next)
+	for (precache = head; precache; precache = precache->next)
 		if (!strcmp(precache->name, name))
 			return precache;
 
 	return NULL;
 }
 
-struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex)
+struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
 {
-	int i;
 	struct modelprecache_s* precache;
 
-	for (i = 1, precache = sv.strings.model_precache; precache->model; precache = precache->next, i++)
-		if (i == modelindex)
+	for (precache = head; precache; precache = precache->next)
+		if (precache->index == modelindex)
 			return precache;
 
 	return NULL;
 }
 
-struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name)
+struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head)
 {
-	int i;
 	struct soundprecache_s* precache;
 
-	for (i = 1, precache = sv.strings.sound_precache; precache->name; precache = precache->next, i++)
+	for (precache = head; precache; precache = precache->next)
 		if (!strcmp(precache->name, name))
 			return precache;
 
 	return NULL;
 }
 
-struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex)
+struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
 {
-	int i;
 	struct soundprecache_s* precache;
 
-	for (i = 1, precache = sv.strings.sound_precache; precache->name; precache = precache->next, i++)
-		if (i == soundindex)
+	for (precache = head; precache; precache = precache->next)
+		if (precache->index == soundindex)
 			return precache;
 
 	return NULL;
 }
 
-struct modelprecache_s *SV_AddModelPrecache(const char* name, short timeperiod)
+struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod)
 {
 	int i;
-	struct modelprecache_s *precache = sv.strings.model_precache;
+	struct modelprecache_s* precache;
+	char modelname[256];
 
-	for (i = 1; precache->model; precache = precache->next, i++)
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
@@ -1295,26 +1293,40 @@ struct modelprecache_s *SV_AddModelPrecache(const char* name, short timeperiod)
 		}
 
 		if (!strcmp(precache->name, name))
-			return precache;
+		{
+			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
+				return precache;
+		}
 	}
 
-	Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching model %s; time period %d; postfix %s\n", Mod_FixName(name, sv.modelname[timeperiod]), timeperiod, sv.modelname[timeperiod]);
-	precache->model = Mod_ForName(Mod_FixName(name, sv.modelname[timeperiod]), MLV_WARN);
-	precache->name = name;
-	precache->index = i;
-	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
+	precache = head;
 
+	while (precache->next)
+		precache = precache->next;
+
+	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 	memset(precache->next, 0, sizeof(struct modelprecache_s));
 
-	return precache;
+	snprintf(modelname, sizeof(modelname), "%s:%s", name, sv.modelname[timeperiod]);
+
+	precache->next->name = Z_StrDup(name);
+	precache->next->publicname = Z_StrDup(Mod_FixName(name, sv.modelname[timeperiod]));
+	precache->next->index = i;
+	precache->next->model = Mod_ForName(precache->next->publicname, MLV_ERROR);
+
+	precache->next->next = NULL;
+
+	Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Precached model %s with time period %d; public name %s\n", precache->next->name, timeperiod, precache->next->publicname);
+
+	return precache->next;
 }
 
-struct soundprecache_s *SV_AddSoundPrecache(const char* name, short timeperiod)
+struct soundprecache_s *SV_AddSoundPrecache(const char* name, struct soundprecache_s *head, short timeperiod)
 {
 	int i;
 	struct soundprecache_s* precache;
 
-	for (i = 1, precache = sv.strings.sound_precache; precache->snd; precache = precache->next, i++)
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_SOUNDS)
 		{
@@ -1326,30 +1338,41 @@ struct soundprecache_s *SV_AddSoundPrecache(const char* name, short timeperiod)
 			return precache;
 	}
 
-#ifndef SERVERONLY
-	precache->snd = S_FindName(name, false, false);
+	precache = head;
+
+	while (precache->next)
+		precache = precache->next;
+
+	precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
+	memset(precache->next, 0, sizeof(struct soundprecache_s));
+
+#ifdef SERVERONLY
+	precache->next->snd = NULL;
+#else
+	precache->next->snd = S_FindName(name, false, false);
 #endif
 
-	if (precache->snd)
+	if (precache->next->snd)
 	{
-		precache->name = name;
-		precache->index = i;
-		precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
+		precache->next->name = name;
+		precache->next->index = i;
 	}
 	else
 	{
 		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [SV] Precaching sound %s\n", name );
-#ifndef SERVERONLY
-		precache->snd = S_PrecacheSound(name);
+
+#ifdef SERVERONLY
+		precache->next->snd = NULL;
+#else
+		precache->next->snd = S_PrecacheSound(name);
 #endif
-		precache->name = name;
-		precache->index = i;
-		precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
+		precache->next->name = name;
+		precache->next->index = i;
 	}
 
-	memset(precache->next, 0, sizeof(struct soundprecache_s));
+	precache->next->next = NULL;
 
-	return precache;
+	return precache->next;
 }
 
 void SV_ClearPrecaches()
@@ -1364,7 +1387,7 @@ void SV_ClearPrecaches()
 		sv.strings.model_precache = next_model;
 	}
 
-	while(sv.strings.model_precache)
+	while(sv.strings.sound_precache)
 	{
 		next_sound = sv.strings.sound_precache->next;
 		BZ_Free(sv.strings.sound_precache);

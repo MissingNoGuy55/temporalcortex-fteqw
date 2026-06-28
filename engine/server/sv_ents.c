@@ -3359,10 +3359,10 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s *model_precache;
 
-	for (i = 0, model_precache = sv.strings.model_precache; model_precache->name; model_precache = model_precache->next, i++)
+	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next, i++)
 		if (!strcmp(model_precache->name, modelname))
 			break;
-	if (!model_precache->model)
+	if (!model_precache)
 #else
 	for (i=1; sv.strings.model_precache[i] ; i++)
 		if (!strcmp(sv.strings.model_precache[i], modelname))
@@ -3514,7 +3514,6 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
 #endif
 
 	state->u.q1.msec = 0;
@@ -3702,7 +3701,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	{
 		char modname[MAX_QPATH];
 #ifdef TEMPORALCORTEX
-		model_precache = SV_FindPrecacheByModelIndex(state->modelindex);
+		model_precache = SV_FindPrecacheByModelIndex(state->modelindex, sv.strings.model_precache);
 
 		Q_strncpyz(modname, model_precache->name, sizeof(modname));
 #else
@@ -3750,7 +3749,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 		if (progstype == PROG_TENEBRAE)
 		{
 #ifdef TEMPORALCORTEX
-			model_precache = SV_FindPrecacheByModelIndex(state->modelindex);
+			model_precache = SV_FindPrecacheByModelIndex(state->modelindex, sv.strings.model_precache);
 
 			//tenebrae has some hideous hacks
 			if (!strcmp(model_precache->name, "progs/w_light.spr") ||

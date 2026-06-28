@@ -2120,10 +2120,7 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 
 	// send full levelname
 	MSG_WriteString (buf, cl.levelname);
-#ifdef TEMPORALCORTEX
-	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
-#endif
+
 	// send the movevars
 	MSG_WriteFloat(buf, movevars.gravity);
 	MSG_WriteFloat(buf, movevars.stopspeed);
@@ -2241,11 +2238,6 @@ void CLQW_RecordServerData_Reverse(sizebuf_t *buf, int *seq)
 
 	// send full levelname
 	MSG_WriteString (buf, cl.levelname);
-
-#ifdef TEMPORALCORTEX
-	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
-#endif
 
 	// send the movevars
 	MSG_WriteFloat(buf, movevars.gravity);
@@ -2773,9 +2765,7 @@ int CLTC_Record_ParticlesStaticsBaselines(sizebuf_t *buf, int seq)
 		MSG_WriteByte(buf, svcfte_precache);
 		MSG_WriteShort(buf, PC_PARTICLE | i);
 		MSG_WriteString(buf, cl.particle_ssname[i]);
-#ifdef TEMPORALCORTEX
 		MSG_WriteShort(buf, cl.worldmodel_indices[tc_cl_current_bsp_index]);
-#endif
 
 		if (buf->cursize > buf->maxsize/2)
 			CL_WriteRecordTemporalCacheMessage (buf, seq++);

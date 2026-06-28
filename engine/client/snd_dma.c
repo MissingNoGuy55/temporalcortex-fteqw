@@ -2785,13 +2785,13 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 
 			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < CL_NumModelPrecaches())
 			{
-				precache = CL_FindPrecacheByModelIndex(midx);
+				precache = CL_FindPrecacheByModelIndex(midx, cl.model_precache);
 
-				if (cl.model_precache[midx].model && cl.model_precache[midx].model->loadstate == MLS_LOADED && cl.model_precache[midx].model->type == mod_brush)
+				if (precache->model && precache->model->loadstate == MLS_LOADED && precache->model->type == mod_brush)
 				{
 					//fixme: should probably deal with rotations.
-					VectorMA(ch->origin, 0.5, cl.model_precache[midx].model->mins, ch->origin);
-					VectorMA(ch->origin, 0.5, cl.model_precache[midx].model->maxs, ch->origin);
+					VectorMA(ch->origin, 0.5, precache->model->mins, ch->origin);
+					VectorMA(ch->origin, 0.5, precache->model->maxs, ch->origin);
 				}
 			}
 #else

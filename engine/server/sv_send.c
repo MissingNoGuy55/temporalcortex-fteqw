@@ -1367,11 +1367,8 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		for (ctx.sampleidx=0, sound_precache = sv.strings.sound_precache; ctx.sampleidx<MAX_PRECACHE_SOUNDS
-			&& sound_precache->name ; ctx.sampleidx++, sound_precache = sound_precache->next)
-			if (!strcmp(sample, sound_precache->name))
-				break;
-
+		sound_precache = SV_FindPrecacheBySoundName(sample, sv.strings.sound_precache);
+		ctx.sampleidx = sound_precache ? sound_precache->index : 0;
 		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sound_precache->name )
 #else
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
@@ -1387,7 +1384,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
 				//late precache it. use multicast to ensure that its sent NOW (and to all). normal reliables would mean it would arrive after the svc_sound
 #ifdef TEMPORALCORTEX
-				SV_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), tc_sv_current_bsp_index);
+				SV_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
 #else
 				sv.strings.sound_precache[ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
 #endif
@@ -1396,14 +1393,14 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				MSG_WriteShort(&sv.multicast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.multicast, sample);
 		#ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.multicast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+				//MSG_WriteShort(&sv.multicast, sv.world.model_time_periods[ctx.sampleidx]);
 		#endif
 		#ifdef NQPROT
 				MSG_WriteByte(&sv.nqmulticast, svcdp_precache);
 				MSG_WriteShort(&sv.nqmulticast, ctx.sampleidx+PC_SOUND);
 				MSG_WriteString(&sv.nqmulticast, sample);
 		#ifdef TEMPORALCORTEX
-				MSG_WriteShort(&sv.nqmulticast, sv.world.worldmodel_indices[tc_sv_current_bsp_index]);
+				//MSG_WriteShort(&sv.nqmulticast, sv.world.model_time_periods[ctx.sampleidx]);
 		#endif
 		#endif
 				SV_MulticastProtExt(NULL, MULTICAST_ALL_R, FULLDIMENSIONMASK, PEXT_CSQC, 0);
@@ -1594,7 +1591,7 @@ void SV_FindModelNumbers (void)
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s *model_precache;
 
-	for (i = 0, model_precache = sv.strings.model_precache; model_precache->name ; model_precache = model_precache->next, i++)
+	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache ; model_precache = model_precache->next, i++)
 	{
 		if (!strcmp(model_precache->name,"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
 			sv_nailmodel = i;

@@ -2275,7 +2275,7 @@ void R_DrawNameTags(void)
 			{
 				state = &pak->entities[i];
 #ifdef TEMPORALCORTEX
-				mod = CL_FindPrecacheByModelIndex(state->modelindex)->model;
+				mod = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache)->model;
 #else
 				mod = cl.model_precache[state->modelindex];
 #endif

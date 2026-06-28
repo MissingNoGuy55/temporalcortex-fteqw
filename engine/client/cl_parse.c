@@ -860,7 +860,7 @@ void CL_DownloadFinished(qdownload_t *dl)
 			{
 				if (cl.model_name[i] && !strcmp(cl.model_name[i], filename))
 				{
-					model_precache = CL_AddModelPrecache(cl.model_name[i], cl.model_time_periods[i]);
+					model_precache = CL_AddModelPrecache(cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
 
 					if (model_precache->model && model_precache->model->loadstate == MLS_FAILED)
 						model_precache->model->loadstate = MLS_NOTLOADED;
@@ -869,7 +869,7 @@ void CL_DownloadFinished(qdownload_t *dl)
 					{
 						if (i == cl.worldmodel_indices[t])
 						{
-							model_precache = CL_FindPrecacheByModelIndex(i);
+							model_precache = CL_FindPrecacheByModelIndex(i, cl.model_precache);
 
 							cl.worldmodel[t++] = model_precache->model;
 							//just in case.
@@ -1345,13 +1345,32 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 #ifdef TEMPORALCORTEX
 	if (!cl.model_precache)
 	{
-		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
-		memset(cl.model_precache, 0, sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
+		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_precache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_precache->name = "";
+		cl.model_precache->publicname = "";
+		cl.model_precache->index = 0;
+		cl.model_precache->model = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.model_csqcprecache)
 	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
-		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
+		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_csqcprecache->name = "";
+		cl.model_csqcprecache->publicname = "";
+		cl.model_csqcprecache->index = 0;
+		cl.model_csqcprecache->model = Mod_ForName("", MLV_WARN);
+	}
+	if (!cl.sound_precache)
+	{
+		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
+		memset(cl.sound_precache, 0, sizeof(struct soundprecache_s));
+
+		cl.sound_precache->name = "";
+		cl.sound_precache->index = 0;
+		cl.sound_precache->snd = S_FindName("", false, false);
 	}
 #endif
 
@@ -1457,7 +1476,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	else
 	{
 #ifdef TEMPORALCORTEX
-		for (i = 0 ; i < MAX_PRECACHE_MODELS ; i++)
+		for (i = 1 ; i < MAX_PRECACHE_MODELS ; i++)
 		{
 			if (!cl.model_name[i])
 				skipstage();
@@ -1478,9 +1497,9 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 				//else
 #endif
 				if ( ( !cls.timedemo && i != 1 ) && ( mod_precache.ival != 1 ) )
-					model_precache = CL_FindPrecacheByModelName(cl.model_name[i]);
+					model_precache = CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
 				else
-					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_time_periods[i]);
+					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
 
 #ifdef TEMPORALCORTEX
 				if (model_precache && model_precache->model)
@@ -1558,7 +1577,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 			if (!cl.worldmodel_indices[t])
 				continue;
 
-			model_precache = CL_FindPrecacheByModelName(cl.model_name[cl.worldmodel_indices[t]]);
+			model_precache = CL_FindPrecacheByModelName(cl.model_name[cl.worldmodel_indices[t]], cl.model_precache);
 
 			cl.worldmodel[t] = model_precache ? model_precache->model : NULL;
 			csqc_world.worldmodel[t] = cl.worldmodel[t];
@@ -1752,13 +1771,11 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 //#define atstage() ((cl.contentstage == stage++)?++cl.contentstage:false)
 //#define endstage() if (giveuptime<Sys_DoubleTime()) return -1;
 
-#ifdef TEMPORALCORTEX
-		if (!cl.sound_precache)
-		{
-			cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS + 1);
-			memset(cl.sound_precache, 0, sizeof(struct soundprecache_s) * MAX_PRECACHE_SOUNDS + 1);
-		}
-#endif
+	if (!cl.sound_precache)
+	{
+		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
+		memset(cl.sound_precache, 0, sizeof(struct soundprecache_s));
+	}
 
 	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
 	{
@@ -1774,7 +1791,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-			CL_AddSoundPrecache(cl.sound_name[i], tc_cl_current_bsp_index);
+			CL_AddSoundPrecache(cl.sound_name[i], cl.sound_precache, tc_cl_current_bsp_index);
 #else
 			cl.sound_precache[i] = S_PrecacheSound (cl.sound_name[i]);
 #endif
@@ -3729,18 +3746,22 @@ static void CLQW_ParseServerData (void)
 	if (!*str)
 		str = "qw";	//FIXME: query active manifest's basegamedir
 
-#ifdef TEMPORALCORTEX
-	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
-	tc_cl_loaded_bsps = MSG_ReadShort();
-	tc_cl_unloaded_bsps = MSG_ReadShort();
-#endif
-
 #ifndef CLIENTONLY
 	if (!sv.state)
 #endif
 		COM_Gamedir(str, NULL);
 
 	CL_ClearState (true);
+
+#ifdef TEMPORALCORTEX
+	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
+	tc_cl_loaded_bsps = MSG_ReadShort();
+	tc_cl_unloaded_bsps = MSG_ReadShort();
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		cl.worldmodel_indices[t] = MSG_ReadShort();
+#endif
+
 #ifdef QUAKEHUD
 	Stats_NewMap();
 #endif
@@ -3754,13 +3775,32 @@ static void CLQW_ParseServerData (void)
 #ifdef TEMPORALCORTEX
 	if (!cl.model_precache)
 	{
-		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
-		memset(cl.model_precache, 0, sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
+		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_precache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_precache->name = "";
+		cl.model_precache->publicname = "";
+		cl.model_precache->index = 0;
+		cl.model_precache->model = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.model_csqcprecache)
 	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
-		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s) * MAX_PRECACHE_MODELS);
+		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_csqcprecache->name = "";
+		cl.model_csqcprecache->publicname = "";
+		cl.model_csqcprecache->index = 0;
+		cl.model_csqcprecache->model = Mod_ForName("", MLV_WARN);
+	}
+	if (!cl.sound_precache)
+	{
+		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
+		memset(cl.sound_precache, 0, sizeof(struct soundprecache_s));
+
+		cl.sound_precache->name = "";
+		cl.sound_precache->index = 0;
+		cl.sound_precache->snd = S_FindName("", false, false);
 	}
 #endif
 
@@ -3894,12 +3934,6 @@ static void CLQW_ParseServerData (void)
 	str = MSG_ReadString ();
 
 	Q_strncpyz (cl.levelname, str, sizeof(cl.levelname));
-
-#ifdef TEMPORALCORTEX
-	str = MSG_ReadString();
-
-	Q_strncpyz (cl.mapname[tc_cl_current_bsp_index], str, sizeof(cl.mapname[tc_cl_current_bsp_index]));
-#endif
 
 	if (cl.protocol_qw >= 25)
 	{
@@ -4073,6 +4107,9 @@ static void CLQ2_ParseServerData (void)
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 	tc_cl_loaded_bsps = MSG_ReadShort();
 	tc_cl_unloaded_bsps = MSG_ReadShort();
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		cl.worldmodel_indices[t] = MSG_ReadShort();
 #endif
 
 	Cvar_Get("timescale", "1", 0, "Q2Admin hacks");	//Q2Admin will kick players who have a timescale set to something other than 1
@@ -4474,6 +4511,9 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 		// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 		tc_cl_loaded_bsps = MSG_ReadShort();
 		tc_cl_unloaded_bsps = MSG_ReadShort();
+
+		for (int t = 0; t < MAX_TIME_PERIODS; t++)
+			cl.worldmodel_indices[t] = MSG_ReadShort();
 #endif
 	}
 	if (cl.allocated_client_slots > MAX_CLIENTS)
@@ -4481,11 +4521,6 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 		cl.allocated_client_slots = MAX_CLIENTS;
 		Con_Printf ("\nWarning, this server supports more than %i clients, additional clients will do bad things\n", MAX_CLIENTS);
 	}
-
-#ifdef TEMPORALCORTEX
-	for (t = 0; t < tc_cl_loaded_bsps; t++)
-		cl.worldmodel_indices[MSG_ReadByte()] = MSG_ReadShort();
-#endif
 
 	cl.splitclients = 1;
 
@@ -4584,7 +4619,7 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 			return;
 		}
 		Z_StrDupPtr(&cl.sound_name[numsounds], str);
-		CL_AddSoundPrecache(cl.sound_name[numsounds], TIME_PERIOD_PRESENT);
+		CL_AddSoundPrecache(cl.sound_name[numsounds], cl.sound_precache, TIME_PERIOD_PRESENT);
 
 		Sound_CheckDownload(str);
 	}
@@ -4986,6 +5021,7 @@ static void CL_ParseSoundlist (qboolean lots)
 		if (!str[0])
 			break;
 		numsounds++;
+
 		if (numsounds >= MAX_PRECACHE_SOUNDS)
 			Host_EndGame ("Server sent too many sound_precache");
 
@@ -5048,12 +5084,21 @@ static void CL_ParseModellist (qboolean lots)
 	int	nummodels;
 	char	*str;
 	int n;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 // precache models and note certain default indexes
 	if (lots)
 		nummodels = MSG_ReadShort();
 	else
 		nummodels = (cl.protocol_qw>=26)?MSG_ReadByte():0;
+
+#ifdef TEMPORALCORTEX
+	cl.model_precache->name = "";
+	cl.model_precache->index = 0;
+	cl.model_precache->model = Mod_ForName("", MLV_WARN);
+#endif
 
 	for (;;)
 	{
@@ -5108,11 +5153,6 @@ static void CL_ParseModellist (qboolean lots)
 
 	n = (cl.protocol_qw>=26)?MSG_ReadByte():0;
 
-#ifdef TEMPORALCORTEX
-	for (int t = 0; t < MAX_TIME_PERIODS; t++)
-		cl.worldmodel_indices[t] = MSG_ReadShort();
-#endif
-
 	if (n)
 	{
 		if (cls.demoplayback == DPB_MVD && cls.demoeztv_ext)
@@ -5134,11 +5174,9 @@ static void CL_ParseModellist (qboolean lots)
 
 	SCR_SetLoadingFile("loading data");
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
-
 	//we need to try to load it now if we can, so any embedded archive will be loaded *before* we start looking for other content...
-	model_precache = CL_AddModelPrecache(cl.model_name[cl.worldmodel_indices[0]], TIME_PERIOD_PRESENT);
-	if (model_precache && model_precache->model && model_precache->model->loadstate == MLS_LOADED)
+	model_precache = CL_AddModelPrecache(cl.model_name[cl.worldmodel_indices[0]], cl.model_precache, TIME_PERIOD_PRESENT, false);
+ 	if (model_precache->model && model_precache->model->loadstate == MLS_LOADED)
 		FS_LoadMapPackFile(model_precache->model->name, model_precache->model->archive);
 #else
 	//we need to try to load it now if we can, so any embedded archive will be loaded *before* we start looking for other content...
@@ -5357,7 +5395,7 @@ parsemodelindex:
 		}
 		else if (cl.contentstage)
 #ifdef TEMPORALCORTEX
-			CL_AddModelPrecache (cl.model_name[i], cl.model_time_periods[i]);
+			CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
 #else
 			cl.model_precache[i] = Mod_ForName (cl.model_name[i], MLV_WARN);
 #endif
@@ -5373,7 +5411,7 @@ parsesoundindex:
 		Z_StrDupPtr(&cl.sound_name[i], s);
 		if (cl.contentstage)
 #ifdef TEMPORALCORTEX
-			CL_AddSoundPrecache (s, tc_cl_current_bsp_index);
+			CL_AddSoundPrecache (s, cl.sound_precache, tc_cl_current_bsp_index);
 #else
 			cl.sound_precache[i] = S_PrecacheSound (s);
 #endif
@@ -5649,7 +5687,7 @@ static void CL_ParseStaticProt (int baselinetype)
 
 // copy it to the current state
 #ifdef TEMPORALCORTEX
-	ent->model = CL_FindPrecacheByModelIndex(es.modelindex)->model;
+	ent->model = CL_FindPrecacheByModelIndex(es.modelindex, cl.model_precache)->model;
 #else
 	ent->model = cl.model_precache[es.modelindex];
 #endif
@@ -5782,7 +5820,7 @@ static void CL_ParseStaticSound (unsigned int flags)
 	if (vol < 0)
 		return;
 #ifdef TEMPORALCORTEX
-	S_StaticSound (CL_FindPrecacheBySoundIndex(sound_num)->snd, org, vol, atten);
+	S_StaticSound (CL_FindPrecacheBySoundIndex(sound_num, cl.sound_precache)->snd, org, vol, atten);
 #else
 	S_StaticSound (cl.sound_precache[sound_num], org, vol, atten);
 #endif
@@ -5847,7 +5885,7 @@ static void CLQW_ParseStartSoundPacket(void)
 		else
 #ifdef TEMPORALCORTEX
 		{
-			sound_precache = CL_FindPrecacheBySoundIndex(sound_num);
+			sound_precache = CL_FindPrecacheBySoundIndex(sound_num, cl.sound_precache);
 
 			S_StartSound (ent, channel, sound_precache->snd, pos, NULL, volume/255.0, attenuation, 0, 0, 0);
 		}
@@ -5946,10 +5984,10 @@ static void CLQ2_ParseStartSoundPacket(void)
 #ifdef TEMPORALCORTEX
 	struct sfx_s* sound_precache;
 
-	if ((sound_precache = CL_FindPrecacheBySoundIndex(sound_num)->snd) == NULL)
+	if ((sound_precache = CL_FindPrecacheBySoundIndex(sound_num, cl.sound_precache)->snd) == NULL)
 		return;
 
-	sfx = CL_FindPrecacheBySoundIndex(sound_num)->snd;
+	sfx = CL_FindPrecacheBySoundIndex(sound_num, cl.sound_precache)->snd;
 #else
 	if (!cl.sound_precache[sound_num])
 		return;
@@ -6093,7 +6131,7 @@ static void CLNQ_ParseStartSoundPacket(void)
 		else
 #ifdef TEMPORALCORTEX
 		{
-			sound_precache = CL_FindPrecacheBySoundIndex(sound_num);
+			sound_precache = CL_FindPrecacheBySoundIndex(sound_num, cl.sound_precache);
 
 			S_StartSound (ent, channel, sound_precache->snd, pos, vel, volume/255.0, attenuation, timeofs, pitchadj, flags);
 		}
@@ -7914,6 +7952,41 @@ static void CL_ParsePrecache(void)
 	struct soundprecache_s *sound_precache;
 #endif
 
+#ifdef TEMPORALCORTEX
+	if (!cl.model_precache)
+	{
+		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_precache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_precache->name = "";
+		cl.model_precache->publicname = "";
+		cl.model_precache->index = 0;
+		cl.model_precache->model = Mod_ForName("", MLV_WARN);
+		cl.model_precache->next = NULL;
+	}
+	if (!cl.model_csqcprecache)
+	{
+		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s));
+		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s));
+
+		cl.model_csqcprecache->name = "";
+		cl.model_csqcprecache->publicname = "";
+		cl.model_csqcprecache->index = 0;
+		cl.model_csqcprecache->model = Mod_ForName("", MLV_WARN);
+		cl.model_csqcprecache->next = NULL;
+	}
+	if (!cl.sound_precache)
+	{
+		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
+		memset(cl.sound_precache, 0, sizeof(struct soundprecache_s));
+
+		cl.sound_precache->name = "";
+		cl.sound_precache->index = 0;
+		cl.sound_precache->snd = S_FindName("", false, false);
+		cl.sound_precache->next = NULL;
+	}
+#endif
+
 	i = code & ~PC_TYPE;
 	switch(code & PC_TYPE)
 	{
@@ -7929,7 +8002,7 @@ static void CL_ParsePrecache(void)
 #ifdef TEMPORALCORTEX
 //			if (!model)
 //				Con_Printf("svc_precache: Mod_ForName(\"%s\") failed\n", s);
-			model_precache = CL_AddModelPrecache(s, wmidx);
+			model_precache = CL_AddModelPrecache(s, cl.model_precache, wmidx, false);
 			if (!model_precache)
 				Con_Printf("svc_precache: Mod_ForName(\"%s\") failed\n", s);
 #else
@@ -7960,7 +8033,7 @@ static void CL_ParsePrecache(void)
 //			if (!sfx)
 //				Con_Printf("svc_precache: S_PrecacheSound(\"%s\") failed\n", s);
 #ifdef TEMPORALCORTEX
-			sound_precache = CL_AddSoundPrecache(s, cl.worldmodel_indices[cl.model_time_periods[i]]);
+			sound_precache = CL_AddSoundPrecache(s, cl.sound_precache, cl.worldmodel_indices[cl.model_time_periods[i]]);
 #else
 			cl.sound_precache[i] = sfx;
 #endif

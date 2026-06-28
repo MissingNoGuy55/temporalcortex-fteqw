@@ -1188,12 +1188,12 @@ char *SV_PlayerPublicAddress(client_t *cl);
 short SV_NumModelPrecaches();
 short SV_NumSoundPrecaches();
 short SV_NumParticlePrecaches();
-struct modelprecache_s *SV_FindPrecacheByModelName(const char* name);
-struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex);
-struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name);
-struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex);
-struct modelprecache_s *SV_AddModelPrecache(const char* name, short timeperiod);
-struct soundprecache_s *SV_AddSoundPrecache(const char* name, short timeperiod);
+struct modelprecache_s *SV_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
+struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
+struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
+struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
+struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecache_s* head, short timeperiod);
+struct soundprecache_s *SV_AddSoundPrecache(const char* name, struct soundprecache_s* head, short timeperiod);
 void SV_ClearPrecaches();
 #endif
 

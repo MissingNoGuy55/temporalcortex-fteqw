@@ -1184,6 +1184,7 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 	struct modelprecache_s
 	{
 		const char* name;
+		const char* publicname;
 		int index;
 		struct model_s* model;
 		struct modelprecache_s* next;

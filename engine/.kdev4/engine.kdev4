@@ -69,7 +69,7 @@ Name=Server
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
-Arguments=-game temporalcortex +developer 0 +maxplayers 4 +coop 1 +deathmatch 0 +map mall
+Arguments=-game temporalcortex +developer 0 +maxplayers 4 +coop 1 +deathmatch 0
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -88,7 +88,7 @@ Name=Client (connect to server)
 Type=Native Application
 
 [Launch][Launch Configuration 2][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 0 +in_windowed_mouse 0 +connect 192.168.4.23:27500
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 0 +in_windowed_mouse 0 +connect 127.0.0.1:27500
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -126,7 +126,7 @@ Name=Client (standalone - connect to server)
 Type=Native Application
 
 [Launch][Launch Configuration 4][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +in_windowed_mouse 0 +connect 127.0.0.1
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +in_windowed_mouse 0 +cl_shownet 2 +connect 127.0.0.1
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
