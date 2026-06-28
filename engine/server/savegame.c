@@ -440,8 +440,26 @@ void LoadModelsAndSounds(vfsfile_t *f)
 #ifdef TEMPORALCORTEX
 	if (!sv.strings.model_precache)
 	{
-		sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s)); // PR_AddString(svprogfuncs, "", 0, false);
+		sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
 		memset(sv.strings.model_precache, 0, sizeof(struct modelprecache_s));
+
+		sv.strings.model_precache->name = "";
+		sv.strings.model_precache->publicname = "";
+		sv.strings.model_precache->index = 0;
+		sv.strings.model_precache->model = Mod_ForName("", MLV_WARN);
+	}
+	if (!sv.strings.sound_precache)
+	{
+		sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
+		memset(sv.strings.sound_precache, 0, sizeof(struct soundprecache_s));
+
+		sv.strings.sound_precache->name = "";
+		sv.strings.sound_precache->index = 0;
+#ifdef SERVERONLY
+		sv.strings.sound_precache->snd = NULL;
+#else
+		sv.strings.sound_precache->snd = S_FindName("", false, false);
+#endif
 	}
 
 	for (i=1; i < MAX_PRECACHE_MODELS; i++)
@@ -524,13 +542,13 @@ static void PDECL SV_SaveMemoryReset (pubprogfuncs_t *progfuncs, void *ctx)
 	//model names are pointers to vm-accessible memory. as that memory is going away, we need to destroy and recreate, which requires preserving them.
 	for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 	{
-		if ((model_precache = SV_FindPrecacheByModelIndex(i, sv.strings.model_precache))->model == NULL)
+		if ((model_precache = SV_FindPrecacheByModelIndex(i, sv.strings.model_precache)) == NULL)
 			break;
 		SV_AddModelPrecache(PR_AddString(svprogfuncs, model_precache->name, 0, false), sv.strings.model_precache, tc_sv_current_bsp_index);
 	}
 	for (i = 1; i < MAX_PRECACHE_SOUNDS; i++)
 	{
-		if ((sound_precache = SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache))->snd == NULL)
+		if ((sound_precache = SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache)) == NULL)
 			break;
 		SV_AddSoundPrecache(PR_AddString(svprogfuncs, sound_precache->name, 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
 	}
@@ -2243,11 +2261,7 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 		if (!modelnames[i])
 			break;
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s precache;
-		memset(&precache, 0, sizeof(precache));
-
-		precache.name = PR_AddString(svprogfuncs, modelnames[i], 0, false);
-		memcpy(&sv.strings.model_precache[i], &precache, sizeof(precache));
+		model_precache = SV_AddModelPrecache(PR_AddString(svprogfuncs, modelnames[i], 0, false), sv.strings.model_precache, tc_sv_current_bsp_index);
 #else
 		sv.strings.model_precache[i] = PR_AddString(svprogfuncs, modelnames[i], 0, false);
 #endif
@@ -2259,11 +2273,7 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 		if (!soundnames[i])
 			break;
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s precache;
-		memset(&precache, 0, sizeof(precache));
-
-		precache.name = PR_AddString(svprogfuncs, soundnames[i], 0, false);
-		memcpy(&sv.strings.sound_precache[i], &precache, sizeof(precache));
+		sound_precache = SV_AddSoundPrecache(PR_AddString(svprogfuncs, soundnames[i], 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
 #else
 		sv.strings.sound_precache[i] = PR_AddString(svprogfuncs, soundnames[i], 0, false);
 #endif
