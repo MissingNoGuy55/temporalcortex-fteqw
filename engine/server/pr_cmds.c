@@ -3119,7 +3119,8 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	int		i;
 	model_t	*mod;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache, *world;
+	struct modelprecache_s *model_precache = NULL;
+	struct modelprecache_s *world = NULL;
 #endif
 
 	if (!e)
@@ -3172,9 +3173,8 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 				}
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 				{
-					world = SV_FindPrecacheByModelIndex(1, sv.strings.model_precache);
-
-					sv.models[i] = Mod_FindName(Mod_FixName(m, world->name));
+					world = SV_FindPrecacheByModelName(m, sv.strings.model_precache);
+					sv.models[world->index] = Mod_FindName(Mod_FixName(m, world->name));
 				}
 				Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
 
@@ -3274,7 +3274,13 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	prinst->SetStringField(prinst, e, &e->v->model, m, true);
 
 #ifdef TEMPORALCORTEX
-	e->v->modelindex = i;
+	if (!model_precache)
+	{
+		Con_DPrintf(CON_ERROR "[TEMPORAL CORTEX] [SV] PF_setmodel: no precache for %s\n", m);
+		return;
+	}
+
+	e->v->modelindex = model_precache->index;
 #else
 	e->v->modelindex = i;
 #endif
@@ -3282,7 +3288,11 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	// if it is an inline model, get the size information for it
 	if (m && (m[0] == '*' || (*m&&progstype == PROG_H2)))
 	{
+#ifdef TEMPORALCORTEX
+		mod = SVPR_GetCModel(&sv.world, model_precache->index);
+#else
 		mod = SVPR_GetCModel(&sv.world, i);
+#endif
 //		mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARN);
 		if (mod)
 		{
@@ -3334,7 +3344,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			{
 #ifdef TEMPORALCORTEX
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
-				Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [SV] Setting model on entity %s to %s\n", PR_GetString(svprogfuncs, e->v->classname), Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]));
+				Con_DPrintf(S_COLOR_CYAN "[TEMPORAL CORTEX] [SV] Setting model on entity %s to %s\n", PR_GetString(svprogfuncs, e->v->classname), Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]));
 #else
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
 #endif
@@ -3887,32 +3897,17 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 	staticsound_state_t *state;
 
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache = sv.strings.sound_precache;
-#else
-	int		soundnum;
-#endif
+	struct soundprecache_s *sound_precache;
 
 	// check to see if samp was properly precached
-#ifdef TEMPORALCORTEX
-	for (sound_precache = sound_precache->next ; sound_precache->snd; sound_precache = sound_precache->next)
-#else
-	for (soundnum=1 ; ; soundnum++)
-#endif
+	for (sound_precache=sv.strings.sound_precache ; ; sound_precache = sound_precache->next)
 	{
-#ifdef TEMPORALCORTEX
-		if (sound_precache->index == MAX_PRECACHE_SOUNDS || !sound_precache->name)
-#else
-		if (soundnum == MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[soundnum])
-#endif
+		if (sound_precache->index == MAX_PRECACHE_SOUNDS || !sound_precache)
 		{
 			Con_TPrintf ("no precache: %s\n", samp);
 			return;
 		}
-#ifdef TEMPORALCORTEX
 		if (!strcmp(sound_precache->name,samp))
-#else
-		if (!strcmp(sv.strings.sound_precache[soundnum],samp))
-#endif
 			break;
 	}
 
@@ -3925,13 +3920,41 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 	state = &sv_staticsounds[sv.num_static_sounds++];
 	memset(state, 0, sizeof(*state));
 	VectorCopy(pos, state->position);
-#ifdef TEMPORALCORTEX
+
 	state->soundnum = sound_precache->index;
-#else
-	state->soundnum = soundnum;
-#endif
+
 	state->volume = bound(0, (int)(vol*255), 255);
 	state->attenuation = bound(0,attenuation*64,255);
+#else
+	int		soundnum;
+
+	// check to see if samp was properly precached
+	for (soundnum=1 ; ; soundnum++)
+	{
+		if (soundnum == MAX_PRECACHE_SOUNDS || !sv.strings.sound_precache[soundnum])
+		{
+			Con_TPrintf ("no precache: %s\n", samp);
+			return;
+		}
+		if (!strcmp(sv.strings.sound_precache[soundnum],samp))
+			break;
+	}
+
+	if (sv.num_static_sounds == sv_max_staticsounds)
+	{
+		sv_max_staticsounds += 16;
+		sv_staticsounds = BZ_Realloc(sv_staticsounds, sizeof(*sv_staticsounds) * sv_max_staticsounds);
+	}
+
+	state = &sv_staticsounds[sv.num_static_sounds++];
+	memset(state, 0, sizeof(*state));
+	VectorCopy(pos, state->position);
+
+	state->soundnum = soundnum;
+
+	state->volume = bound(0, (int)(vol*255), 255);
+	state->attenuation = bound(0,attenuation*64,255);
+#endif
 }
 
 static void QCBUILTIN PF_ambientsound (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)

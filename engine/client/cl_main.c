@@ -1003,7 +1003,7 @@ inline short CL_NumSoundPrecaches()
 	return i;
 }
 
-struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct modelprecache_s *head)
+inline struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct modelprecache_s *head)
 {
 	struct modelprecache_s *precache;
 
@@ -1014,7 +1014,7 @@ struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct mode
 	return NULL;
 }
 
-struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
+inline struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
 {
 	short i;
 	struct modelprecache_s *precache;
@@ -1026,7 +1026,7 @@ struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct mod
 	return NULL;
 }
 
-struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head)
+inline struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head)
 {
 	struct soundprecache_s* precache;
 
@@ -1037,7 +1037,7 @@ struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soun
 	return NULL;
 }
 
-struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
+inline struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
 {
 	short i;
 	struct soundprecache_s* precache;
@@ -1054,9 +1054,8 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 	int i;
 	struct modelprecache_s* precache;
 	char modelname[256];
-#ifdef TEMPORALCORTEX
+
 	extern world_t csqc_world;
-#endif
 
 	if (!head)
 	{
@@ -1064,7 +1063,7 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 		return NULL;
 	}
 
-	for (i = 0, precache = head; precache; precache = precache->next, i++)
+	for (i = 0, precache = head; precache->next; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
@@ -1088,7 +1087,6 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 	}
 
 	precache = head;
-
 	while (precache->next)
 		precache = precache->next;
 
@@ -1100,11 +1098,15 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 	precache->next->name = Z_StrDup(name);
 	precache->next->publicname = Z_StrDup(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]));
 	precache->next->index = i;
+	precache->next->timeperiod = timeperiod;
 	precache->next->model = Mod_ForName(precache->next->publicname, MLV_ERROR);
 
 	precache->next->next = NULL;
 
-	Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [CL] Precached model %s with time period %d; public name %s\n", precache->next->name, timeperiod, precache->next->publicname);
+	if (precache->next->model)
+		Con_DPrintf(S_COLOR_GREEN "[TEMPORAL CORTEX] [CL] Precached model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);
+	else
+		Con_DPrintf(S_COLOR_RED "[TEMPORAL CORTEX] [CL] Failed to precache model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);
 
 	return precache->next;
 }
@@ -1127,34 +1129,28 @@ struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecac
 	}
 
 	precache = head;
-
 	while (precache->next)
 		precache = precache->next;
 
 	precache->next = BZ_Malloc(sizeof(struct soundprecache_s));
 	memset(precache->next, 0, sizeof(struct soundprecache_s));
-	precache->next->snd = S_FindName(name, false, false);
+
+	precache->next->snd = S_PrecacheSound(name);
+	precache->next->name = name;
+	precache->next->index = i;
+	precache->next->timeperiod = timeperiod;
 
 	if (precache->next->snd)
-	{
-		precache->next->name = name;
-		precache->next->index = i;
-	}
+		Con_DPrintf( S_COLOR_GREEN "[TEMPORAL CORTEX] [CL] Precached sound \"%s\" with time period %d\n", name, timeperiod );
 	else
-	{
-		Con_DPrintf( CON_NOTICE "[TEMPORAL CORTEX] [CL] Precaching sound %s\n", name );
-
-		precache->next->snd = S_PrecacheSound(name);
-		precache->next->name = name;
-		precache->next->index = i;
-	}
+		Con_DPrintf( S_COLOR_RED "[TEMPORAL CORTEX] [CL] Failed to precache sound \"%s\" with time period %d\n", name, timeperiod );
 
 	precache->next->next = NULL;
 
 	return precache->next;
 }
 
-struct modelprecache_s *CSQC_FindPrecacheByName(const char* name)
+inline struct modelprecache_s *CSQC_FindPrecacheByName(const char* name)
 {
 	struct modelprecache_s* precache;
 
@@ -1165,7 +1161,7 @@ struct modelprecache_s *CSQC_FindPrecacheByName(const char* name)
 	return NULL;
 }
 
-struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
+inline struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
 {
 	short i;
 	struct modelprecache_s* precache;
@@ -1177,61 +1173,7 @@ struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct m
 	return NULL;
 }
 
-#if 0
-struct modelprecache_s *CSQC_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod)
-{
-	int i;
-	struct modelprecache_s* precache;
-	char modelname[256];
-#ifdef TEMPORALCORTEX
-	extern world_t csqc_world;
-#endif
-
-	if (!head)
-	{
-		CL_Disconnect("CL_AddModelPrecache: NULL head\n");
-		return NULL;
-	}
-
-	for (i = 0, precache = head; precache; precache = precache->next, i++)
-	{
-		if (i == MAX_PRECACHE_MODELS)
-		{
-			Host_EndGame("CL_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
-			return NULL;
-		}
-
-		if (!strcmp(precache->name, name))
-		{
-			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
-				return precache;
-		}
-	}
-
-	precache = head;
-
-	while (precache->next)
-		precache = precache->next;
-
-	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
-	memset(precache->next, 0, sizeof(struct modelprecache_s));
-
-	snprintf(modelname, sizeof(modelname), "%s:%s", name, cl.model_name[cl.worldmodel_indices[timeperiod]]);
-
-	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]));
-	precache->next->index = i;
-	precache->next->model = Mod_ForName(precache->next->publicname, MLV_ERROR);
-
-	precache->next->next = NULL;
-
-	Con_DPrintf(CON_NOTICE "[TEMPORAL CORTEX] [CL] Precached model %s with time period %d; public name %s\n", precache->next->name, timeperiod, precache->next->publicname);
-
-	return precache->next;
-}
-#endif
-
-short CSQC_NumModelPrecaches()
+inline short CSQC_NumModelPrecaches()
 {
 	short i;
 	struct modelprecache_s* precache;

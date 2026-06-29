@@ -126,7 +126,7 @@ Name=Client (standalone - connect to server)
 Type=Native Application
 
 [Launch][Launch Configuration 4][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +in_windowed_mouse 0 +cl_shownet 2 +connect 127.0.0.1
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +in_windowed_mouse 0 +cl_shownet 0 +developer 2 +connect 127.0.0.1
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=

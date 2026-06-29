@@ -3593,7 +3593,7 @@ void SV_PrecacheList_f(void)
 	{
 		for (i = 0, model_precache = sv.strings.model_precache->next; model_precache; i++, model_precache = model_precache->next)
 		{
-			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, model_precache->name, Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]));
+			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, model_precache->name, Mod_FixName(model_precache->name, sv.modelname[model_precache->timeperiod]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))

@@ -1186,6 +1186,7 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 		const char* name;
 		const char* publicname;
 		int index;
+		short timeperiod;
 		struct model_s* model;
 		struct modelprecache_s* next;
 	};
@@ -1194,6 +1195,7 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 	{
 		const char* name;
 		int index;
+		short timeperiod;
 		struct sfx_s* snd;
 		struct soundprecache_s* next;
 	};

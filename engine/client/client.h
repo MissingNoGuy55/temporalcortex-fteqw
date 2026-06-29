@@ -992,6 +992,7 @@ typedef struct
 	char		levelname[40];	// for display on solo scoreboard
 	char		mapname[MAX_TIME_PERIODS][40];
 	short		model_time_periods[MAX_PRECACHE_MODELS];
+	short		sound_time_periods[MAX_PRECACHE_SOUNDS];
 #else
 	char		levelname[40];	// for display on solo scoreboard
 #endif

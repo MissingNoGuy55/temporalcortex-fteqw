@@ -1351,6 +1351,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 		cl.model_precache->name = "";
 		cl.model_precache->publicname = "";
 		cl.model_precache->index = 0;
+		cl.model_precache->timeperiod = 0;
 		cl.model_precache->model = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.model_csqcprecache)
@@ -1361,6 +1362,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 		cl.model_csqcprecache->name = "";
 		cl.model_csqcprecache->publicname = "";
 		cl.model_csqcprecache->index = 0;
+		cl.model_csqcprecache->timeperiod = 0;
 		cl.model_csqcprecache->model = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.sound_precache)
@@ -1370,6 +1372,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 		cl.sound_precache->name = "";
 		cl.sound_precache->index = 0;
+		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->snd = S_FindName("", false, false);
 	}
 #endif
@@ -1500,11 +1503,6 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 					model_precache = CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
 				else
 					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
-
-#ifdef TEMPORALCORTEX
-				if (model_precache && model_precache->model)
-					Con_DPrintf("[TEMPORAL CORTEX] [CL] Successfully loaded %s\n", model_precache->name);
-#endif
 
 				S_ExtraUpdate();
 
@@ -1763,7 +1761,11 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	return stage;
 }
 
+#ifdef TEMPORALCORTEX
+static int CL_LoadSounds(int stage, qboolean dontactuallyload, short timeperiod)
+#else
 static int CL_LoadSounds(int stage, qboolean dontactuallyload)
+#endif
 {
 	int i;
 	float giveuptime = Sys_DoubleTime()+0.1;	//small things get padded into a single frame
@@ -1775,6 +1777,11 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 	{
 		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
 		memset(cl.sound_precache, 0, sizeof(struct soundprecache_s));
+
+		cl.sound_precache->name = "";
+		cl.sound_precache->index = 0;
+		cl.sound_precache->timeperiod = 0;
+		cl.sound_precache->snd = S_FindName("", false, false);
 	}
 
 	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
@@ -1791,7 +1798,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-			CL_AddSoundPrecache(cl.sound_name[i], cl.sound_precache, tc_cl_current_bsp_index);
+			CL_AddSoundPrecache(cl.sound_name[i], cl.sound_precache, timeperiod);
 #else
 			cl.sound_precache[i] = S_PrecacheSound (cl.sound_name[i]);
 #endif
@@ -1799,28 +1806,6 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 			endstage();
 		}
 	}
-
-#ifdef TEMPORALCORTEX
-		if (cl.model_csqcprecache)
-		{
-			if ((sizeof(struct modelprecache_s) * i) != csqc_precache_old_size)
-			{
-				cl.model_csqcprecache = (struct modelprecache_s*)realloc(cl.model_csqcprecache, sizeof(struct modelprecache_s) * i);
-				csqc_precache_old_size = sizeof(struct modelprecache_s) * i;
-			}
-		}
-#endif
-
-#ifdef TEMPORALCORTEX
-		if (cl.sound_precache)
-		{
-			if ((sizeof(struct modelprecache_s) * i) != sound_precache_old_size)
-			{
-				cl.sound_precache = (struct soundprecache_s*)realloc(cl.sound_precache, sizeof(struct modelprecache_s) * i);
-				sound_precache_old_size = sizeof(struct modelprecache_s) * i;
-			}
-		}
-#endif
 
 	return stage;
 }
@@ -1981,8 +1966,13 @@ void CL_RequestNextDownload (void)
 		{
 			int pure;
 			stage = 0;
+#ifdef TEMPORALCORTEX
 			stage = CL_LoadModels(stage, true, i);
+			stage = CL_LoadSounds(stage, true, i);
+#else
+			stage = CL_LoadModels(stage, true);
 			stage = CL_LoadSounds(stage, true);
+#endif
 			total_loading_size = stage;
 			cl.contentstage = 0;
 
@@ -2007,12 +1997,20 @@ void CL_RequestNextDownload (void)
 		}
 
 		stage = 0;
+#ifdef TEMPORALCORTEX
 		stage = CL_LoadModels(stage, false, tc_cl_current_bsp_index);
+#else
+		stage = CL_LoadModels(stage, false);
+#endif
 
 		current_loading_size = cl.contentstage;
 		if (stage < 0)
 			return;	//not yet
+#ifdef TEMPORALCORTEX
+		stage = CL_LoadSounds(stage, false, tc_cl_current_bsp_index);
+#else
 		stage = CL_LoadSounds(stage, false);
+#endif
 		current_loading_size = cl.contentstage;
 		if (stage < 0)
 			return;
@@ -3800,6 +3798,7 @@ static void CLQW_ParseServerData (void)
 
 		cl.sound_precache->name = "";
 		cl.sound_precache->index = 0;
+		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->snd = S_FindName("", false, false);
 	}
 #endif
@@ -5021,6 +5020,12 @@ static void CL_ParseSoundlist (qboolean lots)
 			break;
 		numsounds++;
 
+#ifdef TEMPORALCORTEX
+		cl.sound_time_periods[numsounds] = MSG_ReadShort();
+
+		Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [CL] Received sound %s from server; time period %d\n", str, cl.sound_time_periods[numsounds]);
+#endif
+
 		if (numsounds >= MAX_PRECACHE_SOUNDS)
 			Host_EndGame ("Server sent too many sound_precache");
 
@@ -5108,6 +5113,8 @@ static void CL_ParseModellist (qboolean lots)
 
 #ifdef TEMPORALCORTEX
 		cl.model_time_periods[nummodels] = MSG_ReadShort();
+
+		Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [CL] Received model %s from server; time period %d\n", str, cl.model_time_periods[nummodels]);
 #endif
 
 		if (nummodels>=MAX_PRECACHE_MODELS)
@@ -7981,6 +7988,7 @@ static void CL_ParsePrecache(void)
 
 		cl.sound_precache->name = "";
 		cl.sound_precache->index = 0;
+		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->snd = S_FindName("", false, false);
 		cl.sound_precache->next = NULL;
 	}

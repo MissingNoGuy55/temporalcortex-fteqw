@@ -1508,7 +1508,11 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
+				{
+					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending sound %s to client %d\n", sound_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
 					MSG_WriteString (&client->netchan.message, sound_precache->name);
+					MSG_WriteShort (&client->netchan.message, sound_precache->timeperiod);
+				}
 			}
 			if (started)
 			{
@@ -1541,9 +1545,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, PC_SOUND|client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, sound_precache->name);
-				MSG_WriteShort (&client->netchan.message, TIME_PERIOD_PRESENT);
+				MSG_WriteShort (&client->netchan.message, sound_precache->timeperiod);
 
-				Con_DPrintf(CON_NOTICE "Sending sound %s to client %d\n", sound_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
+				Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending sound %s to client %d\n", sound_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
 
 				client->prespawn_idx++;
 				sound_precache = sound_precache->next;
@@ -1748,7 +1752,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				{
 					MSG_WriteString (&client->netchan.message, model_precache->name);
 					MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
-					Con_DPrintf(CON_NOTICE "Sending model %s to client %d\n", model_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
+					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending model %s to client %d with time period of %d\n", model_precache->name, client->edict->entnum - tc_sv_loaded_bsps, sv.world.model_time_periods[client->prespawn_idx]);
 				}
 			}
 			if (started)

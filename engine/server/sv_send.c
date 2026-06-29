@@ -1328,6 +1328,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	qboolean	reliable = chflags & CF_SV_RELIABLE;
 	struct startsoundcontext_s ctx;
 #ifdef TEMPORALCORTEX
+	struct edict_s *ed;
 	struct soundprecache_s *sound_precache;
 #endif
 
@@ -1345,6 +1346,14 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 		Con_Printf ("SV_StartSound: channel = %i", channel);
 		return;
 	}
+
+#ifdef TEMPORALCORTEX
+	ed = EDICT_NUM_PB(svprogfuncs, ent);
+
+	if (ed->bspnum != tc_sv_current_bsp_index)
+		return;
+#endif
+
 
 	ctx.attenuation = attenuation;
 	ctx.chan = channel;
@@ -1367,9 +1376,14 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		sound_precache = SV_AddSoundPrecache(sample, sv.strings.sound_precache, tc_sv_current_bsp_index);
-		ctx.sampleidx = sound_precache ? sound_precache->index : 0;
-		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sound_precache->name )
+		sound_precache = SV_FindPrecacheBySoundName(sample, sv.strings.sound_precache);
+
+		if (!sound_precache)
+			return;
+
+		ctx.sampleidx = sound_precache->index;
+
+		if ( ctx.sampleidx >= MAX_PRECACHE_SOUNDS || !sound_precache )
 #else
 		for (ctx.sampleidx=1 ; ctx.sampleidx<MAX_PRECACHE_SOUNDS
 			&& sv.strings.sound_precache[ctx.sampleidx] ; ctx.sampleidx++)
