@@ -2318,11 +2318,8 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 			if (touch->modelindex <= 0 || touch->modelindex >= MAX_PRECACHE_MODELS)
 				continue;	//erk
 #ifdef TEMPORALCORTEX
-#if defined(HAVE_SERVER)
-			model_precache = SV_FindPrecacheByModelIndex(touch->modelindex, sv.strings.model_precache);
-#elif defined(HAVE_CLIENT)
 			model_precache = CL_FindPrecacheByModelIndex(touch->modelindex, cl.model_precache);
-#endif
+
 			model = model_precache->model;
 #else
 			model = cl.model_precache[touch->modelindex];

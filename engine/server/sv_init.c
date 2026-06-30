@@ -959,7 +959,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	int			i, j;
 #ifdef TEMPORALCORTEX
 	int			t, l, o;
-	struct modelprecache_s *model_precache;
+	struct modelprecache_s *model_precache = NULL;
 #endif
 	extern int sv_allow_cheats;
 	size_t fsz;

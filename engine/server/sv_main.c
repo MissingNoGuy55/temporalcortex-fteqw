@@ -1282,7 +1282,6 @@ struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecac
 {
 	int i;
 	struct modelprecache_s* precache;
-	char modelname[256];
 
 	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
@@ -1293,10 +1292,8 @@ struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecac
 		}
 
 		if (!strcmp(precache->name, name))
-		{
 			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
 				return precache;
-		}
 	}
 
 	precache = head;
@@ -1305,8 +1302,6 @@ struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecac
 
 	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 	memset(precache->next, 0, sizeof(struct modelprecache_s));
-
-	snprintf(modelname, sizeof(modelname), "%s:%s", name, sv.modelname[timeperiod]);
 
 	precache->next->name = Z_StrDup(name);
 	precache->next->publicname = Z_StrDup(Mod_FixName(name, sv.modelname[timeperiod]));

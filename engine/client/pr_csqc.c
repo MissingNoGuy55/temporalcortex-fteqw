@@ -9922,8 +9922,13 @@ void CSQC_ParseEntities(qboolean sized)
 			entnum &= ~0x8000;
 		}
 
+#ifdef TEMPORALCORTEX
+		if ((entnum < tc_cl_loaded_bsps && !removeflag) || msg_badread)
+			break;
+#else
 		if ((!entnum && !removeflag) || msg_badread)
 			break;
+#endif
 
 		if (removeflag)
 		{	//remove

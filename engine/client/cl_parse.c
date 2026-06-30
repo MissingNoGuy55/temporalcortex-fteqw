@@ -1315,9 +1315,6 @@ static void Model_CheckDownloads (void)
 }
 
 #ifdef TEMPORALCORTEX
-static int model_precache_old_size;
-static int sound_precache_old_size;
-static int csqc_precache_old_size;
 extern world_t csqc_world;
 #endif
 
@@ -1330,7 +1327,6 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
-	struct modelprecache_s *model_precache;
 #endif
 
 	float giveuptime = Sys_DoubleTime()+1;	//small things get padded into a single frame
@@ -1500,9 +1496,9 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 				//else
 #endif
 				if ( ( !cls.timedemo && i != 1 ) && ( mod_precache.ival != 1 ) )
-					model_precache = CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
+					CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
 				else
-					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
+					CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
 
 				S_ExtraUpdate();
 
@@ -3603,7 +3599,8 @@ void CL_ClearParseState(void)
 {
 	// done with sounds, request models now
 #ifdef TEMPORALCORTEX
-	memset (cl.model_precache, 0, model_precache_old_size);
+	if (cl.model_precache)
+		memset (cl.model_precache, 0, sizeof(struct modelprecache_s));
 #else
 	memset (cl.model_precache, 0, sizeof(cl.model_precache));
 #endif
@@ -4471,9 +4468,6 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 	int	nummodels, numsounds;
 	char	*str = NULL;
 	int gametype;
-#ifdef TEMPORALCORTEX
-	int t;
-#endif
 
 	Con_DPrintf ("Serverdata packet %s.\n", cls.demoplayback?"read":"received");
 	SCR_SetLoadingStage(LS_CLIENT);

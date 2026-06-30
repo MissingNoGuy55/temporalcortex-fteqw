@@ -1016,7 +1016,6 @@ inline struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, stru
 
 inline struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
 {
-	short i;
 	struct modelprecache_s *precache;
 
 	for (precache = head; precache; precache = precache->next)
@@ -1039,7 +1038,6 @@ inline struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, stru
 
 inline struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
 {
-	short i;
 	struct soundprecache_s* precache;
 
 	for (precache = head; precache; precache = precache->next)
