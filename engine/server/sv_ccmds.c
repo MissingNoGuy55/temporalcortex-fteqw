@@ -3823,19 +3823,25 @@ void SV_ChangeTimePeriod_f()
 	trace_t tTrace;
 	client_t* pClient;
 	edict_t* pClientEdict;
+	cvar_t *cvar;
 	qboolean bStuck = false;
 
 	if ( !(pszArg = Cmd_Argv(1)) )
 	{
-		Con_Printf( "sv_changetimeperiod usage: \"sv_changetimeperiod [time period index]\"\n");
+		Con_Printf("sv_changetimeperiod usage: \"sv_changetimeperiod [time period index]\"\n");
 		return;
 	}
 
-	if ( Q_atoi(pszArg) < TIME_PERIOD_PRESENT || Q_atoi(pszArg) > TIME_PERIOD_FUTURE )
+	if (Q_atoi(pszArg) < TIME_PERIOD_PRESENT || Q_atoi(pszArg) > TIME_PERIOD_FUTURE)
 	{
 		Con_Printf("Invalid time period requested!\n");
 		return;
 	}
+
+	cvar = Cvar_Get("tc_sv_allow_host_time_travel", "1", 0, "Allows the host in multiplayer to utilize time travel, taking other players with them.");
+
+	if (!cvar || (svs.allocated_client_slots > 1 && cvar->value < 1))
+		return;
 
 	if (!sv.world.worldmodel[Q_atoi(pszArg)])
 	{
@@ -3845,19 +3851,30 @@ void SV_ChangeTimePeriod_f()
 		{
 			case TIME_PERIOD_PRESENT:
 				suffix = "present";
-				suffix_postfix = "melancholy";
 				break;
 			case TIME_PERIOD_PAST:
 				suffix = "past";
-				suffix_postfix = "strange";
 				break;
 			case TIME_PERIOD_FUTURE:
 				suffix = "future";
+				break;
+			default:
+				suffix = "unknown";
+				break;
+		}
+		switch(tc_sv_current_bsp_index)
+		{
+			case TIME_PERIOD_PRESENT:
+				suffix_postfix = "melancholy";
+				break;
+			case TIME_PERIOD_PAST:
+				suffix_postfix = "strange";
+				break;
+			case TIME_PERIOD_FUTURE:
 				suffix_postfix = "wretched";
 				break;
 			default:
 				suffix = "unknown";
-				suffix_postfix = "unknown";
 				break;
 		}
 
@@ -3904,15 +3921,13 @@ void SV_ChangeTimePeriod_f()
 					break;
 			}
 
-			if ( svs.allocated_client_slots == 1 )
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the %s!", suffix );
+			if (svs.allocated_client_slots == 1)
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the %s!\n", suffix );
 			else
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!", i, svs.clients[i].name, suffix );
-#ifdef HAVE_CLIENT
-			SCR_CenterPrint( i, szPrintString, true );
-#elif defined(HAVE_SERVER)
-			Con_Printf( szPrintString );
-#endif
+				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, suffix );
+
+			Con_Printf( "%s\n", szPrintString );
+
 			bStuck = true;
 		}
 	}

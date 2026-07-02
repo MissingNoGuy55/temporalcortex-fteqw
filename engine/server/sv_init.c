@@ -88,7 +88,7 @@ int SV_ModelIndex (const char *name)
 	if (!strcmp(name + strlen(name) - 4, ".bsp"))
 	{
 		sub_precache = SV_FindPrecacheByModelIndex(model_precache->index, sv.strings.model_precache);
-		sv.models[sub_precache->index] = Mod_FindName(Mod_FixName(model_precache->name, sub_precache->name));
+		sv.models[sub_precache->index] = Mod_ForName(Mod_FixName(model_precache->name, sub_precache->name), MLV_ERROR);
 	}
 
 	if (!model_precache)
@@ -1413,12 +1413,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		if (!sv.world.worldmodel[t])
 			continue;
 
-		if ((oldkey && newkey) && strcmp(oldkey, newkey))
-		{
-			Host_EndGame("TEMPORAL CORTEX ERROR: Cannot mix BSP versions with time travel! Found \"%s\" for \"*bspversion\" infobuf key, expected \"%s\"\n", newkey, oldkey );
-			return;
-		}
-
 		oldkey = InfoBuf_ValueForKey(&svs.info, "bspversion");
 
 		if (sv.world.worldmodel[t]->type != mod_brush)
@@ -1649,7 +1643,7 @@ MSV_OpenUserDatabase();
 				z = Z_TagMalloc(strlen(s)+1, VMFSID_Q1QVM);
 				strcpy(z, s);
 				model_precache = SV_AddModelPrecache(z, sv.strings.model_precache, t);
-				sv.models[i+j] = model_precache->model;
+				sv.models[model_precache->index] = model_precache->model;
 			}
 
 			j += i;
@@ -1684,8 +1678,8 @@ MSV_OpenUserDatabase();
 			for (i=1 ; i<subs ; i++)
 			{
 				model_precache = SV_AddModelPrecache(PR_AddString(svprogfuncs, va("*%u", i), 0, false), sv.strings.model_precache, t);
-				sv.models[i+j] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[t]), MLV_WARN);
-				sv.world.model_time_periods[i+j] = t;
+				sv.models[model_precache->index] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[t]), MLV_WARN);
+				sv.world.model_time_periods[model_precache->index] = t;
 			}
 
 			j += i;

@@ -623,14 +623,16 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 #ifdef TEMPORALCORTEX
 		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex, sv.strings.model_precache);
 
-		if (!sv.models[modelindex] && model_precache)
-			sv.models[modelindex] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
+		if (!sv.models[model_precache->index] && model_precache)
+			sv.models[model_precache->index] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
+
+		mod = sv.models[model_precache->index];
 #else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
 			sv.models[modelindex] = Mod_ForName(Mod_FixName(sv.strings.model_precache[modelindex], sv.modelname), MLV_WARN);
-#endif
 
 		mod = sv.models[modelindex];
+#endif
 		if (mod && mod->loadstate != MLS_LOADED)
 		{
 			if (mod->loadstate == MLS_NOTLOADED)
@@ -3173,7 +3175,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 				}
 				if (!strcmp(m + strlen(m) - 4, ".bsp"))	//always precache bsps
 				{
-					world = SV_FindPrecacheByModelName(m, sv.strings.model_precache);
+					world = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[model_precache->index], sv.strings.model_precache);
 					sv.models[world->index] = Mod_FindName(Mod_FixName(m, world->name));
 				}
 				Con_Printf("WARNING: SV_ModelIndex: model %s not precached\n", m);
@@ -3330,10 +3332,17 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	}
 	else*/
 	{
+#ifdef TEMPORALCORTEX
+		if (sv_gameplayfix_setmodelrealbox.ival)
+			mod = SVPR_GetCModel(&sv.world, model_precache->index);
+		else
+			mod = sv.models[model_precache->index];
+#else
 		if (sv_gameplayfix_setmodelrealbox.ival)
 			mod = SVPR_GetCModel(&sv.world, i);
 		else
 			mod = sv.models[i];
+#endif
 
 		if (progstype != PROG_QW || sv_gameplayfix_setmodelsize_qw.ival)
 		{	//also sets size.
@@ -4350,7 +4359,7 @@ int PF_checkclient_Internal (pubprogfuncs_t *prinst)
 	VectorAdd (self->v->origin, self->v->view_ofs, view);
 
 #ifdef TEMPORALCORTEX
-	if ( ent->bspnum != self->bspnum )
+	if (ent->bspnum != self->bspnum)
 		return 0; // Missi: Not in the time period (2025.9.22)
 #endif
 
@@ -11815,6 +11824,20 @@ void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s 
 	SV_ChangeTimePeriod( bspnum );
 }
 
+// void(float timeperiod) timeperiod_change
+void QCBUILTIN PF_TimePeriod_Change_Ent(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	edict_t* ent = G_EDICT(svprogfuncs, OFS_PARM0);
+	int bspnum = G_INT(OFS_PARM1);
+
+	if (!ent)
+		return;
+
+	ent->bspnum = bspnum;
+
+	SV_ChangeTimePeriod( bspnum );
+}
+
 void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	G_FLOAT(OFS_RETURN) = tc_sv_loaded_bsps;
@@ -13178,8 +13201,9 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 #ifdef TEMPORALCORTEX
 	// Missi: Temporal Cortex extras (2025.12.17)
 	{"timeperiod_change",									PF_TimePeriod_Change,0,0,0,743,	"void(float timeperiod)", "Changes the time period on the server and relays it to all clients."},
-	{"drawline3d",											PF_Fixme,0,0,0,744,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
-	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,745,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
+	{"timeperiod_change_ent",								PF_TimePeriod_Change_Ent,0,0,0,744,	"void(entity ent, float timeperiod)", "Changes the time period for the specified entity only."},
+	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
+	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin

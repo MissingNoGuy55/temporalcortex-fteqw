@@ -1724,6 +1724,10 @@ void AddLinksToPmove_Force (world_t *w, wedict_t *player, areanode_t *node);
 #define AddAllLinksToPmove(w,p) do{AddLinksToPmove(w,p,(w)->areanodes);AddLinksToPmove_Force(w,p,&(w)->portallist);}while(0)
 #endif
 
+#ifdef TEMPORALCORTEX
+extern cvar_t tc_sv_allow_host_time_travel;
+#endif
+
 
 #ifdef HLSERVER
 void SVHL_SaveLevelCache(char *filename);

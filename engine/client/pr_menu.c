@@ -2897,8 +2897,9 @@ static struct {
 #ifdef TEMPORALCORTEX
 	// Missi: Temporal Cortex extras (2025.12.17)
 	{"timeperiod_change",		PF_Fixme,					743},
-	{"drawline3d",				PF_CL_drawline3D,			744},
-	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		745},
+	{"timeperiod_change_ent",	PF_Fixme,					744},
+	{"drawline3d",				PF_CL_drawline3D,			745},
+	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype

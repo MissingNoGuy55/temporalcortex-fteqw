@@ -149,7 +149,11 @@ pbool PDECL SV_ExtendedSaveData(pubprogfuncs_t *progfuncs, void *loadctx, const 
 #endif
 			return false;	//unsupported index.
 		l = COM_ParseTokenOut(l, NULL, token, sizeof(token), &tt);if (tt != TTP_STRING)return false;
+#ifdef TEMPORALCORTEX
 		SV_AddModelPrecache(PR_AddString(svprogfuncs, token, 0, false), sv.strings.model_precache, tc_sv_current_bsp_index);
+#else
+		sv.strings.model_precache[idx] = PR_AddString(svprogfuncs, token, 0, false);
+#endif
 	}
 #ifdef HAVE_LEGACY
 	else if (!strcmp(token, "vwep"))

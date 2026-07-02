@@ -6266,23 +6266,18 @@ void CL_Skygroup_f(void);
 void WAD_ImageList_f(void);
 
 #ifdef TEMPORALCORTEX
-
-extern int cl_playerindex;
-
+// Missi: The way this console commands works is a bit tricky, so I will explain it here.
+// When a client runs this command, it sends an "sv_changetimeperiod" stuffcmd to the server,
+// which then checks if the client that sent it is player 1. If this check passes, the server
+// changes time period immediately. It then sends a svctc_timeperiod message to all clients
+// that then updates the time period for all clients.
 static void CL_ChangeTimePeriod_f()
 {
 	const char*	arg = Cmd_Argv(1);
 	const char*	suffix;
 	char	printstring[256];
 
-	// Missi: Don't get cheeky... (2025.9.17)
-	if ( cl.allocated_client_slots > 1 )
-	{
-		Con_Printf( "Cannot change time period at-will in multiplayer games!\nPlease look for \"time travel zones\".\n");
-		return;
-	}
-
-	if ( !arg )
+	if (!arg)
 	{
 		Con_Printf( "cl_changetimeperiod usage: \"cl_changetimeperiod [time period index]\"\n");
 		return;
@@ -6332,8 +6327,6 @@ static void CL_ChangeTimePeriod_f()
 
 	MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
 	MSG_WriteString( &cls.netchan.message, cmd );
-
-	R_SetSky(cl.skyname[Q_atoi(arg)], Q_atoi(arg));
 
 	//Cmd_ForwardToServer();
 }

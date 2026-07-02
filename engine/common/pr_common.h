@@ -635,6 +635,7 @@ void QCBUILTIN PF_whichpack (pubprogfuncs_t *prinst, struct globalvars_s *pr_glo
 #ifdef HAVE_SERVER
 void QCBUILTIN PF_TimePeriod_Queue(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+void QCBUILTIN PF_TimePeriod_Change_Ent(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 #endif
 #endif
 

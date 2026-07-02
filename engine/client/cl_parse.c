@@ -1768,7 +1768,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 
 //#define atstage() ((cl.contentstage == stage++)?++cl.contentstage:false)
 //#define endstage() if (giveuptime<Sys_DoubleTime()) return -1;
-
+#ifdef TEMPORALCORTEX
 	if (!cl.sound_precache)
 	{
 		cl.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
@@ -1779,7 +1779,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->snd = S_FindName("", false, false);
 	}
-
+#endif
 	for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
 	{
 		if (!cl.sound_name[i])
@@ -4611,7 +4611,11 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 			return;
 		}
 		Z_StrDupPtr(&cl.sound_name[numsounds], str);
+#ifdef TEMPORALCORTEX
 		CL_AddSoundPrecache(cl.sound_name[numsounds], cl.sound_precache, TIME_PERIOD_PRESENT);
+#else
+		cl.sound_precache[numsounds] = S_FindName(cl.sound_name[numsounds], true, false);
+#endif
 
 		Sound_CheckDownload(str);
 	}
@@ -8035,10 +8039,11 @@ static void CL_ParsePrecache(void)
 //				Con_Printf("svc_precache: S_PrecacheSound(\"%s\") failed\n", s);
 #ifdef TEMPORALCORTEX
 			sound_precache = CL_AddSoundPrecache(s, cl.sound_precache, cl.worldmodel_indices[cl.model_time_periods[i]]);
+			Z_StrDupPtr(&cl.sound_name[i], sound_precache->name);
 #else
 			cl.sound_precache[i] = sfx;
+			Z_StrDupPtr(&cl.sound_name[i], s);
 #endif
-			Z_StrDupPtr(&cl.sound_name[i], sound_precache->name);
 		}
 		else
 			Con_Printf("svc_precache: sound index %i outside range %i...%i\n", i, 1, MAX_PRECACHE_SOUNDS);
@@ -8950,6 +8955,8 @@ void CLQW_ParseServerMessage (void)
 
 			S_GetMusicInfo(0, &time, &duration, title, sizeof(title));
 			tc_snd_positions[tc_cl_current_bsp_index] = time;
+
+			R_SetSky(cl.skyname[bspindex], bspindex);
 
 			tc_cl_current_bsp_index = bspindex;
 			track = MSG_ReadShort();

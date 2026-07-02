@@ -205,6 +205,10 @@ cvar_t	hostname = CVARF("hostname","unnamed", CVAR_SERVERINFO);
 
 cvar_t	secure = CVARF("secure", "", CVAR_SERVERINFO);
 
+#ifdef TEMPORALCORTEX
+cvar_t	tc_sv_allow_host_time_travel = CVARD("tc_sv_allow_host_time_travel", "0", "Allows the host in multiplayer to utilize time travel, taking other players with them.");
+#endif
+
 extern cvar_t sv_nqplayerphysics;
 
 char cvargroup_serverpermissions[] = "server permission variables";
@@ -6139,6 +6143,10 @@ void SV_InitLocal (void)
 	Cvar_Register (&deathmatch,	cvargroup_serverinfo);
 	Cvar_Register (&spawn,	cvargroup_servercontrol);
 
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&tc_sv_allow_host_time_travel,	cvargroup_servercontrol);
+#endif
+
 	//arguably cheats. Must be switched on to use.
 	Cvar_Register (&watervis,	cvargroup_serverinfo);
 	Cvar_Register (&allow_skybox,	cvargroup_serverinfo);
@@ -6254,6 +6262,7 @@ void SV_InitLocal (void)
 
 	Cvar_Register (&sv_nailhack, cvargroup_servercontrol);
 	Cvar_Register (&sv_nopvs, cvargroup_servercontrol);
+
 
 	Cmd_AddCommand ("sv_impulse", SV_Impulse_f);
 

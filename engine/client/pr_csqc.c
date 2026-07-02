@@ -5689,6 +5689,9 @@ void CSQC_EntStateToCSQC(unsigned int flags, float lerptime, entity_state_t *src
 
 #ifdef TEMPORALCORTEX
 	model = CSQC_GetModelForIndex(src->modelindex);
+#else
+	model = cl.model_precache[src->modelindex];
+#endif
 	if (!(flags & RSES_NOTRAILS))
 	{
 		//use entnum as a test to see if its new (if the old origin isn't usable)
@@ -7629,8 +7632,9 @@ static struct {
 #ifdef TEMPORALCORTEX
 	// Missi: Temporal Cortex extras (2025.12.17)
 	{"timeperiod_change",		PF_Fixme,					743},
-	{"drawline3d",				PF_CL_drawline3D,			744},
-	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		745},
+	{"timeperiod_change_ent",	PF_Fixme,					744},
+	{"drawline3d",				PF_CL_drawline3D,			745},
+	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype
@@ -10047,7 +10051,7 @@ void CSQC_ParseEntities(qboolean sized)
 }
 #endif
 
-#endif
+
 
 #ifdef TEMPORALCORTEX
 qboolean CSQC_TC_ChangeLevelName(const char* newname)
@@ -10121,4 +10125,5 @@ void QCBUILTIN PF_CL_NumLoadedBSPs (pubprogfuncs_t *prinst, struct globalvars_s 
 	G_FLOAT(OFS_RETURN) = tc_cl_loaded_bsps;
 }
 #endif
+
 #endif
