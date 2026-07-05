@@ -1357,8 +1357,8 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 		cl.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
 		memset(cl.model_precache, 0, sizeof(struct modelprecache_s));
 
-		cl.model_precache->name = "";
-		cl.model_precache->publicname = "";
+		cl.model_precache->name = NULL;
+		cl.model_precache->publicname = NULL;
 		cl.model_precache->index = 0;
 		cl.model_precache->timeperiod = 0;
 		cl.model_precache->model = Mod_ForName("", MLV_WARN);
@@ -1368,11 +1368,11 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 		cl.model_csqcprecache = BZ_Malloc(sizeof(struct modelprecache_s));
 		memset(cl.model_csqcprecache, 0, sizeof(struct modelprecache_s));
 
-		cl.model_csqcprecache->name = "";
-		cl.model_csqcprecache->publicname = "";
+		cl.model_csqcprecache->name = NULL;
+		cl.model_csqcprecache->publicname = NULL;
 		cl.model_csqcprecache->index = 0;
 		cl.model_csqcprecache->timeperiod = 0;
-		cl.model_csqcprecache->model = Mod_ForName("", MLV_WARN);
+		cl.model_csqcprecache->model = NULL;
 	}
 	if (!cl.sound_precache)
 	{

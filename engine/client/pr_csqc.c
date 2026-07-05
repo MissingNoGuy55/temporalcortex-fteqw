@@ -683,6 +683,12 @@ static int CS_FindModel(const char *name, int *free, short timeperiod)
 	int i;
 	struct modelprecache_s *model_precache;
 
+	for (i = 1, model_precache = cl.model_precache->next; model_precache; model_precache = model_precache->next, i++)
+	{
+		if (!strcmp(model_precache->publicname, name))
+			return model_precache->index;
+	}
+
 	for (i = 1, model_precache = cl.model_csqcprecache->next; model_precache; model_precache = model_precache->next, i++)
 	{
 		if (!*cl.model_csqcname[i])
@@ -691,12 +697,6 @@ static int CS_FindModel(const char *name, int *free, short timeperiod)
 			break;
 		}
 
-		if (!strcmp(model_precache->publicname, name))
-			return model_precache->index;
-	}
-
-	for (i = 1, model_precache = cl.model_precache->next; model_precache; model_precache = model_precache->next, i++)
-	{
 		if (!strcmp(model_precache->publicname, name))
 			return model_precache->index;
 	}
@@ -3296,6 +3296,8 @@ static void QCBUILTIN PF_cs_SetModel(pubprogfuncs_t *prinst, struct globalvars_s
 	int freei;
 #ifdef TEMPORALCORTEX
 	int modelindex = CS_FindModel(modelname, &freei, tc_cl_current_bsp_index);
+#else
+	int modelindex = CS_FindModel(modelname, &freei);
 #endif
 	model_t *mod;
 

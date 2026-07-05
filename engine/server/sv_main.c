@@ -1330,7 +1330,7 @@ struct modelprecache_s *SVQ2_AddModelPrecache(const char* name, struct modelprec
 	int i;
 	struct modelprecache_s* precache;
 
-	for (i = 1, precache = head; precache; precache = precache->next, i++)
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{

@@ -3277,11 +3277,9 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 		Con_DPrintf(CON_ERROR "[TEMPORAL CORTEX] [SV] PF_setmodel: no precache for %s\n", m);
 		return;
 	}
+#endif
 
 	e->v->modelindex = i;
-#else
-	e->v->modelindex = i;
-#endif
 
 	// if it is an inline model, get the size information for it
 	if (m && (m[0] == '*' || (*m&&progstype == PROG_H2)))
