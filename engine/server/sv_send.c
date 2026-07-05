@@ -1605,6 +1605,9 @@ void SV_FindModelNumbers (void)
 #ifdef TEMPORALCORTEX
 	struct modelprecache_s *model_precache;
 
+	if (!sv.strings.model_precache)
+		return;
+
 	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache ; model_precache = model_precache->next, i++)
 	{
 		if (!strcmp(model_precache->name,"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)

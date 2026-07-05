@@ -17,23 +17,26 @@ Name=GCC
 
 [CustomDefinesAndIncludes][ProjectPath0][Defines]
 TEMPORALCORTEX=1
-TEMPORALCORTEX_QCC=
+TEMPORALCORTEX_QCC=1
 
 [CustomDefinesAndIncludes][ProjectPath0][Includes]
 1=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine
-10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
-11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
-2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
-3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
-4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
-5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
-6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
-7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
-8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
-9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
+11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
+2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
+3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
+4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
+5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
+7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
+8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
+9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
+
+[Defines And Includes]
+reparse=false
 
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7,Launch Configuration 8,Launch Configuration 9,Launch Configuration 10
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7,Launch Configuration 8,Launch Configuration 9,Launch Configuration 10,Launch Configuration 11
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -88,7 +91,7 @@ Name=Client (Q2)
 Type=Native Application
 
 [Launch][Launch Configuration 10][Data]
-Arguments=-basedir "/home/stephen/.local/share/Steam/steamapps/common/Quake 2/" +developer 2 +set game baseq2
+Arguments=-basedir "/home/stephen/.local/share/Steam/steamapps/common/Quake 2/" -game baseq2 +developer 2 +in_windowed_mouse 0 +cl_shownet 2 +map base1
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -98,6 +101,25 @@ Kill Before Executing Again=4194304
 Project Target=
 Use External Terminal=false
 Working Directory=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/
+isExecutable=true
+
+[Launch][Launch Configuration 11]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Client (Q2) (FTEQW)
+Type=Native Application
+
+[Launch][Launch Configuration 11][Data]
+Arguments=-basedir "/home/stephen/.local/share/Steam/steamapps/common/Quake 2/" -game "baseq2" +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0 +map base1
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqw
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=
+Use External Terminal=false
+Working Directory=
 isExecutable=true
 
 [Launch][Launch Configuration 2]
@@ -238,6 +260,7 @@ isExecutable=true
 Abort on First Error=false
 Additional Options=FTE_CONFIG=fteqwtc
 Default Target=m-dbg
+Su Command=kdesudo
 
 [Project]
 VersionControlSupport=kdevgit

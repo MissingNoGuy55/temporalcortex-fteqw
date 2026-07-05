@@ -900,16 +900,28 @@ void CL_DownloadFinished(qdownload_t *dl)
 				}
 			}
 #endif
+#ifdef TEMPORALCORTEX
+			for (i = 0, t = 0; i < MAX_CSMODELS; i++)	//go and load this model now.
+#else
 			for (i = 0; i < MAX_CSMODELS; i++)	//go and load this model now.
+#endif
 			{
 				if (!strcmp(cl.model_csqcname[i], filename))
 				{
 #ifdef TEMPORALCORTEX
-					if (cl.model_csqcprecache[i].model && cl.model_csqcprecache[i].model->loadstate == MLS_FAILED)
-						cl.model_csqcprecache[i].model->loadstate = MLS_NOTLOADED;
-					CL_CheckModelResources(cl.model_csqcname[i]);
-					cl.model_csqcprecache[i].name = cl.model_csqcname[i];
-					cl.model_csqcprecache[i].model = Mod_ForName(cl.model_csqcname[i], MLV_WARN);
+					for (int j = 0; j < MAX_TIME_PERIODS; j++)
+					{
+						if (i == cl.worldmodel_indices[t])
+						{
+							model_precache = CL_AddModelPrecache(filename, cl.model_csqcprecache, t++, true);
+
+							if (model_precache && model_precache->model->loadstate == MLS_FAILED)
+								model_precache->model->loadstate = MLS_NOTLOADED;
+							CL_CheckModelResources(cl.model_csqcname[i]);
+							model_precache->name = cl.model_csqcname[i];
+							model_precache->model = Mod_ForName(cl.model_csqcname[i], MLV_WARN);
+						}
+					}
 #else
 					if (cl.model_csqcprecache[i] && cl.model_csqcprecache[i]->loadstate == MLS_FAILED)
 						cl.model_csqcprecache[i]->loadstate = MLS_NOTLOADED;
@@ -1327,6 +1339,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
+	struct modelprecache_s *model_precache;
 #endif
 
 	float giveuptime = Sys_DoubleTime()+1;	//small things get padded into a single frame
@@ -1467,7 +1480,9 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (cl.playerview[0].playernum == -1)
 	{	//q2 cinematic - don't load the models.
 #ifdef TEMPORALCORTEX
-		cl.worldmodel[0] = cl.model_precache[1].model = Mod_ForName ("", MLV_WARN);
+		cl.worldmodel[0] = Mod_ForName ("", MLV_WARN);
+
+		CL_AddModelPrecache("", cl.model_precache, TIME_PERIOD_PRESENT, false);
 #else
 		cl.worldmodel = cl.model_precache[1] = Mod_ForName ("", MLV_WARN);
 #endif
@@ -1491,9 +1506,9 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef Q2CLIENT
-				//if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
-				//	cl.model_precache[i] = NULL;
-				//else
+				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
+					continue;
+				else
 #endif
 				if ( ( !cls.timedemo && i != 1 ) && ( mod_precache.ival != 1 ) )
 					CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
@@ -1563,8 +1578,6 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	if (atstage())
 	{
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s *model_precache;
-
 		for (t = 0; t < MAX_TIME_PERIODS; t++)
 		{
 			// Missi: Invalid worlds are always 0 (2026.6.15)
@@ -1628,8 +1641,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-			cl.model_csqcprecache[i].model = Mod_ForName (cl.model_csqcname[i], MLV_WARN);
-			cl.model_csqcprecache[i].next = &cl.model_csqcprecache[i+1];
+			model_precache = CL_AddModelPrecache(cl.model_csqcname[i], cl.model_csqcprecache, timeperiod, true);
 #else
 			cl.model_csqcprecache[i] = Mod_ForName (cl.model_csqcname[i], MLV_WARN);
 #endif
@@ -1901,6 +1913,7 @@ void CL_RequestNextDownload (void)
 #ifdef TEMPORALCORTEX
 	int i = 0;
 	qboolean fail = false;
+	struct modelprecache_s *model_precache;
 #endif
 	/*already downloading*/
 	if (cls.download && !cls.demoplayback)
@@ -2245,8 +2258,10 @@ void CL_RequestNextDownload (void)
 			for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 			{
 #ifdef TEMPORALCORTEX
-				if (cl.model_precache[i].model && cl.model_precache[i].model->loadstate == MLS_NOTLOADED)
-					Mod_LoadModel(cl.model_precache[i].model, MLV_WARN);
+				model_precache = CL_FindPrecacheByModelIndex(i, cl.model_precache);
+
+				if (model_precache->model && model_precache->model->loadstate == MLS_NOTLOADED)
+					Mod_LoadModel(model_precache->model, MLV_WARN);
 #else
 				if (cl.model_precache[i] && cl.model_precache[i]->loadstate == MLS_NOTLOADED)
 					Mod_LoadModel(cl.model_precache[i], MLV_WARN);
@@ -4098,6 +4113,13 @@ static void CLQ2_ParseServerData (void)
 	else
 		COM_Gamedir(str, NULL);
 
+	Cvar_Get("timescale", "1", 0, "Q2Admin hacks");	//Q2Admin will kick players who have a timescale set to something other than 1
+													//FTE doesn't actually have a timescale cvar, so create one to 'fool' q2admin.
+													//I can't really blame q2admin for rejecting engines that don't have this cvar, as it could have been renamed via a hex-edit.
+
+	CL_ClearState (true);
+	CLQ2_ClearState ();
+
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 	tc_cl_loaded_bsps = MSG_ReadShort();
@@ -4107,12 +4129,6 @@ static void CLQ2_ParseServerData (void)
 		cl.worldmodel_indices[t] = MSG_ReadShort();
 #endif
 
-	Cvar_Get("timescale", "1", 0, "Q2Admin hacks");	//Q2Admin will kick players who have a timescale set to something other than 1
-													//FTE doesn't actually have a timescale cvar, so create one to 'fool' q2admin.
-													//I can't really blame q2admin for rejecting engines that don't have this cvar, as it could have been renamed via a hex-edit.
-
-	CL_ClearState (true);
-	CLQ2_ClearState ();
 	cl.minpitch = -89;
 	cl.maxpitch = 89;
 	cl.servercount = svcnt;
@@ -4156,12 +4172,6 @@ static void CLQ2_ParseServerData (void)
 	str = MSG_ReadString ();
 
 	Q_strncpyz (cl.levelname, str, sizeof(cl.levelname));
-
-#if 0
-	str = MSG_ReadString();
-
-	Q_strncpyz (cl.mapname[tc_cl_current_bsp_index], str, sizeof(cl.mapname[tc_cl_current_bsp_index]));
-#endif
 
 	if (cls.protocol_q2 == PROTOCOL_VERSION_R1Q2)
 	{

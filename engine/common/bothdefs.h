@@ -1183,8 +1183,8 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 	// Missi: Precache structures shared by the client and server (2026.6.22)
 	struct modelprecache_s
 	{
-		const char* name;
-		const char* publicname;
+		char* name;
+		char* publicname;
 		int index;
 		short timeperiod;
 		struct model_s* model;
@@ -1193,7 +1193,7 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 
 	struct soundprecache_s
 	{
-		const char* name;
+		char* name;
 		int index;
 		short timeperiod;
 		struct sfx_s* snd;

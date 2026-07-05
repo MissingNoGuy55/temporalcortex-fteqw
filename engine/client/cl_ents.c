@@ -4605,12 +4605,13 @@ void CL_LinkPacketEntities (void)
 			model = model_precache->model;
 #else
 			model = cl.model_precache[state->modelindex];
-#endif
+
 			if (!model)
 			{
 				Con_DPrintf("Bad modelindex (%i)\n", state->modelindex);
 				continue;
 			}
+#endif
 			if (model->loadstate != MLS_LOADED)
 			{
 				if (model->loadstate == MLS_NOTLOADED)
@@ -5887,7 +5888,11 @@ void CL_LinkPlayers (void)
 		ent = &cl_visedicts[cl_numvisedicts];
 		cl_numvisedicts++;
 		memset(ent, 0, sizeof(*ent));
+#ifdef TEMPORALCORTEX
+		ent->keynum = j+tc_cl_loaded_bsps;
+#else
 		ent->keynum = j+1;
+#endif
 		ent->model = model;
 
 		ent->skinnum = state->skinnum;

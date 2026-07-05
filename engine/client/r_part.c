@@ -906,7 +906,10 @@ float CL_TraceLine (vec3_t start, vec3_t end, vec3_t impact, vec3_t normal, int 
 	if (csqc_world.progs)
 	{
 #ifdef TEMPORALCORTEX
-		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, &csqc_world.edicts[tc_cl_current_bsp_index], tc_cl_current_bsp_index);
+		wedict_t *ed;
+		ed = WEDICT_NUM_PB(csqc_world.progs, tc_cl_current_bsp_index);
+
+		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, ed, tc_cl_current_bsp_index);
 #else
 		trace = World_Move(&csqc_world, start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, csqc_world.edicts);
 #endif

@@ -168,6 +168,22 @@ These commands can only be entered from stdin or by a remote operator datagram
 ===============================================================================
 */
 
+#ifdef TEMPORALCORTEX
+static void SV_SetTimePeriodForEnt_f()
+{
+	extern world_t csqc_world;
+
+	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
+	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
+	int timeperiod = atoi(Cmd_Argv(3));
+	struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(mdlidx, sv.strings.model_precache);
+	struct edict_s *ent = EDICT_NUM_PB(svprogfuncs, entnum);
+
+	ent->bspnum = timeperiod;
+	model_precache->timeperiod = timeperiod;
+}
+#endif
+
 /*
 ==================
 SV_Quit_f
@@ -3979,6 +3995,7 @@ void SV_InitOperatorCommands (void)
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
 	Cmd_AddCommandD ("sv_changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
+	Cmd_AddCommand ("setenttimeperiod", SV_SetTimePeriodForEnt_f);
 #endif
 #endif
 	//ask clients to take a remote screenshot

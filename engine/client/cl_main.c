@@ -1051,7 +1051,6 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 {
 	int i;
 	struct modelprecache_s* precache;
-	char modelname[256];
 
 	extern world_t csqc_world;
 
@@ -1061,7 +1060,7 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 		return NULL;
 	}
 
-	for (i = 0, precache = head; precache->next; precache = precache->next, i++)
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
@@ -1085,19 +1084,18 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 	}
 
 	precache = head;
+
 	while (precache->next)
 		precache = precache->next;
 
 	precache->next = BZ_Malloc(sizeof(struct modelprecache_s));
 	memset(precache->next, 0, sizeof(struct modelprecache_s));
 
-	snprintf(modelname, sizeof(modelname), "%s:%s", name, cl.model_name[cl.worldmodel_indices[timeperiod]]);
-
-	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]));
+	Z_StrDupPtr(&precache->next->name, name);
+	Z_StrDupPtr(&precache->next->publicname, Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]));
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
-	precache->next->model = Mod_ForName(precache->next->publicname, MLV_ERROR);
+	precache->next->model = Mod_ForName(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]), MLV_ERROR);
 
 	precache->next->next = NULL;
 
@@ -1134,7 +1132,7 @@ struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecac
 	memset(precache->next, 0, sizeof(struct soundprecache_s));
 
 	precache->next->snd = S_PrecacheSound(name);
-	precache->next->name = name;
+	precache->next->name = Z_StrDup(name);
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 

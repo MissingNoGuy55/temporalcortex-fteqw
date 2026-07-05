@@ -622,10 +622,6 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 		model_t *mod;
 #ifdef TEMPORALCORTEX
 		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex, sv.strings.model_precache);
-
-		if (!sv.models[model_precache->index] && model_precache)
-			sv.models[model_precache->index] = Mod_ForName(Mod_FixName(model_precache->name, sv.modelname[tc_sv_current_bsp_index]), MLV_WARN);
-
 		mod = sv.models[model_precache->index];
 #else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
@@ -3150,12 +3146,12 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 		{
 			if (!strcmp(model_precache->name, m))
 			{
-				if (!strcmp(model_precache->publicname, Mod_FixName(model_precache->name, sv.modelname[sv.world.model_time_periods[i]])))
+				if (!strcmp(model_precache->publicname, Mod_FixName(model_precache->name, sv.modelname[e->bspnum])))
 				{
 #ifdef VM_Q1
 					if (svs.gametype != GT_Q1QVM)
 #endif
-						m = model_precache->name;
+						m = model_precache->publicname;
 					break;
 				}
 			}
@@ -3282,7 +3278,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 		return;
 	}
 
-	e->v->modelindex = model_precache->index;
+	e->v->modelindex = i;
 #else
 	e->v->modelindex = i;
 #endif
@@ -3291,7 +3287,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	if (m && (m[0] == '*' || (*m&&progstype == PROG_H2)))
 	{
 #ifdef TEMPORALCORTEX
-		mod = SVPR_GetCModel(&sv.world, model_precache->index);
+		mod = SVPR_GetCModel(&sv.world, i);
 #else
 		mod = SVPR_GetCModel(&sv.world, i);
 #endif
@@ -3334,9 +3330,9 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	{
 #ifdef TEMPORALCORTEX
 		if (sv_gameplayfix_setmodelrealbox.ival)
-			mod = SVPR_GetCModel(&sv.world, model_precache->index);
+			mod = SVPR_GetCModel(&sv.world, i);
 		else
-			mod = sv.models[model_precache->index];
+			mod = sv.models[i];
 #else
 		if (sv_gameplayfix_setmodelrealbox.ival)
 			mod = SVPR_GetCModel(&sv.world, i);
@@ -3352,8 +3348,8 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 			if (mod)
 			{
 #ifdef TEMPORALCORTEX
-				mod = Mod_ForName (Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]), MLV_WARNSYNC);
-				Con_DPrintf(S_COLOR_CYAN "[TEMPORAL CORTEX] [SV] Setting model on entity %s to %s\n", PR_GetString(svprogfuncs, e->v->classname), Mod_FixName(m, sv.modelname[tc_sv_current_bsp_index]));
+				mod = Mod_ForName (Mod_FixName(m, sv.modelname[e->bspnum]), MLV_WARNSYNC);
+				Con_DPrintf(S_COLOR_CYAN "[TEMPORAL CORTEX] [SV] Setting model on entity %s to %s\n", PR_GetString(svprogfuncs, e->v->classname), Mod_FixName(m, sv.modelname[e->bspnum]));
 #else
 				mod = Mod_ForName (Mod_FixName(m, sv.modelname), MLV_WARNSYNC);
 #endif

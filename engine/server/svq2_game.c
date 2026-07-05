@@ -333,9 +333,6 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 {
 	int msgsize;
 	int j;
-#ifdef TEMPORALCORTEX
-	int t;
-#endif
 	int q2exremap;
 	client_t *cl;
 	if (i < 0 || i >= Q2MAX_CONFIGSTRINGS)
@@ -371,13 +368,13 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 
 	Z_Free((char*)sv.strings.configstring[i]);
 	sv.strings.configstring[i] = Z_StrDup(val);
-#ifdef TEMPORALCORTEX
-	for ( t = 0; t < tc_sv_loaded_bsps; t++ )
+#if 0
+	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 #endif
 		if (i == Q2CS_NAME)
 #ifdef TEMPORALCORTEX
-			Q_strncpyz(sv.mapname[t], val, sizeof(sv.mapname[t]));
+			Q_strncpyz(sv.mapname[tc_sv_current_bsp_index], val, sizeof(sv.mapname[tc_sv_current_bsp_index]));
 #else
 			Q_strncpyz(sv.mapname, val, sizeof(sv.mapname));
 #endif
@@ -404,7 +401,7 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 				}
 			}
 		}
-#ifdef TEMPORALCORTEX
+#if 0
 	}
 #endif
 }

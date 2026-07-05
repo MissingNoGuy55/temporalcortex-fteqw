@@ -677,6 +677,33 @@ static void QCBUILTIN PF_cs_makevectors (pubprogfuncs_t *prinst, struct globalva
 	AngleVectors (G_VECTOR(OFS_PARM0), csqcg.v_forward, csqcg.v_right, csqcg.v_up);
 }
 
+#ifdef TEMPORALCORTEX
+static int CS_FindModel(const char *name, int *free, short timeperiod)
+{
+	int i;
+	struct modelprecache_s *model_precache;
+
+	for (i = 1, model_precache = cl.model_csqcprecache->next; model_precache; model_precache = model_precache->next, i++)
+	{
+		if (!*cl.model_csqcname[i])
+		{
+			*free = -i;
+			break;
+		}
+
+		if (!strcmp(model_precache->publicname, name))
+			return model_precache->index;
+	}
+
+	for (i = 1, model_precache = cl.model_precache->next; model_precache; model_precache = model_precache->next, i++)
+	{
+		if (!strcmp(model_precache->publicname, name))
+			return model_precache->index;
+	}
+
+	return 0;
+}
+#else
 static int CS_FindModel(const char *name, int *free)
 {
 	int i;
@@ -686,12 +713,8 @@ static int CS_FindModel(const char *name, int *free)
 
 	if (!name || !*name)
 		return 0;
-#ifdef TEMPORALCORTEX
-	// Missi: FIXME: Should probably add a parameter so people can find a model in another time period. (2026.2.4)
-	fixedname = Mod_FixName(name, csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname);
-#else
 	fixedname = Mod_FixName(name, csqc_world.worldmodel->publicname);
-#endif
+
 	for (i = 1; i < MAX_CSMODELS; i++)
 	{
 		if (!*cl.model_csqcname[i])
@@ -709,8 +732,10 @@ static int CS_FindModel(const char *name, int *free)
 		if (!strcmp(cl.model_name[i], name))
 			return i;
 	}
+
 	return 0;
 }
+#endif
 
 static model_t *CSQC_GetModelForIndex(int index)
 {
@@ -728,7 +753,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 		model_precache = CSQC_FindPrecacheByModelIndex(-index, cl.model_csqcprecache);
 
 		if (!model_precache->model)
-			model_precache->model = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[tc_cl_current_bsp_index]?csqc_world.worldmodel[tc_cl_current_bsp_index]->publicname:NULL), MLV_WARN);
+			model_precache->model = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[cl.model_time_periods[model_precache->index]]?csqc_world.worldmodel[cl.model_time_periods[model_precache->index]]->publicname:NULL), MLV_WARN);
 		return model_precache->model;
 	}
 	else
@@ -749,12 +774,20 @@ static model_t *CSQC_GetModelForIndex(int index)
 #endif
 }
 
+#ifdef TEMPORALCORTEX
+static model_t *CSQC_GetModelForName(const char *modelname, short timeperiod)
+#else
 static model_t *CSQC_GetModelForName(const char *modelname)
+#endif
 {
 	int modelindex, freei;
 	if (!modelname && *modelname)
 		return NULL;	//zomg, no name
+#ifdef TEMPORALCORTEX
+	modelindex = CS_FindModel(modelname, &freei, timeperiod);
+#else
 	modelindex = CS_FindModel(modelname, &freei);
+#endif
 
 	//make sure it has an index.
 	if (!modelindex)
@@ -3261,7 +3294,9 @@ static void QCBUILTIN PF_cs_SetModel(pubprogfuncs_t *prinst, struct globalvars_s
 	csqcedict_t *ent = (void*)G_EDICT(prinst, OFS_PARM0);
 	const char *modelname = PR_GetStringOfs(prinst, OFS_PARM1);
 	int freei;
-	int modelindex = CS_FindModel(modelname, &freei);
+#ifdef TEMPORALCORTEX
+	int modelindex = CS_FindModel(modelname, &freei, tc_cl_current_bsp_index);
+#endif
 	model_t *mod;
 
 	if (!modelindex && modelname && *modelname)
@@ -3323,7 +3358,11 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 	}
 #endif
 
+#ifdef TEMPORALCORTEX
+	modelindex = CS_FindModel(modelname, &freei, tc_cl_current_bsp_index);	//now load it
+#else
 	modelindex = CS_FindModel(modelname, &freei);	//now load it
+#endif
 
 	if (!modelindex && !queryonly)
 	{
@@ -3435,7 +3474,11 @@ static void QCBUILTIN PF_cs_spriteframe(pubprogfuncs_t *prinst, struct globalvar
 	model_t *mod = NULL;
 
 	G_INT(OFS_RETURN) = 0;	//default result
+#ifdef TEMPORALCORTEX
+	mod = CSQC_GetModelForName(modelname, tc_cl_current_bsp_index);
+#else
 	mod = CSQC_GetModelForName(modelname);
+#endif
 
 	if (!mod)
 		return;
@@ -6648,7 +6691,11 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 	switch(restype)
 	{
 	case RESTYPE_MODEL:
+#ifdef TEMPORALCORTEX
+		idx = CS_FindModel(resname, &idx2, cl.model_time_periods[cl.worldmodel_indices[tc_cl_current_bsp_index]]);
+#else
 		idx = CS_FindModel(resname, &idx2);
+#endif
 		if (idx < 0)
 		{
 #ifdef TEMPORALCORTEX
@@ -8681,7 +8728,7 @@ void CSQC_WorldLoaded(void)
 #endif
 		worldent->v->solid = SOLID_BSP;
 #ifdef TEMPORALCORTEX
-		wmodelindex = CS_FindModel(csqc_world.worldmodel[t] ? csqc_world.worldmodel[t]->name:"", &tmp);
+		wmodelindex = CS_FindModel(csqc_world.worldmodel[t] ? csqc_world.worldmodel[t]->name:"", &tmp, t);
 #else
 		wmodelindex = CS_FindModel(csqc_world.worldmodel ? csqc_world.worldmodel->name:"", &tmp);
 #endif

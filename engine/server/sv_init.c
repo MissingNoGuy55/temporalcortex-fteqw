@@ -777,7 +777,7 @@ void SV_UnspawnServer (void)	//terminate the running server.
 	tc_sv_loaded_bsps = 0;
 #endif
 
-	SV_ClearPrecaches();
+	SV_ClearStringPrecaches();
 #endif
 }
 
@@ -1404,16 +1404,11 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	SCR_SetLoadingFile("gamecode");
 #endif
 #ifdef TEMPORALCORTEX
-	char* oldkey = NULL;
-	char* newkey = NULL;
-
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		if (!sv.world.worldmodel[t])
 			continue;
-
-		oldkey = InfoBuf_ValueForKey(&svs.info, "bspversion");
 
 		if (sv.world.worldmodel[t]->type != mod_brush)
 			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
@@ -1428,8 +1423,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		else
 			InfoBuf_SetStarKey(&svs.info, "*bspversion", "");
 		InfoBuf_SetStarKey(&svs.info, "*startspot", (startspot?startspot:""));
-
-		newkey = InfoBuf_ValueForKey(&svs.info, "*bspversion");
 
 		// Missi: Finally increment the number of loaded BSPs on the server (2026.5.17)
 #ifdef HAVE_SERVER
@@ -1580,28 +1573,8 @@ MSV_OpenUserDatabase();
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
 #ifdef TEMPORALCORTEX
-	SV_ClearPrecaches();
-
-	sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
-	sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
-	sv.strings.particle_precache = BZ_Malloc(sizeof(const char*) * MAX_SSPARTICLESPRE );
-
-	memset(sv.strings.model_precache, 0, sizeof(struct modelprecache_s) );
-	memset(sv.strings.sound_precache, 0, sizeof(struct soundprecache_s) );
-	memset(sv.strings.particle_precache, 0, sizeof(const char*) * MAX_SSPARTICLESPRE );
-
-	sv.strings.model_precache->name = "";
-	sv.strings.model_precache->publicname = "";
-	sv.strings.model_precache->index = 0;
-	sv.strings.model_precache->model = Mod_ForName("", MLV_WARN);
-
-	sv.strings.sound_precache->name = "";
-	sv.strings.sound_precache->index = 0;
-#ifdef SERVERONLY
-	sv.strings.sound_precache->snd = NULL;
-#else
-	sv.strings.sound_precache->snd = S_FindName("", false, false);
-#endif
+	SV_ClearStringPrecaches();
+	SV_InitStringPrecaches();
 
 	// SV_AddModelPrecache("", sv.strings.model_precache, TIME_PERIOD_PRESENT);
 	// SV_AddSoundPrecache("", sv.strings.sound_precache, TIME_PERIOD_PRESENT);
@@ -1613,6 +1586,12 @@ MSV_OpenUserDatabase();
 	{
 		sv.world.model_time_periods = BZ_Malloc(sizeof(short) * 16385);
 		memset(sv.world.model_time_periods, 0, sizeof(short) * 16385);
+	}
+
+	if (svs.gametype == GT_QUAKE2)
+	{
+		// init map checksum config string but only for Q2/Q3 maps
+		sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel[0]->checksum, sv.world.worldmodel[0]->checksum2);
 	}
 
 	// Missi: HACK: sv.models cannot have any NULL entries, or
@@ -1695,33 +1674,35 @@ MSV_OpenUserDatabase();
 			extern cvar_t sv_airaccelerate;
 
 			sv.stringsalloced = true;
-			memset(&sv.strings, 0, sizeof(sv.strings));
 
 			if (deathmatch.value)
 				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDupf("%g", sv_airaccelerate.value);
 			else
 				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
 
-			// init map checksum config string but only for Q2/Q3 maps
-			sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel[t]->checksum, sv.world.worldmodel[t]->checksum2);
-
 			subs = sv.world.worldmodel[t]->numsubmodels;
+			model_precache = SV_AddModelPrecache(sv.modelname[t], sv.strings.model_precache, t);
+			sv.world.worldmodel_indices[t] = model_precache->index;
+
+			sv.strings.configstring[Q2CS_MODELS+j] = Z_StrDup(sv.modelname[t]);
+
 			if (subs > MAX_PRECACHE_MODELS-1)
 			{
 				Con_Printf("Warning: worldmodel has too many submodels\n");
 				subs = MAX_PRECACHE_MODELS-1;
 			}
 
-			sv.strings.configstring[Q2CS_MODELS+1] = Z_StrDup(sv.modelname[t]);
 			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
 			{
 				sv.strings.configstring[Q2CS_MODELS+i+j] = Z_StrDupf("*%u", i);
-				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j], sv.modelname[t]), MLV_WARN);
+				model_precache = SV_AddModelPrecache(sv.strings.configstring[Q2CS_MODELS+i+j], sv.strings.model_precache, t);
+				sv.models[model_precache->index] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j], sv.modelname[t]), MLV_WARN);
 			}
 			for ( ; i<subs; i++)
 			{
 				sv.strings.q2_extramodels[i+j] = Z_StrDupf("*%u", i);
-				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
+				model_precache = SV_AddModelPrecache(sv.strings.q2_extramodels[i+j], sv.strings.model_precache, t);
+				sv.models[model_precache->index] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
 			}
 
 			j += i;

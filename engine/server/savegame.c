@@ -442,30 +442,6 @@ void LoadModelsAndSounds(vfsfile_t *f)
 	int i;
 
 #ifdef TEMPORALCORTEX
-	if (!sv.strings.model_precache)
-	{
-		sv.strings.model_precache = BZ_Malloc(sizeof(struct modelprecache_s));
-		memset(sv.strings.model_precache, 0, sizeof(struct modelprecache_s));
-
-		sv.strings.model_precache->name = "";
-		sv.strings.model_precache->publicname = "";
-		sv.strings.model_precache->index = 0;
-		sv.strings.model_precache->model = Mod_ForName("", MLV_WARN);
-	}
-	if (!sv.strings.sound_precache)
-	{
-		sv.strings.sound_precache = BZ_Malloc(sizeof(struct soundprecache_s));
-		memset(sv.strings.sound_precache, 0, sizeof(struct soundprecache_s));
-
-		sv.strings.sound_precache->name = "";
-		sv.strings.sound_precache->index = 0;
-#ifdef SERVERONLY
-		sv.strings.sound_precache->snd = NULL;
-#else
-		sv.strings.sound_precache->snd = S_FindName("", false, false);
-#endif
-	}
-
 	for (i=1; i < MAX_PRECACHE_MODELS; i++)
 	{
 		VFS_GETS(f, str, sizeof(str));

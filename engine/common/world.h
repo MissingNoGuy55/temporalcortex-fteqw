@@ -391,7 +391,11 @@ void VARGS WorldQ2_LinkEdict(world_t *w, q2edict_t *ent);
 void VARGS WorldQ2_UnlinkEdict(world_t *w, q2edict_t *ent);
 int VARGS WorldQ2_AreaEdicts (world_t *w, const vec3_t mins, const vec3_t maxs, q2edict_t **list,
 	int maxcount, int areatype);
+#ifdef TEMPORALCORTEX
 trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hitcontentsmask, q2edict_t *passedict);
+#else
+trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hitcontentsmask, q2edict_t *passedict);
+#endif
 #endif
 
 

@@ -1193,8 +1193,19 @@ struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct mod
 struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
 struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
 struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecache_s* head, short timeperiod);
+#ifdef Q2SERVER
+struct modelprecache_s *SVQ2_AddModelPrecache(const char* name, struct modelprecache_s* head, short timeperiod);
+#endif
 struct soundprecache_s *SV_AddSoundPrecache(const char* name, struct soundprecache_s* head, short timeperiod);
-void SV_ClearPrecaches();
+#ifdef Q2SERVER
+struct soundprecache_s *SVQ2_AddSoundPrecache(const char* name, struct soundprecache_s* head, short timeperiod);
+#endif
+void SV_ClearStringPrecaches();
+void SV_InitStringPrecaches();
+#ifdef Q2SERVER
+void SVQ2_ClearStringPrecaches();
+void SVQ2_InitStringPrecaches();
+#endif
 #endif
 
 void SV_GeneratePublicServerinfo(char *info, const char *endinfo);
