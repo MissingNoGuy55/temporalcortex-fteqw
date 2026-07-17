@@ -171,8 +171,6 @@ These commands can only be entered from stdin or by a remote operator datagram
 #ifdef TEMPORALCORTEX
 static void SV_SetTimePeriodForEnt_f()
 {
-	extern world_t csqc_world;
-
 	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
 	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
 	int timeperiod = atoi(Cmd_Argv(3));
@@ -3729,10 +3727,16 @@ void SV_Download_f (void)
 	Con_Printf("scheme not supported\n");
 }
 #ifdef TEMPORALCORTEX
+
+#define Q2EDICT_NUM(i) (q2edict_t*)((char *)ge->edicts+i*ge->edict_size)
+
 void SV_ChangeTimePeriod( int bspindex )
 {
 	int i, track;
 	edict_t *worldEdict, *ed;
+#ifdef Q2SERVER
+	q2edict_t *q2WorldEdict, *q2ed;
+#endif
 
 	if ( bspindex == tc_sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
 		return;
@@ -3743,41 +3747,59 @@ void SV_ChangeTimePeriod( int bspindex )
 		return;
 	}
 
-	worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
-
-	if ( !worldEdict )
-		return;
-
-	for ( i = 0; i < sv.allocated_client_slots; i++ )
+	if (svprogfuncs)
 	{
-		ed = svs.clients[i].edict;
-		ed->bspnum = bspindex;
-	}
+		worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
 
-	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
-	// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
-	for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps; i < sv.world.num_edicts; i++ )
-	{
-		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
+		if ( !worldEdict )
+			return;
 
-		// Missi: Should never happen, but just in case (2026.6.1)
-		if (!ed)
+		for ( i = 0; i < sv.allocated_client_slots; i++ )
 		{
-			Con_Printf(CON_WARNING "TEMPORAL CORTEX WARNING: SV_ChangeTimePeriod found a NULL edict when changing time periods!\n");
-			continue;
+			ed = svs.clients[i].edict;
+			ed->bspnum = bspindex;
 		}
 
-		// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
-		if ((int)ed->v->flags & FL_MONSTER)
-			ed->v->enemy = pr_global_struct->world;
+		// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
+		// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
+		for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps; i < sv.world.num_edicts; i++ )
+		{
+			ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
 
-		// Missi: HACK: Check for the grappling hook and transport it (2026.6.1)
-		// Missi: FIXME: This sucks as "hook" is a generic noun. Please get rid of this ASAP (2026.6.12)
-		if (!strncmp(PR_GetString(svprogfuncs, ed->v->classname), "hook", 4))
-			ed->bspnum = bspindex;
+			// Missi: Should never happen, but just in case (2026.6.1)
+			if (!ed)
+			{
+				Con_Printf(CON_WARNING "TEMPORAL CORTEX WARNING: SV_ChangeTimePeriod found a NULL edict when changing time periods!\n");
+				continue;
+			}
+
+			// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
+			if ((int)ed->v->flags & FL_MONSTER)
+				ed->v->enemy = pr_global_struct->world;
+		}
+
+		track = worldEdict->v->sounds;
+
 	}
+#ifdef Q2SERVER
+	else if (svs.gametype == GT_QUAKE2)
+	{
+		q2WorldEdict = Q2EDICT_NUM(sv.world.world_indices[bspindex]);
 
-	track = worldEdict->v->sounds;
+		if ( !q2WorldEdict )
+			return;
+
+		for ( i = 0; i < sv.allocated_client_slots; i++ )
+		{
+			q2ed = svs.clients[i].q2edict;
+			q2ed->bspnum = bspindex;
+		}
+
+		track = q2WorldEdict->s.sound;
+	}
+#endif
+	else
+		track = 0;
 
 	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
 	MSG_WriteShort (&sv.reliable_datagram, bspindex);
@@ -3953,6 +3975,9 @@ void SV_ChangeTimePeriod_f()
 
 	SV_ChangeTimePeriod( atoi(pszArg) );
 }
+
+#undef Q2EDICT_NUM
+
 #endif
 /*
 ==================

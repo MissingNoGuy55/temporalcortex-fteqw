@@ -793,8 +793,13 @@ void VARGS WorldQ2_LinkEdict(world_t *w, q2edict_t *ent)
 	if (ent->area.prev)
 		WorldQ2_UnlinkEdict (w, ent);	// unlink from old position
 		
+#ifdef TEMPORALCORTEX
+	if (ent == ge->edicts || ent < ge->edicts)
+		return;		// don't add the world
+#else
 	if (ent == ge->edicts)
 		return;		// don't add the world
+#endif
 
 	if (!ent->inuse)
 		return;

@@ -391,12 +391,18 @@ void VARGS PFQ2_Configstring (int i, const char *val)
 				{
 					ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
 					ClientReliableWrite_Short(cl, i);
+#ifdef TEMPORALCORTEX
+					ClientReliableWrite_Short(cl, sv.world.model_time_periods[i]);
+#endif
 					ClientReliableWrite_String(cl, val);
 				}
 				else if (cl->protocol == SCP_QUAKE2EX)
 				{
 					ClientReliableWrite_Begin(cl, svcq2_configstring, msgsize);
 					ClientReliableWrite_Short(cl, q2exremap);
+#ifdef TEMPORALCORTEX
+					ClientReliableWrite_Short(cl, sv.world.model_time_periods[i]);
+#endif
 					ClientReliableWrite_String(cl, val);
 				}
 			}
@@ -462,10 +468,16 @@ static int SVQ2_FindIndex (const char *name, int start, int max, int overflowtyp
 						SZ_Clear (&sv.q2multicast[0]);
 						MSG_WriteChar (&sv.q2multicast[0], svcq2_configstring);
 						MSG_WriteShort (&sv.q2multicast[0], start+i);
+#ifdef TEMPORALCORTEX
+						MSG_WriteShort (&sv.q2multicast[0], sv.world.model_time_periods[i]);
+#endif
 						MSG_WriteString (&sv.q2multicast[0], name);
 						SZ_Clear (&sv.q2multicast[1]);
 						MSG_WriteChar (&sv.q2multicast[1], svcq2_configstring);
 						MSG_WriteShort (&sv.q2multicast[1], startq2e+i);
+#ifdef TEMPORALCORTEX
+						MSG_WriteShort (&sv.q2multicast[1], sv.world.model_time_periods[i]);
+#endif
 						MSG_WriteString (&sv.q2multicast[1], name);
 						SV_Multicast (vec3_origin, MULTICAST_ALL_R);
 					}
@@ -963,7 +975,9 @@ qboolean SVQ2_InitGameProgs(void)
 
 	if (ge)
 	{
+#ifndef TEMPORALCORTEX
 		SVQ2_InitWorld();
+#endif
 		return true;
 	}
 
@@ -1055,7 +1069,26 @@ qboolean SVQ2_InitGameProgs(void)
 	deathmatch.flags |= CVAR_MAPLATCH;
 	coop.flags |= CVAR_MAPLATCH;
 
+#ifdef TEMPORALCORTEX
+
 	SVQ2_InitWorld();
+
+	ge->num_loaded_bsps = tc_sv_loaded_bsps;
+	for (int t = 0, o = 0; t < MAX_TIME_PERIODS; t++)
+	{
+		if (!sv.world.worldmodel[t])
+		{
+			o++;
+			continue;
+		}
+
+		ge->world_indices[t] = t-o;
+	}
+
+#else
+	SVQ2_InitWorld();
+#endif
+
 	ge->Init ();
 	return true;
 }

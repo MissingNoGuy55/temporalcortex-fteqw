@@ -2361,8 +2361,11 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 			pr_progstate = PRHunkAlloc(progfuncs, sizeof(progstate_t) * prinst.maxprogs, "progstatetable");
 			prinst.pr_typecurrent=0;
-
+#ifdef TEMPORALCORTEX_QCC
 			sv_num_edicts = sv_loaded_bsps;	//set up a safty buffer so things won't go horribly wrong too often
+#else
+			sv_num_edicts = 1;	//set up a safty buffer so things won't go horribly wrong too often
+#endif
 			sv_edicts=(struct edict_s *)&tempedict;
 			prinst.edicttable = (struct edictrun_s**)(progfuncs->funcs.edicttable = &sv_edicts);
 			progfuncs->funcs.edicttable_length = numents;

@@ -93,6 +93,10 @@ typedef struct q2trace_s
 	void	*ent;		// not set by CM_*() functions
 } q2trace_t;
 
+#ifdef TEMPORALCORTEX
+#define GET_FLAG_GROUP(flag)	(flag >> 8)
+#define GET_FLAG_ID(flag)		(flag & 0xff)
+#define GET_FLAG(e, flag)		(((int)e->v->flags & flag) == flag)
 
 // edict->flags
 #define	FL_FLY					(1<<0)
@@ -118,9 +122,35 @@ typedef struct q2trace_s
 								//19
 #define	FL_HUBSAVERESET			(1<<20) //hexen2, ent is reverted to original state on map changes.
 #define FL_CLASS_DEPENDENT		(1<<21)	//hexen2
-								//22
-								//23
 
+#define FL_OMNIPRESENT			(1<<18) // Always present regardless of time period. (2026.7.14)
+#else
+#define	FL_FLY					(1<<0)
+#define	FL_SWIM					(1<<1)
+//#define	FL_GLIMPSE				(1<<2)
+#define	FL_CLIENT				(1<<3)
+#define	FL_INWATER				(1<<4)
+#define	FL_MONSTER				(1<<5)
+#define	FL_GODMODE				(1<<6)
+#define	FL_NOTARGET				(1<<7)
+#define	FL_ITEM					(1<<8)
+#define	FL_ONGROUND				(1<<9)
+#define	FL_PARTIALGROUND		(1<<10)	// not all corners are valid
+#define	FL_WATERJUMP			(1<<11)	// player jumping out of water
+#define	FL_JUMPRELEASED			(1<<12)
+//#define FLRE_ISBOT			(1<<13)
+#define FL_FINDABLE_NONSOLID	(1<<14)	//a cpqwsv feature
+#define FL_MOVECHAIN_ANGLE		(1<<15) // hexen2 - when in a move chain, will update the angle
+#define FLQW_LAGGEDMOVE			(1<<16)
+#define FLH2_HUNTFACE			(1<<16)
+#define FLH2_NOZ				(1<<17)
+								//18
+								//19
+#define	FL_HUBSAVERESET			(1<<20) //hexen2, ent is reverted to original state on map changes.
+#define FL_CLASS_DEPENDENT		(1<<21)	//hexen2
+								//22
+#endif
+								//23
 
 
 #define	MOVE_NORMAL		0

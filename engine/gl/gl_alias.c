@@ -633,6 +633,9 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 	extern int cl_playerindex;	//so I don't have to strcmp
 #endif
 	int frame;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	*forcedtex = NULL;
 	/*q3 .skin files*/
@@ -703,11 +706,17 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 			plskin = NULL;
 		else if (!plskin || plskin->loadstate != SKIN_LOADED)
 		{
+#ifdef TEMPORALCORTEX
+			model_precache = CL_FindPrecacheByModelIndex(cl_playerindex, cl.model_precache);
+
+			if (e->playerindex >= 0 && e->playerindex <= MAX_CLIENTS && model_precache)
+#else
 			if (e->playerindex >= 0 && e->playerindex <= MAX_CLIENTS)
+#endif
 			{
 				//heads don't get skinned, only players (and weaponless players), they do still get recoloured.
 #ifdef TEMPORALCORTEX
-				if (model==cl.model_precache[cl_playerindex].model
+				if (model==model_precache->model
 #else
 				if (model==cl.model_precache[cl_playerindex]
 #endif
@@ -1769,6 +1778,9 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 	float lod;
 
 	texnums_t *skin;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	if ((r_refdef.externalview || r_refdef.recurse) && (e->flags & RF_WEAPONMODEL))
 		return;
@@ -1779,7 +1791,9 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 	{
 		extern int cl_playerindex;
 #ifdef TEMPORALCORTEX
-		if (e->playerindex >= 0 && e->model == cl.model_precache[cl_playerindex].model)
+		model_precache = CL_FindPrecacheByModelIndex(cl_playerindex, cl.model_precache);
+
+		if (e->playerindex >= 0 && model_precache && e->model == model_precache->model)
 #else
 		if (e->playerindex >= 0 && e->model == cl.model_precache[cl_playerindex])
 #endif
@@ -2924,6 +2938,9 @@ static void BE_GenPolyBatches(batch_t **batches)
 		batches[sort] = b;
 	}
 }
+
+static entity_t* entity_test_crap;
+
 void PR_Route_Visualise(void);
 void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemode, const qbyte *worldpvs, const int *worldareas)
 {
@@ -2994,6 +3011,9 @@ void BE_GenModelBatches(batch_t **batches, const dlight_t *dl, unsigned int bemo
 		//thus it needs to be cleared so that it won't reuse the cache over multiple frames.
 		Alias_FlushCache();
 	}
+
+	entity_test_crap = &cl_visedicts[2];
+	cl_visedicts[2] = *entity_test_crap;
 
 	// draw sprites seperately, because of alpha blending
 	for (i=r_refdef.firstvisedict ; i<cl_numvisedicts ; i++)

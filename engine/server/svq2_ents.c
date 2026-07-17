@@ -1054,7 +1054,11 @@ void SVQ2_BuildClientFrame (client_t *client)
 
 	c_fullsend = 0;
 
+#ifdef TEMPORALCORTEX
+	for (e=tc_sv_loaded_bsps ; e<ge->num_edicts ; e++)
+#else
 	for (e=1 ; e<ge->num_edicts ; e++)
+#endif
 	{
 		ent = Q2EDICT_NUM(e);
 
@@ -1172,7 +1176,11 @@ void SVQ2_BuildBaselines(void)
 	if (!ge)
 		return;
 
+#ifdef TEMPORALCORTEX
+	for (e=tc_sv_loaded_bsps ; e<ge->num_edicts ; e++)
+#else
 	for (e=1 ; e<ge->num_edicts ; e++)
+#endif
 	{
 		ent = Q2EDICT_NUM(e);
 		base = &ent->s;

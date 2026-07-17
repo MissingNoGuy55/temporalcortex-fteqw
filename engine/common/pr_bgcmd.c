@@ -1731,7 +1731,15 @@ void QCBUILTIN PF_FindString (pubprogfuncs_t *prinst, struct globalvars_s *pr_gl
 		//looking for an empty string is a bloody stupid thing to do, and basically always a bug, but existing code exists. either way it warrents a warning.
 		if (developer.ival)
 			PR_RunWarning(prinst, "PF_FindString: empty string\n");
+#ifdef TEMPORALCORTEX
+#if defined(HAVE_SERVER)
+		for (e += tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined(HAVE_CLIENT)
+		for (e += tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
 		for (e++ ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))
@@ -1746,7 +1754,15 @@ void QCBUILTIN PF_FindString (pubprogfuncs_t *prinst, struct globalvars_s *pr_gl
 	}
 	else
 	{	//should be safe to assume that null is empty and thus never a match. speed
+#ifdef TEMPORALCORTEX
+#if defined(HAVE_SERVER)
+		for (e += tc_sv_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#elif defined(HAVE_CLIENT)
+		for (e += tc_cl_loaded_bsps ; e < *prinst->parms->num_edicts ; e++)
+#endif
+#else
 		for (e++ ; e < *prinst->parms->num_edicts ; e++)
+#endif
 		{
 			ed = WEDICT_NUM_PB(prinst, e);
 			if (ED_ISFREE(ed))

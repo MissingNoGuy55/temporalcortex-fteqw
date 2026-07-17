@@ -538,8 +538,10 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
 	edictrun_t *e;
+#ifdef TEMPORALCORTEX_QCC
 	edictrun_t *e2;	// Missi: Temporal Cortex (2026.1.31)
 	int i;
+#endif
 
 	prinst.maxedicts = max_ents;
 
@@ -575,7 +577,7 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 	{
 		externs->entspawn((struct edict_s *)e, false);
 	}
-
+#ifdef TEMPORALCORTEX_QCC
 	for (i = 1; i < sv_loaded_bsps; i++)
 	{
 		char szEdictName[64];
@@ -587,9 +589,7 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 		e2->fieldsize = prinst.fields_size;
 		e2->entnum = i;
 		e2->ereftype = ER_ENTITY;
-#ifdef TEMPORALCORTEX_QCC
 		e2->bspnum = i;
-#endif
 
 		progfuncs->funcs.edicttable[i] = (struct edict_s *)e2;
 		e2->fields = PRAddressableExtend(progfuncs, NULL, e2->fieldsize, prinst.max_fields_size-e2->fieldsize);
@@ -603,6 +603,9 @@ int PDECL PR_InitEnts(pubprogfuncs_t *ppf, int max_ents)
 	}
 
 	sv_num_edicts = i;
+#else
+	sv_num_edicts = 1;
+#endif
 
 	return prinst.max_fields_size;
 }
@@ -1915,7 +1918,9 @@ pubprogfuncs_t * PDECL InitProgs(progexterns_t *ext)
 		static struct edict_s *safe_edicts;
 		static int safe_num_edicts;
 		static double safetime=0;
-		static int safe_bsps=0;
+#ifdef TEMPORALCORTEX_QCC
+		static short safe_bsps=0;
+#endif
 		if (!ext->progsversion)	ext->progsversion = PROGSTRUCT_VERSION;
 		if (!ext->Printf)		ext->Printf = qclib_null_printf;
 		if (!ext->DPrintf)		ext->DPrintf = qclib_null_printf;
@@ -1924,7 +1929,9 @@ pubprogfuncs_t * PDECL InitProgs(progexterns_t *ext)
 		if (!ext->memfree)		ext->memfree = qclib_free;
 		if (!ext->gametime)		ext->gametime = &safetime;
 		if (!ext->edicts)		ext->edicts = &safe_edicts;
+#ifdef TEMPORALCORTEX_QCC
 		if (!ext->loaded_bsps)	ext->loaded_bsps = &safe_bsps;
+#endif
 		if (!ext->num_edicts)	ext->num_edicts = &safe_num_edicts;
 		if (!ext->edictsize)	ext->edictsize = sizeof(edictrun_t);
 	}

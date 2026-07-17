@@ -1234,10 +1234,11 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
 struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
 struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecache_s *head, short timeperiod);
-struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
-struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
+#define CSQC_FindPrecacheByModelIndex CL_FindPrecacheByModelIndex
+#define CSQC_FindPrecacheByModelName CL_FindPrecacheByModelName
+//struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
+//struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
 //struct modelprecache_s *CSQC_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod);
-short CSQC_NumModelPrecaches();
 #endif
 
 extern	int				cl_framecount;	//number of times the entity lists have been cleared+reset.

@@ -2900,6 +2900,8 @@ static struct {
 	{"timeperiod_change_ent",	PF_Fixme,					744},
 	{"drawline3d",				PF_CL_drawline3D,			745},
 	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
+	{"getworldtimeperiod",		PF_Fixme,					747},
+	{"getentitytimeperiod",		PF_Fixme,					748},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype
@@ -3599,7 +3601,9 @@ int MP_GetServerCategory(int index)
 
 void MP_RendererRestarted(void)
 {
+#ifndef TEMPORALCORTEX
 	int i;
+#endif
 	if (!menu_world.progs)
 		return;
 #ifdef TEMPORALCORTEX

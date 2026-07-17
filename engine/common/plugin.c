@@ -1874,7 +1874,43 @@ void Plug_Shutdown(qboolean preliminary)
 	}
 }
 
+#ifdef TEMPORALCORTEX
+static short Plug_Num_Loaded_BSPs()
+{
+#ifdef HAVE_SERVER
+	return tc_sv_loaded_bsps;
+#elif defined(HAVE_CLIENT)
+	return tc_cl_loaded_bsps;
+#endif
+}
 
+static short Plug_Num_UnLoaded_BSPs()
+{
+#ifdef HAVE_SERVER
+	return tc_sv_unloaded_bsps;
+#elif defined(HAVE_CLIENT)
+	return tc_cl_unloaded_bsps;
+#endif
+}
+
+static short Plug_CurrentBSPIndex()
+{
+#ifdef HAVE_SERVER
+	return tc_sv_current_bsp_index;
+#elif defined(HAVE_CLIENT)
+	return tc_cl_current_bsp_index;
+#endif
+}
+
+static short* Plug_Worldmodel_Indices()
+{
+#ifdef HAVE_SERVER
+	return sv.world.worldmodel_indices;
+#elif defined(HAVE_CLIENT)
+	return cl.worldmodel_indices;
+#endif
+}
+#endif
 
 plugcorefuncs_t plugcorefuncs =
 {
@@ -1897,6 +1933,13 @@ plugcorefuncs_t plugcorefuncs =
 	ZG_Malloc,
 	ZG_Free,
 	ZG_FreeGroup,
+
+#ifdef TEMPORALCORTEX
+	Plug_Num_Loaded_BSPs,
+	Plug_Num_UnLoaded_BSPs,
+	Plug_CurrentBSPIndex,
+	Plug_Worldmodel_Indices,
+#endif
 };
 
 static void *QDECL PlugBI_GetEngineInterface(const char *interfacename, size_t structsize)

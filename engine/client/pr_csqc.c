@@ -7684,6 +7684,8 @@ static struct {
 	{"timeperiod_change_ent",	PF_Fixme,					744},
 	{"drawline3d",				PF_CL_drawline3D,			745},
 	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
+	{"getworldtimeperiod",		PF_CL_CurrentTimePeriod,	747},
+	{"getentitytimeperiod",		PF_Fixme,					748},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype
@@ -9986,7 +9988,10 @@ void CSQC_ParseEntities(qboolean sized)
 		if (removeflag)
 		{	//remove
 #ifdef TEMPORALCORTEX
-			if (entnum < tc_cl_loaded_bsps)
+			// Missi: Fucking irritating. tc_cl_loaded_bsps is set correctly, but this function tries to remove the world
+			// if you switch to a map with the value being different than the last map. (2026.7.12)
+			//if (entnum < tc_cl_loaded_bsps)
+			if (!entnum)
 #else
 			if (!entnum)
 #endif
@@ -10172,6 +10177,12 @@ void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr
 void QCBUILTIN PF_CL_NumLoadedBSPs (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	G_FLOAT(OFS_RETURN) = tc_cl_loaded_bsps;
+}
+
+//float () numloadedbsps;
+void QCBUILTIN PF_CL_CurrentTimePeriod (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	G_FLOAT(OFS_RETURN) = tc_cl_current_bsp_index;
 }
 #endif
 

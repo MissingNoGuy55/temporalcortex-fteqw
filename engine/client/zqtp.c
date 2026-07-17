@@ -2923,6 +2923,10 @@ static void TP_ItemTaken (char *s, int flag, vec3_t org, int entnum, item_t *ite
 void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_info_t *info)
 {
 	playerview_t *pv = &cl.playerview[SP];
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
+
 //	if (TP_NeedRefreshSkins())
 //	{
 //		if ((state->effects & (EF_BLUE|EF_RED) ) != (oldstate->effects & (EF_BLUE|EF_RED)))
@@ -2933,7 +2937,9 @@ void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_
 	{
 		qboolean eyes;
 #ifdef TEMPORALCORTEX
-		eyes = state->modelindex && cl.model_precache[state->modelindex].model && !strcmp(cl.model_precache[state->modelindex].model->name, "progs/eyes.mdl");
+		model_precache = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache);
+
+		eyes = state->modelindex && model_precache->model && !strcmp(model_precache->name, "progs/eyes.mdl");
 #else
 		eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
 #endif
@@ -3251,6 +3257,9 @@ static void TP_FindPoint (void)
 	extern cvar_t v_viewheight;
 	int oldskip = pmove.skipent;
 	playerview_t *pv = &cl.playerview[SP];
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	if (vars.pointtime == realtime)
 		return;
@@ -3332,7 +3341,9 @@ static void TP_FindPoint (void)
 		{
 			qboolean teammate, eyes = false;
 #ifdef TEMPORALCORTEX
-			eyes = state->modelindex && cl.model_precache[state->modelindex].model && !strcmp(cl.model_precache[state->modelindex].model->name, "progs/eyes.mdl");
+			model_precache = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache);
+
+			eyes = state->modelindex && model_precache->model && !strcmp(model_precache->model->name, "progs/eyes.mdl");
 #else
 			eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
 #endif
@@ -3356,7 +3367,9 @@ static void TP_FindPoint (void)
 		qboolean teammate, eyes;
 		char *name, buf[256] = {0};
 #ifdef TEMPORALCORTEX
-		eyes = beststate->modelindex && cl.model_precache[beststate->modelindex].model && !strcmp(cl.model_precache[beststate->modelindex].model->name, "progs/eyes.mdl");
+		model_precache = CL_FindPrecacheByModelIndex(beststate->modelindex, cl.model_precache);
+
+		eyes = beststate->modelindex && model_precache->model && !strcmp(model_precache->model->name, "progs/eyes.mdl");
 #else
 		eyes = beststate->modelindex && cl.model_precache[beststate->modelindex] && !strcmp(cl.model_precache[beststate->modelindex]->name, "progs/eyes.mdl");
 #endif

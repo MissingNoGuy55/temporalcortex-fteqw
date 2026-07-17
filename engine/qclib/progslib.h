@@ -295,8 +295,9 @@ typedef struct progexterns_s {
 	int edictsize;	//size of edict_t
 
 	void *user;	/*contains the owner's world reference in FTE*/
-
-	int*	loaded_bsps;
+#ifdef TEMPORALCORTEX_QCC
+	short*	loaded_bsps;
+#endif
 } progparms_t, progexterns_t;
 
 #if defined(QCLIBDLL_EXPORTS)

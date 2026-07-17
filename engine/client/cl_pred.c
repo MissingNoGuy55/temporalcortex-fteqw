@@ -794,8 +794,8 @@ static void CL_DecodeStateSize(unsigned int solid, int modelindex, vec3_t mins, 
 
 		if (modelindex < MAX_PRECACHE_MODELS && model_precache && model_precache->model->loadstate == MLS_LOADED)
 		{
-			VectorCopy(cl.model_precache[modelindex].model->mins, mins);
-			VectorCopy(cl.model_precache[modelindex].model->maxs, maxs);
+			VectorCopy(model_precache->model->mins, mins);
+			VectorCopy(model_precache->model->maxs, maxs);
 		}
 #else
 		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[modelindex] && cl.model_precache[modelindex]->loadstate == MLS_LOADED)

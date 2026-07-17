@@ -1505,6 +1505,7 @@ qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 #ifdef TEMPORALCORTEX
 	int t;
 	struct modelprecache_s *model_precache;
+	struct modelprecache_s *worldmodel_precache;
 #endif
 	double start = Sys_DoubleTime();
 
@@ -1736,18 +1737,22 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			SV_UnspawnServer();
 		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
-			model_precache = SV_FindPrecacheByModelIndex(i, cl.model_precache);
-
-			if (model_precache && (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
+			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 			{
-				sv.models[i] = Mod_FindName(Mod_FixName(model_precache->name, SV_FindPrecacheByModelIndex(cl.worldmodel_indices[tc_cl_current_bsp_index], cl.model_precache)->name));
-			}
-			else
-				sv.models[i] = NULL;
+				model_precache = SV_FindPrecacheByModelIndex(i, cl.model_precache);
 
-			World_ClearWorld (&sv.world, true);
+				if (model_precache && (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
+				{
+					worldmodel_precache = SV_FindPrecacheByModelIndex(cl.worldmodel_indices[tc_cl_current_bsp_index], cl.model_precache);
+					sv.models[i] = Mod_FindName(Mod_FixName(model_precache->name, worldmodel_precache->name));
+				}
+				else
+					sv.models[i] = NULL;
+
+				World_ClearWorld (&sv.world, true);
 //			ent = sv.world.edicts;
 //			ent->v->model = PR_NewString(svprogfuncs, sv.worldmodel->name);	//FIXME: is this a problem for normal ents?
+			}
 		}
 #ifdef Q2SERVER
 		else if (svs.gametype == GT_QUAKE2)

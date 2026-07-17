@@ -4221,10 +4221,14 @@ TRACE(("dbg: Surf_NewMap: tp\n"));
 		vec3_t mins, maxs;
 		//fixme: no rotation
 #ifdef TEMPORALCORTEX
+		struct modelprecache_s *model_precache, *csqc_precache;
+		model_precache = CL_FindPrecacheByModelIndex(cl_static_entities[i].mdlidx, cl.model_precache);
+		csqc_precache = CSQC_FindPrecacheByModelIndex(cl_static_entities[i].mdlidx, cl.model_csqcprecache);
+
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < MAX_PRECACHE_MODELS)
-			cl_static_entities[i].ent.model = cl.model_precache[cl_static_entities[i].mdlidx].model;
+			cl_static_entities[i].ent.model = model_precache->model;
 		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < MAX_PRECACHE_MODELS)
-			cl_static_entities[i].ent.model = cl.model_csqcprecache[-cl_static_entities[i].mdlidx].model;
+			cl_static_entities[i].ent.model = csqc_precache->model;
 #else
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < countof(cl.model_precache))
 			cl_static_entities[i].ent.model = cl.model_precache[cl_static_entities[i].mdlidx];

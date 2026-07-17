@@ -4072,7 +4072,7 @@ void SV_Snapshot_BuildQ1(client_t *client, packet_entities_t *pack, pvscamera_t 
 				ent->v->skin >= 0)	//ents with negative skins are networked too. eg ladder volumes.
 				continue;
 #ifdef TEMPORALCORTEX
-			if ( ent->bspnum != tc_sv_current_bsp_index )
+			if ( ent->bspnum != tc_sv_current_bsp_index /*&& !((int)ent->v->flags & FL_OMNIPRESENT)*/)
 				continue;
 #endif
 			if (cameras)	//self doesn't get a pvs test, to cover teleporters

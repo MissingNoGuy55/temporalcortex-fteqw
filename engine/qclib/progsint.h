@@ -258,7 +258,9 @@ extern	QCC_opcode_t	pr_opcodes[];		// sized by initialization
 #define sv_num_edicts (*externs->num_edicts)
 #define sv_edicts (*externs->edicts)
 
+#ifdef TEMPORALCORTEX_QCC
 #define sv_loaded_bsps (*externs->loaded_bsps)
+#endif
 
 #define PR_DPrintf externs->DPrintf
 //#define printf syntax error

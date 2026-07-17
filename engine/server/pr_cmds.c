@@ -683,11 +683,8 @@ static void QDECL SVPR_Event_Touch(world_t *w, wedict_t *s, wedict_t *o, trace_t
 static void QDECL SVPR_Event_Think(world_t *w, wedict_t *s)
 {
 	pr_global_struct->self = EDICT_TO_PROG(w->progs, s);
-#ifdef TEMPORALCORTEX
-	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts[tc_sv_current_bsp_index]);
-#else
 	pr_global_struct->other = EDICT_TO_PROG(w->progs, &w->edicts);
-#endif
+
 	if (!s->v->think)
 		Con_Printf("SSQC entity \"%s\" has nextthink with no think function\n", PR_GetString(w->progs, s->v->classname));
 	else
@@ -11822,19 +11819,44 @@ void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s 
 void QCBUILTIN PF_TimePeriod_Change_Ent(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	edict_t* ent = G_EDICT(svprogfuncs, OFS_PARM0);
-	int bspnum = G_INT(OFS_PARM1);
+	int bspnum = G_FLOAT(OFS_PARM1);
+	int idx = NUM_FOR_EDICT(svprogfuncs, ent);
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+	{
+		if (sv.world.world_indices[t] == idx)
+			return;
+	}
 
 	if (!ent)
 		return;
 
 	ent->bspnum = bspnum;
-
-	SV_ChangeTimePeriod( bspnum );
 }
 
 void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	G_FLOAT(OFS_RETURN) = tc_sv_loaded_bsps;
+}
+
+void QCBUILTIN PF_CurrentTimePeriod(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	G_FLOAT(OFS_RETURN) = tc_sv_current_bsp_index;
+}
+
+void QCBUILTIN PF_EntityTimePeriod(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	edict_t *edict;
+
+	edict = G_EDICT(svprogfuncs, OFS_PARM0);
+
+	if (!edict)
+	{
+		Con_DPrintf("[TEMPORAL CORTEX] [SV] PF_EntityTimePeriod: bad edict\n");
+		return;
+	}
+
+	G_FLOAT(OFS_RETURN) = edict->bspnum;
 }
 #endif
 
@@ -13198,6 +13220,8 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"timeperiod_change_ent",								PF_TimePeriod_Change_Ent,0,0,0,744,	"void(entity ent, float timeperiod)", "Changes the time period for the specified entity only."},
 	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
 	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
+	{"getworldtimeperiod",									PF_CurrentTimePeriod,0,0,0,747,	"float()", "Obtains the current time period for the world."},
+	{"getentitytimeperiod",									PF_EntityTimePeriod,0,0,0,748,	"float(entity e)", "Obtains the current time period for a specific entity."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin
@@ -14760,6 +14784,9 @@ void PR_DumpPlatform_f(void)
 		{"FL_MOVECHAIN_ANGLE",	"const float", H2, NULL, FL_MOVECHAIN_ANGLE},
 		{"FL_LAGGEDMOVE",		"const float", QW|NQ, D("Enables anti-lag on rockets etc."), FLQW_LAGGEDMOVE},
 		{"FL_CLASS_DEPENDENT",	"const float", H2, NULL, FL_CLASS_DEPENDENT},
+#ifdef TEMPORALCORTEX
+		{"FL_OMNIPRESENT",		"const float", QW|NQ|CS, D("Prevents entities from becoming frozen with time travel"), FL_OMNIPRESENT},
+#endif
 
 		{"MOVE_NORMAL",			"const float", QW|NQ|CS, NULL, MOVE_NORMAL},
 		{"MOVE_NOMONSTERS",		"const float", QW|NQ|CS, D("The trace will ignore all non-solid_bsp entities."), MOVE_NOMONSTERS},

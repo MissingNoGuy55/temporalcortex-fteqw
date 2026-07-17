@@ -6761,7 +6761,7 @@ void CL_Parse_BrushEdit(void)
 	unsigned int	modelindex		= MSG_ReadShort();
 	int				cmd				= MSG_ReadByte();
 #ifdef TEMPORALCORTEX
-	model_t			*mod			= (modelindex<CL_NumModelPrecaches())?cl.model_precache[modelindex].model:NULL;
+	model_t			*mod			= (modelindex<CL_NumModelPrecaches())?CL_FindPrecacheByModelIndex(modelindex, cl.model_precache)->model:NULL;
 #else
 	model_t			*mod			= (modelindex<countof(cl.model_precache))?cl.model_precache[modelindex]:NULL;
 #endif

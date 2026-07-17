@@ -2598,6 +2598,9 @@ void CL_ParseEffect (qboolean effect2)
 	int framecount;
 	int framerate;
 	model_t *mod;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+#endif
 
 	org[0] = MSG_ReadCoord();
 	org[1] = MSG_ReadCoord();
@@ -2616,7 +2619,8 @@ void CL_ParseEffect (qboolean effect2)
 	framecount = MSG_ReadByte();
 	framerate = MSG_ReadByte();
 #ifdef TEMPORALCORTEX
-	mod = cl.model_precache[modelindex].model;
+	model_precache = CL_FindPrecacheByModelIndex(modelindex, cl.model_precache);
+	mod = model_precache->model;
 #else
 	mod = cl.model_precache[modelindex];
 #endif

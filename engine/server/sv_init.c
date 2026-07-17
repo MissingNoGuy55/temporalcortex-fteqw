@@ -44,9 +44,9 @@ int sv_max_staticsounds;
 
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-int tc_sv_loaded_bsps;
-int tc_sv_unloaded_bsps;
-int tc_sv_current_bsp_index;
+short tc_sv_loaded_bsps;
+short tc_sv_unloaded_bsps;
+short tc_sv_current_bsp_index;
 #endif
 #endif
 
@@ -690,14 +690,6 @@ void SV_UnspawnServer (void)	//terminate the running server.
 {
 	int i;
 
-#ifdef TEMPORALCORTEX
-	if (sv.world.model_time_periods)
-	{
-		BZ_Free(sv.world.model_time_periods);
-		sv.world.model_time_periods = NULL;
-	}
-#endif
-
 	if (sv.state)
 	{
 		Con_TPrintf("Server ended\n");
@@ -775,9 +767,15 @@ void SV_UnspawnServer (void)	//terminate the running server.
 #endif
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
-#endif
 
 	SV_ClearStringPrecaches();
+
+	if (sv.world.model_time_periods)
+	{
+		BZ_Free(sv.world.model_time_periods);
+		sv.world.model_time_periods = NULL;
+	}
+#endif
 #endif
 }
 
@@ -1135,27 +1133,19 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 
 		Q_strncpyz (svs.name, server, sizeof(svs.name));
 #ifdef TEMPORALCORTEX
-		// Missi: Iterate through each time period (2025.9.20)
-		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
-		{
-#endif
-#ifdef TEMPORALCORTEX
-			Q_strncpyz (sv.modelname[t], "", sizeof(sv.modelname[t]));
-			sv.world.worldmodel[t] = Mod_FindName (sv.modelname[t]);
-			if (Mod_LoadQ2BrushModel (sv.world.worldmodel[t], NULL, 0))
-				sv.world.worldmodel[t]->loadstate = MLS_LOADED;
-			else
-				sv.world.worldmodel[t]->loadstate = MLS_FAILED;
+		Q_strncpyz (sv.modelname[0], "", sizeof(sv.modelname[0]));
+		sv.world.worldmodel[0] = Mod_FindName (sv.modelname[0]);
+		if (Mod_LoadQ2BrushModel (sv.world.worldmodel[0], NULL, 0))
+			sv.world.worldmodel[0]->loadstate = MLS_LOADED;
+		else
+			sv.world.worldmodel[0]->loadstate = MLS_FAILED;
 #else
-			Q_strncpyz (sv.modelname, "", sizeof(sv.modelname));
-			sv.world.worldmodel = Mod_FindName (sv.modelname);
-			if (Mod_LoadQ2BrushModel (sv.world.worldmodel, NULL, 0))
-				sv.world.worldmodel->loadstate = MLS_LOADED;
-			else
-				sv.world.worldmodel->loadstate = MLS_FAILED;
-#endif
-#ifdef TEMPORALCORTEX
-		}
+		Q_strncpyz (sv.modelname, "", sizeof(sv.modelname));
+		sv.world.worldmodel = Mod_FindName (sv.modelname);
+		if (Mod_LoadQ2BrushModel (sv.world.worldmodel, NULL, 0))
+			sv.world.worldmodel->loadstate = MLS_LOADED;
+		else
+			sv.world.worldmodel->loadstate = MLS_FAILED;
 #endif
 	}
 	else
@@ -1425,12 +1415,15 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 		InfoBuf_SetStarKey(&svs.info, "*startspot", (startspot?startspot:""));
 
 		// Missi: Finally increment the number of loaded BSPs on the server (2026.5.17)
+		if (!usecinematic)
+		{
 #ifdef HAVE_SERVER
-		tc_sv_loaded_bsps++;
+			tc_sv_loaded_bsps++;
 #endif
 #ifdef HAVE_CLIENT
-		tc_cl_loaded_bsps++;
+			tc_cl_loaded_bsps++;
 #endif
+		}
 	}
 #else
 	if (sv.world.worldmodel->type != mod_brush)
@@ -1681,10 +1674,10 @@ MSV_OpenUserDatabase();
 				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
-			model_precache = SV_AddModelPrecache(sv.modelname[t], sv.strings.model_precache, t);
-			sv.world.worldmodel_indices[t] = model_precache->index;
+			sv.world.worldmodel_indices[t] = j;
+			sv.world.model_time_periods[j] = t;
 
-			sv.strings.configstring[Q2CS_MODELS+j] = Z_StrDup(sv.modelname[t]);
+			sv.strings.configstring[Q2CS_MODELS+j] = Z_StrDupf("%s", sv.modelname[t]);
 
 			if (subs > MAX_PRECACHE_MODELS-1)
 			{
@@ -1695,14 +1688,14 @@ MSV_OpenUserDatabase();
 			for (i=1; i<subs && i < Q2MAX_MODELS-2; i++)
 			{
 				sv.strings.configstring[Q2CS_MODELS+i+j] = Z_StrDupf("*%u", i);
-				model_precache = SV_AddModelPrecache(sv.strings.configstring[Q2CS_MODELS+i+j], sv.strings.model_precache, t);
-				sv.models[model_precache->index] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j], sv.modelname[t]), MLV_WARN);
+				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.configstring[Q2CS_MODELS+i+j], sv.modelname[t]), MLV_WARN);
+				sv.world.model_time_periods[i+j] = t;
 			}
 			for ( ; i<subs; i++)
 			{
 				sv.strings.q2_extramodels[i+j] = Z_StrDupf("*%u", i);
-				model_precache = SV_AddModelPrecache(sv.strings.q2_extramodels[i+j], sv.strings.model_precache, t);
-				sv.models[model_precache->index] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
+				sv.models[i+j] = Mod_ForName (Mod_FixName(sv.strings.q2_extramodels[i+j], sv.modelname[t]), MLV_WARN);
+				sv.world.model_time_periods[i+j] = t;
 			}
 
 			j += i;
@@ -1710,6 +1703,14 @@ MSV_OpenUserDatabase();
 #endif
 		// o++;
 	}
+
+#ifdef TEMPORALCORTEX
+#ifdef Q2SERVER
+	if (ge)
+		for (t = 0; t < MAX_TIME_PERIODS; t++)
+			ge->worldmodel_indices[t] = sv.world.worldmodel_indices[t];
+#endif
+#endif
 #else
 		sv.models[1] = sv.world.worldmodel;
 #ifdef VM_Q1
@@ -1919,6 +1920,24 @@ MSV_OpenUserDatabase();
 #ifdef Q2SERVER
 	case GT_QUAKE2:
 		SV_UpdateMaxPlayers(svq2_maxclients);
+#ifdef TEMPORALCORTEX
+		// Missi: Iterate through each time period (2025.9.20)
+		// Missi: NOTE: Better to allocate by index considering
+		// how the edict list is initialized (2025.12.19)
+		for ( i = 0, j = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			if (!sv.world.worldmodel[i])
+			{
+				j++;
+				continue;
+			}
+
+			q2ent = Q2EDICT_NUM(i-j);
+			q2ent->bspnum = i;
+
+			sv.world.world_indices[i] = i-j;
+		}
+#endif
 		for (i=0 ; i<sv.allocated_client_slots ; i++)
 		{
 #ifdef TEMPORALCORTEX
@@ -2168,6 +2187,14 @@ MSV_OpenUserDatabase();
 		Cvar_Set(&skill, "1");
 //do this and get the precaches/start up the game
 #ifdef TEMPORALCORTEX
+
+#ifdef HAVE_SERVER
+	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
+#endif
+#ifdef HAVE_CLIENT
+	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
+#endif
+
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0, j = 0, o = 0; t < MAX_TIME_PERIODS; t++ )
 	{
@@ -2200,7 +2227,7 @@ MSV_OpenUserDatabase();
 			break;
 #ifdef Q2SERVER
 		case GT_QUAKE2:
-			ge->SpawnEntities(svs.name, file, startspot?startspot:"");
+			ge->SpawnEntities(svs.name, file, startspot?startspot:"", t);
 			break;
 #endif
 		case GT_QUAKE3:
@@ -2212,12 +2239,6 @@ MSV_OpenUserDatabase();
 #endif
 		}
 	}
-#ifdef HAVE_SERVER
-	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
-#ifdef HAVE_CLIENT
-	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
 #else
 	if (sv.world.worldmodel->entitiescrc)
 	{

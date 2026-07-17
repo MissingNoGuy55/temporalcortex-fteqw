@@ -1085,7 +1085,7 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 		return 0;
 	case CG_S_STOPBACKGROUNDTRACK:
 #ifdef TEMPORALCORTEX
-		audiofuncs->ChangeMusicTrack(NULL, NULL, tc_sv3_current_time_period);
+		audiofuncs->ChangeMusicTrack(NULL, NULL, tc_sv3_current_bsp_index);
 #else
 		audiofuncs->ChangeMusicTrack(NULL, NULL);
 #endif

@@ -1035,7 +1035,7 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 	int i;
 	float xyspeed;
 	vec3_t xyvel;
-#ifdef TEMPORALCORTEX
+#if 0 && defined(TEMPORALCORTEX)
 	vec3_t forward, right, up;
 	vec3_t y_cross;
 #endif
@@ -1105,7 +1105,7 @@ void V_CalcGunPositionAngle (playerview_t *pv, float bob)
 	//FIXME: cl_followmodel should lag the viewmodel's position relative to the view
 	//FIXME: cl_leanmodel should lag the viewmodel's angles relative to the view
 
-#ifdef TEMPORALCORTEX
+#if 0 && defined(TEMPORALCORTEX)
 	if ( (int)tc_cl_q1viewmodel.value == 0 )
 	{
 		AngleVectors( r_refdef.viewangles, forward, right, up );
@@ -2307,7 +2307,11 @@ void R_DrawNameTags(void)
 
 			int best = 0;
 			float bestscore = 0, score = 0;
+#ifdef TEMOPORALCORTEX
+			for (i = tc_cl_loaded_bsps; i < ge->num_edicts; i++)
+#else
 			for (i = 1; i < ge->num_edicts; i++)
+#endif
 			{
 				e = &ge->edicts[i];
 				if (!e->inuse)

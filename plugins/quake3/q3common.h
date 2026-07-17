@@ -55,8 +55,11 @@ typedef struct	//merge?
 } q3client_frame_t;
 
 #ifdef TEMPORALCORTEX
-extern int tc_sv3_current_time_period;
-extern int tc_sv3_loaded_bsps;
+extern short tc_sv3_current_bsp_index;
+extern short tc_sv3_loaded_bsps;
+extern short tc_sv3_unloaded_bsps;
+extern short *tc_sv3_worldmodel_indices;
+extern short *tc_sv3_world_indices;
 #endif
 
 #ifdef HAVE_SERVER

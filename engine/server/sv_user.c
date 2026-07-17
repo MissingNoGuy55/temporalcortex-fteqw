@@ -255,6 +255,9 @@ void SV_New_f (void)
 	int splitnum;
 	client_t *split;
 	unsigned int fteext1, fteext2, ezext1, vers;	//reported to client
+#ifdef TEMPORALCORTEX
+	char suffix[64];
+#endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
 	host_client->prespawn_idx = 0;
@@ -389,15 +392,13 @@ void SV_New_f (void)
 			ClientReliableWrite_Byte (host_client, 10);	//tick rate.
 	}
 
-	// Missi: Game directory (2026.1.14)
+	// Missi: Game directory. Putting this here for consistency with the clientside comment (2026.1.14)
 	ClientReliableWrite_String (host_client, gamedir);
 #ifdef TEMPORALCORTEX
-	// Missi: Write the number of worlds loaded. A bit strange to do it here,
-	// but we need the number for other operations like viewents and querying
-	// whether the player actually has the map. A lot of the view code relies
-	// on tc_cl_loaded_bsps being something other than 0. (2026.1.14)
 	ClientReliableWrite_Short (host_client, tc_sv_loaded_bsps);
 	ClientReliableWrite_Short (host_client, tc_sv_unloaded_bsps);
+
+	ClientReliableWrite_Short (host_client, tc_sv_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
 		ClientReliableWrite_Short (host_client, sv.world.worldmodel_indices[t]);
@@ -502,6 +503,22 @@ void SV_New_f (void)
 #endif
 	{
 #ifdef TEMPORALCORTEX
+		switch(tc_sv_current_bsp_index)
+		{
+			case TIME_PERIOD_PRESENT:
+				Q_strncpyz(suffix, " (present)", 11);
+				break;
+			case TIME_PERIOD_PAST:
+				Q_strncpyz(suffix, " (past)", 8);
+				break;
+			case TIME_PERIOD_FUTURE:
+				Q_strncpyz(suffix, " (future)", 10);
+				break;
+		}
+
+		if (sv.mapname[tc_sv_current_bsp_index][0])
+			Q_strncatz(sv.mapname[tc_sv_current_bsp_index], suffix, sizeof(sv.mapname[tc_sv_current_bsp_index]));
+
 		ClientReliableWrite_String (host_client, sv.mapname[tc_sv_current_bsp_index]);
 #else
 		ClientReliableWrite_String (host_client, sv.mapname);
@@ -521,7 +538,11 @@ void SV_New_f (void)
 
 			// begin fetching configstrings
 			ClientReliableWrite_Byte (host_client, svcq2_stufftext);
+#ifdef TEMPORALCORTEX
+			ClientReliableWrite_String (host_client, va("cmd configstrings %i 0 %i\n",svs.spawncount, tc_sv_loaded_bsps) );
+#else
 			ClientReliableWrite_String (host_client, va("cmd configstrings %i 0\n",svs.spawncount) );
+#endif
 		}
 		return;
 	}
@@ -573,6 +594,10 @@ void SVNQ_New_f (void)
 	const char *gamedir;
 	unsigned int modelcount, soundcount;
 	extern cvar_t allow_download;
+#ifdef TEMPORALCORTEX
+	struct modelprecache_s *model_precache;
+	struct soundprecache_s *sound_precache;
+#endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
 	host_client->prespawn_idx = 0;
@@ -873,6 +898,8 @@ void SVNQ_New_f (void)
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_loaded_bsps);
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_unloaded_bsps);
 
+	MSG_WriteShort (&host_client->netchan.message, tc_sv_current_bsp_index);
+
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
 		MSG_WriteShort (&host_client->netchan.message, sv.world.worldmodel_indices[t]);
 #endif
@@ -893,7 +920,9 @@ void SVNQ_New_f (void)
 			if (!sv.world.worldmodel_indices[i])
 				continue;
 
-			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[i], sv.strings.model_precache)->name);
+			model_precache = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[i], sv.strings.model_precache);
+
+			MSG_WriteString (&host_client->netchan.message, model_precache->name);
 		}
 #else
 		if (sv.strings.model_precache[1])
@@ -907,12 +936,18 @@ void SVNQ_New_f (void)
 #ifdef TEMPORALCORTEX
 		//fixme: don't send too many models.
 		for (i = 0; i < SV_NumModelPrecaches() ; i++)
-			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheByModelIndex(i, sv.strings.model_precache)->name);
+		{
+			model_precache = SV_FindPrecacheByModelIndex(i, sv.strings.model_precache);
+			MSG_WriteString (&host_client->netchan.message, model_precache->name);
+		}
 		MSG_WriteByte (&host_client->netchan.message, 0);
 
 		//fixme: don't send too many sounds.
 		for (i = 0; SV_NumSoundPrecaches() ; i++)
-			MSG_WriteString (&host_client->netchan.message, SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache)->name);
+		{
+			sound_precache = SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache);
+			MSG_WriteString (&host_client->netchan.message, sound_precache->name);
+		}
 		MSG_WriteByte (&host_client->netchan.message, 0);
 #else
 		//fixme: don't send too many models.
@@ -1069,6 +1104,9 @@ void SVQ2_ConfigStrings_f (void)
 			{
 				MSG_WriteByte (&host_client->netchan.message, svcq2_configstring);
 				MSG_WriteShort (&host_client->netchan.message, (unsigned short)start);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort (&host_client->netchan.message, sv.world.model_time_periods[start]);
+#endif
 				MSG_WriteString (&host_client->netchan.message, str);
 			}
 			start++;
@@ -1087,6 +1125,9 @@ void SVQ2_ConfigStrings_f (void)
 			{
 				MSG_WriteByte (&host_client->netchan.message, svcq2_configstring);
 				MSG_WriteShort (&host_client->netchan.message, (unsigned short)start);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort (&host_client->netchan.message, sv.world.model_time_periods[start]);
+#endif
 				MSG_WriteString (&host_client->netchan.message, str);
 			}
 			start++;
@@ -1103,6 +1144,9 @@ void SVQ2_ConfigStrings_f (void)
 			{
 				MSG_WriteByte (&host_client->netchan.message, svcq2_configstring);
 				MSG_WriteShort (&host_client->netchan.message, start);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort (&host_client->netchan.message, sv.world.model_time_periods[start]);
+#endif
 				MSG_WriteString (&host_client->netchan.message, str);
 			}
 			start++;
@@ -1119,6 +1163,9 @@ void SVQ2_ConfigStrings_f (void)
 			{
 				MSG_WriteByte (&host_client->netchan.message, svcq2_configstring);
 				MSG_WriteShort (&host_client->netchan.message, start);
+#ifdef TEMPORALCORTEX
+				MSG_WriteShort (&host_client->netchan.message, sv.world.model_time_periods[start]);
+#endif
 				MSG_WriteString (&host_client->netchan.message, str);
 			}
 			start++;
@@ -9154,6 +9201,10 @@ void SV_ExecuteClientMessage (client_t *cl)
 		case clctc_timeperiod:
 			input = MSG_ReadShort();
 			tc_sv_current_bsp_index = input;
+#ifdef Q2SERVER
+			if (svs.gametype == GT_QUAKE2)
+				ge->current_bsp_index = input;
+#endif
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();

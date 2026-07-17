@@ -2349,9 +2349,9 @@ void WPhys_RunEntity (world_t *w, wedict_t *ent)
 #ifdef TEMPORALCORTEX
 		// Missi: Prevent entities from running if they're out of the current time period (2025.9.23)
 #ifdef HAVE_SERVER
-		if ( ent->bspnum != tc_sv_current_bsp_index )
+		if ( ent->bspnum != tc_sv_current_bsp_index && !((int)ent->v->flags & FL_OMNIPRESENT) )
 #elif defined(HAVE_CLIENT)
-		if ( ent->bspnum != tc_cl_current_bsp_index )
+		if ( ent->bspnum != tc_cl_current_bsp_index && !((int)ent->v->flags & FL_OMNIPRESENT) )
 #endif
 		{
 			World_UnlinkEdict (ent);	// Missi: It's basically a ghost at this point (2025.9.23)

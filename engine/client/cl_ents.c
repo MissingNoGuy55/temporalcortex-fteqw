@@ -3174,7 +3174,7 @@ void CLQ1_AddVisibleBBoxes(void)
 #ifdef TEMPORALCORTEX
 					model_precache = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache);
 
-					if (!model_precache->model)
+					if (!model_precache)
 #else
 					if (!cl.model_precache[state->modelindex])
 #endif
