@@ -2924,7 +2924,7 @@ void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_
 {
 	playerview_t *pv = &cl.playerview[SP];
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 //	if (TP_NeedRefreshSkins())
@@ -3258,7 +3258,7 @@ static void TP_FindPoint (void)
 	int oldskip = pmove.skipent;
 	playerview_t *pv = &cl.playerview[SP];
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	if (vars.pointtime == realtime)

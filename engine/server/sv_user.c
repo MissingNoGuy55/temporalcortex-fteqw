@@ -595,8 +595,8 @@ void SVNQ_New_f (void)
 	unsigned int modelcount, soundcount;
 	extern cvar_t allow_download;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
+	modelprecache_t *model_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
@@ -1295,8 +1295,8 @@ void SV_SendClientPrespawnInfo(client_t *client)
 	svcustomtents_t *ctent;
 	int maxsize;
 #ifdef TEMPORALCORTEX
-	static struct modelprecache_s *model_precache = NULL;
-	static struct soundprecache_s *sound_precache = NULL;
+	static modelprecache_t *model_precache = NULL;
+	static soundprecache_t *sound_precache = NULL;
 
 	if (client->prespawn_idx == 0)
 	{

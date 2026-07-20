@@ -2296,7 +2296,7 @@ void CL_RotateAroundTag(entity_t *ent, int entnum, int parenttagent, int parentt
 	framestate_t fstate;
 
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	if (parenttagent >= cl.maxlerpents)
@@ -3109,7 +3109,7 @@ void CLQ1_AddVisibleBBoxes(void)
 	shader_t *s;
 	vec3_t min, max, size;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	#pragma message("Temporary Code: BBoxes calling R2D_Flush")
@@ -4366,7 +4366,7 @@ void CL_LinkPacketEntities (void)
 	extern cvar_t r_ignoreentpvs;
 	vec3_t absmin, absmax;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	cl.lastlinktime = cl.time;

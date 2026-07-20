@@ -1544,7 +1544,11 @@ static void Mod_FinishTexture(model_t *mod, texture_t *tx, const char *loadname,
 }
 #endif
 
+#ifdef TEMPORALCORTEX
 void Mod_NowLoadExternal(model_t *loadmodel, int num)
+#else
+void Mod_NowLoadExternal(model_t *loadmodel)
+#endif
 {
 	//for halflife bsps where wads are loaded after the map.
 #if !defined(SERVERONLY)

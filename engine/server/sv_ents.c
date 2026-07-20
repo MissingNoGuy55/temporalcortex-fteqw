@@ -3357,7 +3357,7 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 	int i;
 	gibfilter_t *gf;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 
 	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next, i++)
 		if (!strcmp(model_precache->name, modelname))
@@ -3513,7 +3513,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	state->number = NUM_FOR_EDICT(svprogfuncs, ent);
 
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	state->u.q1.msec = 0;

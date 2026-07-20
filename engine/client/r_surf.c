@@ -4221,7 +4221,7 @@ TRACE(("dbg: Surf_NewMap: tp\n"));
 		vec3_t mins, maxs;
 		//fixme: no rotation
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s *model_precache, *csqc_precache;
+		modelprecache_t *model_precache, *csqc_precache;
 		model_precache = CL_FindPrecacheByModelIndex(cl_static_entities[i].mdlidx, cl.model_precache);
 		csqc_precache = CSQC_FindPrecacheByModelIndex(cl_static_entities[i].mdlidx, cl.model_csqcprecache);
 

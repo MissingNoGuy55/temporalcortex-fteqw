@@ -2296,7 +2296,7 @@ static void World_ClipToNetwork (world_t *w, moveclip_t *clip)
 	static framestate_t framestate;	//meh
 	int skip;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	if ((clip->type & MOVE_ENTCHAIN) || !pe)

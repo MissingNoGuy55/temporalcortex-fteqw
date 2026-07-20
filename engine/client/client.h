@@ -1228,17 +1228,14 @@ void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
 #ifdef TEMPORALCORTEX
 short CL_NumModelPrecaches();
 short CL_NumSoundPrecaches();
-struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
-struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
-struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod, qboolean csqc);
-struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
-struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
-struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecache_s *head, short timeperiod);
+modelprecache_t *CL_FindPrecacheByModelName(const char* name, modelprecache_t *head);
+modelprecache_t *CL_FindPrecacheByModelIndex(short modelindex, modelprecache_t *head);
+modelprecache_t *CL_AddModelPrecache(const char* name, modelprecache_t *head, short timeperiod, qboolean csqc);
+soundprecache_t *CL_FindPrecacheBySoundName(const char* name, soundprecache_t *head);
+soundprecache_t *CL_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *head);
+soundprecache_t *CL_AddSoundPrecache(const char* name, soundprecache_t *head, short timeperiod);
 #define CSQC_FindPrecacheByModelIndex CL_FindPrecacheByModelIndex
 #define CSQC_FindPrecacheByModelName CL_FindPrecacheByModelName
-//struct modelprecache_s *CSQC_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
-//struct modelprecache_s *CSQC_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
-//struct modelprecache_s *CSQC_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod);
 #endif
 
 extern	int				cl_framecount;	//number of times the entity lists have been cleared+reset.

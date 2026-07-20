@@ -2599,7 +2599,7 @@ void CL_ParseEffect (qboolean effect2)
 	int framerate;
 	model_t *mod;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	org[0] = MSG_ReadCoord();

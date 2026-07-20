@@ -822,7 +822,7 @@ void CL_DownloadFinished(qdownload_t *dl)
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 	char ext[8];
 
@@ -1336,7 +1336,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	int i;
 #ifdef TEMPORALCORTEX
 	int t;
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	float giveuptime = Sys_DoubleTime()+1;	//small things get padded into a single frame
@@ -1700,7 +1700,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 			COM_WorkerPartialSync(cl.worldmodel, &cl.worldmodel->loadstate, MLS_LOADING);
 		CL_CheckServerInfo(); //some serverinfo rules can change with map type, so make sure they're updated now we're sure we know it properly.
 		if (cl.worldmodel && cl.worldmodel->loadstate == MLS_LOADED)
-			Mod_NowLoadExternal(cl.worldmodel, i);
+			Mod_NowLoadExternal(cl.worldmodel);
 #endif
 /*#ifdef Q2CLIENT
 		if (cls.protocol == CP_QUAKE2 && cl.worldmodel && !cls.demoplayback &&
@@ -1908,7 +1908,7 @@ void CL_RequestNextDownload (void)
 #ifdef TEMPORALCORTEX
 	int i = 0;
 	qboolean fail = false;
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 	/*already downloading*/
 	if (cls.download && !cls.demoplayback)
@@ -5087,7 +5087,7 @@ static void CL_ParseModellist (qboolean lots)
 	char	*str;
 	int n;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 // precache models and note certain default indexes
@@ -5864,7 +5864,7 @@ static void CLQW_ParseStartSoundPacket(void)
 	float 	attenuation;
 	int		i;
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 	channel = MSG_ReadShort();
@@ -6063,7 +6063,7 @@ static void CLNQ_ParseStartSoundPacket(void)
 	float	timeofs;
 	unsigned int flags;
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 	field_mask = MSG_ReadByte();
@@ -7962,8 +7962,8 @@ static void CL_ParsePrecache(void)
 	char *s = MSG_ReadString();
 #ifdef TEMPORALCORTEX
 	int wmidx = MSG_ReadShort();
-	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
+	modelprecache_t *model_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 #ifdef TEMPORALCORTEX
@@ -9363,6 +9363,12 @@ void CLQ2_ParseServerMessage (void)
 	unsigned int	seat;
 //	int				j;
 	int startpos = MSG_GetReadCount();
+#ifdef TEMPORALCORTEX
+	short			track;
+	short			bspindex;
+	float			tracktime, duration;
+	char			tracktitle[128];
+#endif
 
 	cl.last_servermessage = realtime;
 	CL_ClearProjectiles ();
@@ -9657,8 +9663,42 @@ isillegible:
 #ifdef TEMPORALCORTEX
 		case 34:	// Missi: svcq2tc_timeperiod (2025.9.21)
 			if (cls.protocol_q2 == PROTOCOL_VERSION_Q2EX)
+			{
 		//case svcq2ex_achievement:
-				tc_cl_current_bsp_index = MSG_ReadLong();
+				bspindex = MSG_ReadShort();
+
+				S_GetMusicInfo(0, &tracktime, &duration, tracktitle, sizeof(tracktitle));
+				tc_snd_positions[tc_cl_current_bsp_index] = tracktime;
+
+				R_SetSky(cl.skyname[bspindex], bspindex);
+
+				tc_cl_current_bsp_index = bspindex;
+				track = MSG_ReadShort();
+				Media_NumberedTrack(track, track, bspindex);
+
+				memset(cl.levelname, 0, sizeof(cl.levelname));
+
+				Q_strcpy(cl.levelname, MSG_ReadString());
+
+				switch(bspindex)
+				{
+					case TIME_PERIOD_PRESENT:
+						Q_strcat(cl.levelname, " (present)");
+						break;
+					case TIME_PERIOD_PAST:
+						Q_strcat(cl.levelname, " (past)");
+						break;
+					case TIME_PERIOD_FUTURE:
+						Q_strcat(cl.levelname, " (future)");
+						break;
+				}
+
+				//CSQC_TC_ChangeLevelName(cl.levelname);
+
+				MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
+				MSG_WriteShort (&cls.netchan.message, bspindex);
+				break;
+			}
 			else
 				goto isillegible;
 			break;

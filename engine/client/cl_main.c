@@ -963,8 +963,8 @@ static void CL_NullReadPacket(void)
 #ifdef TEMPORALCORTEX
 void CL_ClearPrecaches()
 {
-	struct modelprecache_s *next_model;
-	struct soundprecache_s *next_sound;
+	modelprecache_t *next_model;
+	soundprecache_t *next_sound;
 
 	while(cl.model_precache)
 	{
@@ -979,11 +979,6 @@ void CL_ClearPrecaches()
 		BZ_Free(cl.sound_precache);
 		cl.sound_precache = next_sound;
 	}
-}
-
-static void CL_ClearPrecache(struct modelprecache_s* precache)
-{
-
 }
 
 short CL_NumModelPrecaches()
@@ -1008,9 +1003,9 @@ short CL_NumSoundPrecaches()
 	return i;
 }
 
-struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct modelprecache_s *head)
+modelprecache_t *CL_FindPrecacheByModelName(const char* name, modelprecache_t *head)
 {
-	struct modelprecache_s *precache = head;
+	modelprecache_t *precache = head;
 
 	for (; precache; precache = precache->next)
 		if (!strcmp(precache->name, name))
@@ -1019,9 +1014,9 @@ struct modelprecache_s *CL_FindPrecacheByModelName(const char* name, struct mode
 	return NULL;
 }
 
-struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
+modelprecache_t *CL_FindPrecacheByModelIndex(short modelindex, modelprecache_t *head)
 {
-	struct modelprecache_s *precache = head;
+	modelprecache_t *precache = head;
 
 	for (; precache; precache = precache->next)
 		if (precache->index == modelindex)
@@ -1030,7 +1025,7 @@ struct modelprecache_s *CL_FindPrecacheByModelIndex(short modelindex, struct mod
 	return NULL;
 }
 
-struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head)
+soundprecache_t *CL_FindPrecacheBySoundName(const char* name, soundprecache_t *head)
 {
 	struct soundprecache_s* precache = head;
 
@@ -1041,7 +1036,7 @@ struct soundprecache_s *CL_FindPrecacheBySoundName(const char* name, struct soun
 	return NULL;
 }
 
-struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
+soundprecache_t *CL_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *head)
 {
 	struct soundprecache_s* precache = head;
 
@@ -1052,7 +1047,7 @@ struct soundprecache_s *CL_FindPrecacheBySoundIndex(short soundindex, struct sou
 	return NULL;
 }
 
-struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod, qboolean csqc)
+modelprecache_t *CL_AddModelPrecache(const char* name, modelprecache_t *head, short timeperiod, qboolean csqc)
 {
 	int i, t;
 	struct modelprecache_s* precache = head;
@@ -1111,7 +1106,7 @@ struct modelprecache_s *CL_AddModelPrecache(const char* name, struct modelprecac
 	return precache->next;
 }
 
-struct soundprecache_s *CL_AddSoundPrecache(const char* name, struct soundprecache_s *head, short int timeperiod)
+soundprecache_t *CL_AddSoundPrecache(const char* name, soundprecache_t *head, short int timeperiod)
 {
 	int i;
 	struct soundprecache_s* precache = head;

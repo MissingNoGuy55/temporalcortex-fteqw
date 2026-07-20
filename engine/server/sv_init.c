@@ -69,8 +69,8 @@ int SV_ModelIndex (const char *name)
 {
 #ifdef TEMPORALCORTEX
 	int i;
-	struct modelprecache_s *model_precache;
-	struct modelprecache_s *sub_precache;
+	modelprecache_t *model_precache;
+	modelprecache_t *sub_precache;
 
 	if (!name || !name[0])
 		return 0;
@@ -957,7 +957,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	int			i, j;
 #ifdef TEMPORALCORTEX
 	int			t, l, o;
-	struct modelprecache_s *model_precache = NULL;
+	modelprecache_t *model_precache = NULL;
 #endif
 	extern int sv_allow_cheats;
 	size_t fsz;
@@ -2187,14 +2187,6 @@ MSV_OpenUserDatabase();
 		Cvar_Set(&skill, "1");
 //do this and get the precaches/start up the game
 #ifdef TEMPORALCORTEX
-
-#ifdef HAVE_SERVER
-	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
-#ifdef HAVE_CLIENT
-	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
-
 	// Missi: Iterate through each time period (2025.9.20)
 	for ( t = 0, j = 0, o = 0; t < MAX_TIME_PERIODS; t++ )
 	{
@@ -2340,22 +2332,7 @@ MSV_OpenUserDatabase();
 			}
 		}
 #ifdef TEMPORALCORTEX
-#ifdef HAVE_SERVER
-		tc_sv_current_bsp_index++;
-#endif
-#ifdef HAVE_CLIENT
-		tc_cl_current_bsp_index++;
-#endif
 	}
-#endif
-
-#ifdef TEMPORALCORTEX
-#ifdef HAVE_SERVER
-	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
-#ifdef HAVE_CLIENT
-	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
-#endif
 #endif
 
 	// look up some model indexes for specialized message compression

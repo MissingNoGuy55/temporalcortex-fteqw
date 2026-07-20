@@ -790,7 +790,7 @@ static void CL_DecodeStateSize(unsigned int solid, int modelindex, vec3_t mins, 
 	if (solid == ES_SOLID_BSP)
 	{
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s *model_precache = CL_FindPrecacheByModelIndex(modelindex, cl.model_precache);
+		modelprecache_t *model_precache = CL_FindPrecacheByModelIndex(modelindex, cl.model_precache);
 
 		if (modelindex < MAX_PRECACHE_MODELS && model_precache && model_precache->model->loadstate == MLS_LOADED)
 		{

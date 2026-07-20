@@ -1238,7 +1238,7 @@ short SV_NumParticlePrecaches()
 	return i;
 }
 
-struct modelprecache_s *SV_FindPrecacheByModelName(const char* name, struct modelprecache_s *head)
+modelprecache_t *SV_FindPrecacheByModelName(const char* name, modelprecache_t *head)
 {
 	struct modelprecache_s* precache;
 
@@ -1249,7 +1249,7 @@ struct modelprecache_s *SV_FindPrecacheByModelName(const char* name, struct mode
 	return NULL;
 }
 
-struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head)
+modelprecache_t *SV_FindPrecacheByModelIndex(short modelindex, modelprecache_t *head)
 {
 	struct modelprecache_s* precache = head;
 
@@ -1260,7 +1260,7 @@ struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct mod
 	return NULL;
 }
 
-struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head)
+soundprecache_t *SV_FindPrecacheBySoundName(const char* name, soundprecache_t *head)
 {
 	struct soundprecache_s* precache = head;
 
@@ -1271,7 +1271,7 @@ struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soun
 	return NULL;
 }
 
-struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head)
+soundprecache_t *SV_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *head)
 {
 	struct soundprecache_s* precache = head;
 
@@ -1282,7 +1282,7 @@ struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct sou
 	return NULL;
 }
 
-struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecache_s *head, short timeperiod)
+modelprecache_t *SV_AddModelPrecache(const char* name, modelprecache_t *head, short timeperiod)
 {
 	int i;
 	struct modelprecache_s* precache = head;
@@ -1330,7 +1330,7 @@ struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecac
 	return precache->next;
 }
 
-struct soundprecache_s *SV_AddSoundPrecache(const char* name, struct soundprecache_s *head, short timeperiod)
+soundprecache_t *SV_AddSoundPrecache(const char* name, soundprecache_t *head, short timeperiod)
 {
 	int i;
 	struct soundprecache_s* precache = head;
@@ -1402,8 +1402,8 @@ void SV_InitStringPrecaches()
 
 void SV_ClearStringPrecaches()
 {
-	struct modelprecache_s *next_model;
-	struct soundprecache_s *next_sound;
+	modelprecache_t *next_model;
+	soundprecache_t *next_sound;
 
 	for (next_model = sv.strings.model_precache; next_model; next_model = next_model->next)
 	{

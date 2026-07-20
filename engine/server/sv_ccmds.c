@@ -174,7 +174,7 @@ static void SV_SetTimePeriodForEnt_f()
 	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
 	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
 	int timeperiod = atoi(Cmd_Argv(3));
-	struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(mdlidx, sv.strings.model_precache);
+	modelprecache_t *model_precache = SV_FindPrecacheByModelIndex(mdlidx, sv.strings.model_precache);
 	struct edict_s *ent = EDICT_NUM_PB(svprogfuncs, entnum);
 
 	ent->bspnum = timeperiod;
@@ -2399,8 +2399,8 @@ static void SV_Status_f (void)
 	float pi, po, bi, bo;
 #ifdef TEMPORALCORTEX
 	const char*	str;
-	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
+	modelprecache_t *model_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 	int columns = 80;
@@ -3747,7 +3747,7 @@ void SV_ChangeTimePeriod( int bspindex )
 		return;
 	}
 
-	if (svprogfuncs)
+	if (svs.gametype == GT_PROGS)
 	{
 		worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
 
@@ -3801,7 +3801,11 @@ void SV_ChangeTimePeriod( int bspindex )
 	else
 		track = 0;
 
-	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+	if (svs.gametype == GT_PROGS)
+		MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+	else if (svs.gametype == GT_QUAKE2)
+		MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
+
 	MSG_WriteShort (&sv.reliable_datagram, bspindex);
 	MSG_WriteShort (&sv.reliable_datagram, track);
 	MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);

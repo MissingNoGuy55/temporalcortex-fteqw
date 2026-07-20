@@ -1181,7 +1181,7 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 
 #ifdef TEMPORALCORTEX
 	// Missi: Precache structures shared by the client and server (2026.6.22)
-	struct modelprecache_s
+	typedef struct modelprecache_s
 	{
 		char* name;
 		char* publicname;
@@ -1189,16 +1189,16 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 		short timeperiod;
 		struct model_s* model;
 		struct modelprecache_s* next;
-	};
+	} modelprecache_t;
 
-	struct soundprecache_s
+	typedef struct soundprecache_s
 	{
 		char* name;
 		int index;
 		short timeperiod;
 		struct sfx_s* snd;
 		struct soundprecache_s* next;
-	};
+	} soundprecache_t;
 #endif
 
 #if 0 //fuck sake, just build it in an older chroot.

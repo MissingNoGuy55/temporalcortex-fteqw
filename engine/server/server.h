@@ -159,9 +159,9 @@ typedef struct server_s
 			const char	*vw_model_precache[32];
 #endif
 #ifdef TEMPORALCORTEX
-			struct modelprecache_s *model_precache;	// NULL terminated
+			modelprecache_t *model_precache;	// NULL terminated
 			const char	**particle_precache;	// NULL terminated
-			struct soundprecache_s *sound_precache;	// NULL terminated
+			soundprecache_t *sound_precache;	// NULL terminated
 #else
 			const char	*model_precache[MAX_PRECACHE_MODELS];	// NULL terminated
 			const char	*particle_precache[MAX_SSPARTICLESPRE];	// NULL terminated
@@ -1188,12 +1188,12 @@ char *SV_PlayerPublicAddress(client_t *cl);
 short SV_NumModelPrecaches();
 short SV_NumSoundPrecaches();
 short SV_NumParticlePrecaches();
-struct modelprecache_s *SV_FindPrecacheByModelName(const char* name, struct modelprecache_s *head);
-struct modelprecache_s *SV_FindPrecacheByModelIndex(short modelindex, struct modelprecache_s *head);
-struct soundprecache_s *SV_FindPrecacheBySoundName(const char* name, struct soundprecache_s *head);
-struct soundprecache_s *SV_FindPrecacheBySoundIndex(short soundindex, struct soundprecache_s *head);
-struct modelprecache_s *SV_AddModelPrecache(const char* name, struct modelprecache_s* head, short timeperiod);
-struct soundprecache_s *SV_AddSoundPrecache(const char* name, struct soundprecache_s* head, short timeperiod);
+modelprecache_t *SV_FindPrecacheByModelName(const char* name, modelprecache_t *head);
+modelprecache_t *SV_FindPrecacheByModelIndex(short modelindex, modelprecache_t *head);
+soundprecache_t *SV_FindPrecacheBySoundName(const char* name, soundprecache_t *head);
+soundprecache_t *SV_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *head);
+modelprecache_t *SV_AddModelPrecache(const char* name, struct modelprecache_s* head, short timeperiod);
+soundprecache_t *SV_AddSoundPrecache(const char* name, struct soundprecache_s* head, short timeperiod);
 void SV_ClearStringPrecaches();
 void SV_InitStringPrecaches();
 #endif

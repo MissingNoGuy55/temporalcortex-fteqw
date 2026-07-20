@@ -311,12 +311,10 @@ void PDECL ED_Spawned (struct edict_s *ent, int loading)
 
 pbool PDECL ED_CanFree (edict_t *ed)
 {
-	//if (ed < (edict_t*)&sv.world.edicts + tc_sv_loaded_bsps)
-	// Missi: The above was always a weird check... (2025.9.21)
 #ifdef TEMPORALCORTEX
-	if (NUM_FOR_EDICT(svprogfuncs, ed) < tc_sv_loaded_bsps)
+	if (ed <= (edict_t*)sv.world.edicts + tc_sv_loaded_bsps)
 #else
-	if (NUM_FOR_EDICT(svprogfuncs, ed) < 1)
+	if (ed == (edict_t*)sv.world.edicts)
 #endif
 	{
 		if (developer.value)
@@ -326,7 +324,7 @@ pbool PDECL ED_CanFree (edict_t *ed)
 #ifdef TEMPORALCORTEX
 	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+tc_sv_loaded_bsps)
 #else
-	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots+1)
+	if (NUM_FOR_EDICT(svprogfuncs, ed) <= sv.allocated_client_slots)
 #endif
 	{
 		PR_RunWarning(svprogfuncs, "cannot free player entities\n");
@@ -621,7 +619,7 @@ model_t *QDECL SVPR_GetCModel(world_t *w, int modelindex)
 	{
 		model_t *mod;
 #ifdef TEMPORALCORTEX
-		struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(modelindex, sv.strings.model_precache);
+		modelprecache_t *model_precache = SV_FindPrecacheByModelIndex(modelindex, sv.strings.model_precache);
 		mod = sv.models[model_precache->index];
 #else
 		if (!sv.models[modelindex] && sv.strings.model_precache[modelindex])
@@ -1422,7 +1420,6 @@ static void PR_Decompile_f(void)
 		Q_SetProgsParms(false);
 		PR_Configure(svprogfuncs, PR_ReadBytesString(pr_ssqc_memsize.string), MAX_PROGS, 0);
 	}
-
 
 	if (Cmd_Argc() == 1)
 		svprogfuncs->Decompile(svprogfuncs, "qwprogs.dat");
@@ -3114,8 +3111,8 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 	int		i;
 	model_t	*mod;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache = NULL;
-	struct modelprecache_s *world = NULL;
+	modelprecache_t *model_precache = NULL;
+	modelprecache_t *world = NULL;
 #endif
 
 	if (!e)
@@ -3897,7 +3894,7 @@ void PF_ambientsound_Internal (float *pos, const char *samp, float vol, float at
 	staticsound_state_t *state;
 
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache;
+	soundprecache_t *sound_precache;
 
 	// check to see if samp was properly precached
 	for (sound_precache=sv.strings.sound_precache ; ; sound_precache = sound_precache->next)
@@ -4969,7 +4966,7 @@ static void QCBUILTIN PF_soundnameforindex (pubprogfuncs_t *prinst, struct globa
 {
 	int idx = G_FLOAT(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s *sound_precache = SV_FindPrecacheBySoundIndex(idx, sv.strings.sound_precache);
+	soundprecache_t *sound_precache = SV_FindPrecacheBySoundIndex(idx, sv.strings.sound_precache);
 
 	if (idx >= 0 && idx < MAX_PRECACHE_SOUNDS && sound_precache->snd)
 		RETURN_TSTRING(sound_precache->name);
@@ -5150,7 +5147,7 @@ static void QCBUILTIN PF_modelnameforindex (pubprogfuncs_t *prinst, struct globa
 {
 	int idx = G_FLOAT(OFS_PARM0);
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache = SV_FindPrecacheByModelIndex(idx, sv.strings.model_precache);
+	modelprecache_t *model_precache = SV_FindPrecacheByModelIndex(idx, sv.strings.model_precache);
 
 	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && model_precache->name)
 		RETURN_TSTRING(model_precache->name);
@@ -11392,8 +11389,8 @@ static void QCBUILTIN PF_resourcestatus(pubprogfuncs_t *prinst, struct globalvar
 	const char *resname = PR_GetStringOfs(prinst, OFS_PARM2);
 	int idx;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
-	struct soundprecache_s *sound_precache;
+	modelprecache_t *model_precache;
+	soundprecache_t *sound_precache;
 #endif
 
 	G_FLOAT(OFS_RETURN) = RESSTATE_NOTKNOWN;

@@ -2877,7 +2877,7 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 	playerview_t *pv = &cl.playerview[seat];
 	struct model_s *om = pv->vm.oldmodel;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s *model_precache;
+	modelprecache_t *model_precache;
 #endif
 
 	pv->vm.oldmodel = NULL;

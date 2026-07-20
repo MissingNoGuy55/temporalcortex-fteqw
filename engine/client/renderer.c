@@ -1504,8 +1504,8 @@ qboolean R_ApplyRenderer_Load (rendererstate_t *newr)
 	int i, j;
 #ifdef TEMPORALCORTEX
 	int t;
-	struct modelprecache_s *model_precache;
-	struct modelprecache_s *worldmodel_precache;
+	modelprecache_t *model_precache;
+	modelprecache_t *worldmodel_precache;
 #endif
 	double start = Sys_DoubleTime();
 
@@ -2064,7 +2064,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #ifdef TEMPORALCORTEX
 			Mod_NowLoadExternal(cl.worldmodel[t], t);
 #else
-			Mod_NowLoadExternal(cl.worldmodel, 0);
+			Mod_NowLoadExternal(cl.worldmodel);
 #endif
 			for (i = 0; i < cl.num_statics; i++)	//make the static entities reappear.
 				cl_static_entities[i].ent.model = NULL;

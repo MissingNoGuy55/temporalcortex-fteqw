@@ -8,17 +8,17 @@ make $@ m-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && make $@ m-rel FTE_CONFIG=ft
 make $@ mcl-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && make $@ mcl-rel FTE_CONFIG=fteqwtc && \
 make $@ sv-rel FTE_CONFIG=fteqwtc && make $@ sv-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && \
 make $@ qcc-rel FTE_CONFIG=fteqwtc && make $@ qcc-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && \
-cp ./release/fteqwtc ../../game_files && \
-cp ./release/fteqwtc64.exe ../../game_files && \
-cp ./release/fteqwtc64.exe.db ../../game_files && \
-cp ./release/fteqwtcsv64.exe ../../game_files && \
-cp ./release/fteqwtcsv64.exe.db ../../game_files && \
-cp ./release/fteqwtc-sv.db ../../game_files && \
-cp ./release/fteqwtc.db ../../game_files && \
-cp ./release/fteqwtc-sv ../../game_files && \
-cp ./release/fteqwtc-cl ../../game_files && \
-cp ./release/fteqwtc-cl.db ../../game_files && \
-cp ./release/fteqwtccl64.exe ../../game_files && \
-cp ./release/fteqwtccl64.exe.db ../../game_files
+cp ./release/fteqwtc ../../game_files/quake1 && \
+cp ./release/fteqwtc64.exe ../../game_files/quake1 && \
+cp ./release/fteqwtc64.exe.db ../../game_files/quake1 && \
+cp ./release/fteqwtcsv64.exe ../../game_files/quake1 && \
+cp ./release/fteqwtcsv64.exe.db ../../game_files/quake1 && \
+cp ./release/fteqwtc-sv.db ../../game_files/quake1 && \
+cp ./release/fteqwtc.db ../../game_files/quake1 && \
+cp ./release/fteqwtc-sv ../../game_files/quake1 && \
+cp ./release/fteqwtc-cl ../../game_files/quake1 && \
+cp ./release/fteqwtc-cl.db ../../game_files/quake1 && \
+cp ./release/fteqwtccl64.exe ../../game_files/quake1 && \
+cp ./release/fteqwtccl64.exe.db ../../game_files/quake1
 
-make plugins-rel FTE_CONFIG=fteqwtc && cp ./release/*.so ../../game_files && make plugins-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && cp ./release/*.dll ../../game_files
+make plugins-rel FTE_CONFIG=fteqwtc && cp ./release/*.so ../../game_files/quake1 && make plugins-rel FTE_TARGET=win64 FTE_CONFIG=fteqwtc && cp ./release/*.dll ../../game_files/quake1
