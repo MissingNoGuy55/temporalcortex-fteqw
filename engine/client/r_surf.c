@@ -4231,7 +4231,7 @@ TRACE(("dbg: Surf_NewMap: tp\n"));
 
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < MAX_PRECACHE_MODELS)
 			cl_static_entities[i].ent.model = model_precache->model;
-		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < MAX_PRECACHE_MODELS)
+		else if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx < 0 && (-cl_static_entities[i].mdlidx) < MAX_CSMODELS)
 			cl_static_entities[i].ent.model = csqc_precache->model;
 #else
 		if (!cl_static_entities[i].ent.model && cl_static_entities[i].mdlidx > 0 && cl_static_entities[i].mdlidx < countof(cl.model_precache))
