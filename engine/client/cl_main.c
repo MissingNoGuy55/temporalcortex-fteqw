@@ -1049,7 +1049,7 @@ soundprecache_t *CL_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *
 
 modelprecache_t *CL_AddModelPrecache(const char* name, modelprecache_t *head, short timeperiod, qboolean csqc)
 {
-	int i, t;
+	int i;
 	struct modelprecache_s* precache = head;
 	extern world_t csqc_world;
 
@@ -1059,7 +1059,7 @@ modelprecache_t *CL_AddModelPrecache(const char* name, modelprecache_t *head, sh
 		return NULL;
 	}
 
-	for (i = 0, t = 0; precache; precache = precache->next, i++)
+	for (i = 0; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
@@ -6238,6 +6238,7 @@ static void CL_ChangeTimePeriod_f()
 {
 	const char*	arg = Cmd_Argv(1);
 	const char*	suffix;
+	char	cmd[64];
 	char	printstring[256];
 
 	if (!arg)
@@ -6294,15 +6295,17 @@ static void CL_ChangeTimePeriod_f()
 	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
 	//tc_cl_current_bsp_index = (timeperiod_t)atoi(pszArg);
 
-	char cmd[64];
-	snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
+	r_worldentity.model = cl.worldmodel[atoi(arg)];
 
-	r_worldentity.model = cl.worldmodel[Q_atoi(arg)];
-
-	MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
-	MSG_WriteString( &cls.netchan.message, cmd );
-
-	//Cmd_ForwardToServer();
+	if (cls.protocol == CP_QUAKE3)
+		tc_cl_current_bsp_index = atoi(arg);
+	else
+	{
+		snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
+		MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
+		MSG_WriteString( &cls.netchan.message, cmd );
+	}
+	Cmd_ForwardToServer();
 }
 #endif
 /*

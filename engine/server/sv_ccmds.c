@@ -3737,6 +3737,9 @@ void SV_ChangeTimePeriod( int bspindex )
 #ifdef Q2SERVER
 	q2edict_t *q2WorldEdict, *q2ed;
 #endif
+#ifdef Q3SERVER
+	struct q3serverEntity_t *q3ent;
+#endif
 
 	if ( bspindex == tc_sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
 		return;
@@ -3801,14 +3804,19 @@ void SV_ChangeTimePeriod( int bspindex )
 	else
 		track = 0;
 
-	if (svs.gametype == GT_PROGS)
-		MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-	else if (svs.gametype == GT_QUAKE2)
-		MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
+	if (svs.gametype != GT_QUAKE3)
+	{
+		if (svs.gametype == GT_PROGS)
+			MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+		else if (svs.gametype == GT_QUAKE2)
+			MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
 
-	MSG_WriteShort (&sv.reliable_datagram, bspindex);
-	MSG_WriteShort (&sv.reliable_datagram, track);
-	MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
+		MSG_WriteShort (&sv.reliable_datagram, bspindex);
+		MSG_WriteShort (&sv.reliable_datagram, track);
+		MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
+	}
+	else
+		tc_sv_current_bsp_index = bspindex;
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )

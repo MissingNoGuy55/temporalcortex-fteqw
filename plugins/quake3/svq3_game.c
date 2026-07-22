@@ -2339,6 +2339,14 @@ void SVQ3_WriteSnapshotToClient(client_t *client, sizebuf_t *msg)
 	// delta encode the entities
 	SVQ3_EmitPacketEntities(client, oldsnap, snap, msg);
 
+#ifdef TEMPORALCORTEX
+	msgfuncs->WriteBits(msg, svcq3tc_timeperiod, 8);
+
+	tc_sv3_current_bsp_index = plugfuncs->CurrentBSPIndex();
+
+	msgfuncs->WriteBits(msg, tc_sv3_current_bsp_index, 16);
+#endif
+
 //	while( msg.cursize < sv_padPackets->integer ) { // FIXME?
 //	for( i=0 ; i<sv_padPackets->integer ; i++ )
 //	{

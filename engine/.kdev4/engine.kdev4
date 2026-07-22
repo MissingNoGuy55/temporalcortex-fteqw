@@ -16,24 +16,26 @@ parserArgumentsOpenCL=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunuse
 Name=GCC
 
 [CustomDefinesAndIncludes][ProjectPath0][Defines]
+HAVE_CLIENT=1
 TEMPORALCORTEX=1
 TEMPORALCORTEX_QCC=1
+VM_CG=1
 
 [CustomDefinesAndIncludes][ProjectPath0][Includes]
 1=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine
-10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
-11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
-12=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
-13=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
-14=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins
-2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/quake3
-3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/botlib
-4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
-5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
-6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
-7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
-8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
-9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
+11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins
+12=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/quake3
+13=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/botlib
+14=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
+2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
+3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
+4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
+5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
+6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
+8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
+9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
 
 [Launch]
 Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7,Launch Configuration 8,Launch Configuration 9,Launch Configuration 10,Launch Configuration 11,Launch Configuration 12,Launch Configuration 13
@@ -92,7 +94,7 @@ Type=Native Application
 
 [Launch][Launch Configuration 10][Data]
 Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake2/" -game baseq2 +developer 2 +in_windowed_mouse 0 +cl_shownet 0 +maxplayers 1 +map q2test
-Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x02\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\n\x00m\x00-\x00d\x00b\x00g\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\x16\x00p\x00l\x00u\x00g\x00i\x00n\x00s\x00-\x00d\x00b\x00g)
 Dependency Action=Nothing
 EnvironmentGroup=
 Executable=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc
@@ -129,8 +131,8 @@ Name=Client (Q3)
 Type=Native Application
 
 [Launch][Launch Configuration 12][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +map q3dm0
-Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +developer 2 +map q3dm0
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\n\x00m\x00-\x00d\x00b\x00g)
 Dependency Action=Nothing
 EnvironmentGroup=
 Executable=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc

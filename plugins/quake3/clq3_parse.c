@@ -426,6 +426,26 @@ void CLQ3_ParseDownload(void)
 	CLQ3_SendClientCommand("nextdl %u", chunknum);
 }
 
+#ifdef TEMPORALCORTEX
+void CLQ3TC_ParseTimePeriod(void)
+{
+	int number;
+	char cmd[128];
+	static short bspnum_old;
+
+	number = msgfuncs->ReadShort();
+
+	if (bspnum_old != number)
+	{
+		bspnum_old = number;
+
+		ccs.worldmodel = cl.worldmodel[number];
+		snprintf(cmd, sizeof(cmd), "cl_changetimeperiod %i", number);
+		cmdfuncs->AddText(cmd, false);
+	}
+}
+#endif
+
 static qboolean CLQ3_SendDownloads(char *rc, char *rn)
 {
 	while(rn)
@@ -600,7 +620,11 @@ void CLQ3_ParseGameState(sizebuf_t *msg)
 	CG_Restart();
 	UI_Restart_f();
 
+#ifdef TEMPORALCORTEX
 	if (!ccs.worldmodel)
+#else
+	if (!ccs.worldmodel)
+#endif
 		plugfuncs->EndGame("CGame didn't set a map.\n");
 
 	clientfuncs->SetLoadingState(false);
@@ -687,6 +711,11 @@ int CLQ3_ParseServerMessage (sizebuf_t *msg)
 		case svcq3_snapshot:
 			CLQ3_ParseSnapshot();
 			break;
+#ifdef TEMPORALCORTEX
+		case svcq3tc_timeperiod:
+			CLQ3TC_ParseTimePeriod();
+			break;
+#endif
 		}
 	}
 	return ccs.state;

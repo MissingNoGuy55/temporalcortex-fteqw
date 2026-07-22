@@ -189,6 +189,38 @@ typedef enum {
 
 
 
+#ifdef TEMPORALCORTEX
+static model_t *Q3TC_RemapQ3MapToTemporalCortexMap(char* name, short timeperiod)
+{
+	char buffer[256];
+	char out[256];
+	char *ext;
+
+	if (!name)
+		return false;
+
+	ext = strrchr(name, '.');
+	Q_strncpyz(buffer, name, ext - name + 1);
+
+	switch(timeperiod)
+	{
+		case TIME_PERIOD_PRESENT:
+			Q_snprintfz(out, sizeof(out), "%s_present.bsp", buffer);
+			break;
+		case TIME_PERIOD_PAST:
+			Q_snprintfz(out, sizeof(out), "%s_past.bsp", buffer);
+			break;
+		case TIME_PERIOD_FUTURE:
+			Q_snprintfz(out, sizeof(out), "%s_future.bsp", buffer);
+			break;
+	}
+
+	Q_strncpyz(name, out, sizeof(out));
+
+	return worldfuncs->LoadModel(name, MLV_WARN);
+}
+#endif
+
 unsigned int Contents_To_Q3(unsigned int fte)
 {
 	int ret = 0;
@@ -469,7 +501,11 @@ int CG_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projecti
 	ctx.frags = fragmentBuffer;
 	ctx.numfrags = 0;
 	ctx.maxfrags = maxFragments;
+#if 0
+	scenefuncs->ClipDecal(ccs.worldmodel[tc_sv3_current_bsp_index], center, axis[0], axis[1], axis[2], radius, 0,0, CG_MarkFragments_Callback, &ctx);
+#else
 	scenefuncs->ClipDecal(ccs.worldmodel, center, axis[0], axis[1], axis[2], radius, 0,0, CG_MarkFragments_Callback, &ctx);
+#endif
 	return ctx.numfrags;
 }
 
@@ -895,9 +931,26 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 	case CG_R_LOADWORLDMAP:
 		{	//rendering
 #ifdef TEMPORALCORTEX
+			char *oldname = VM_POINTER(arg[0]);
+			char newname[256];
+			model_t *model;
+
 			for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 			{
-				scenefuncs->NewMap(worldfuncs->LoadModel(VM_POINTER(arg[0]), MLV_SILENTSYNC), t);
+				Q_strncpyz(newname, oldname, sizeof(newname));
+
+				model = worldfuncs->LoadModel(oldname, MLV_SILENTSYNC);
+
+				if (model->loadstate != MLS_LOADED)
+				{
+					Q3TC_RemapQ3MapToTemporalCortexMap(newname, t);
+					model = worldfuncs->LoadModel(newname, MLV_SILENTSYNC);
+
+					if (model->loadstate != MLS_LOADED)
+						continue;
+				}
+
+				scenefuncs->NewMap(model, t);
 			}
 #else
 			scenefuncs->NewMap(worldfuncs->LoadModel(VM_POINTER(arg[0]), MLV_SILENTSYNC));
@@ -906,6 +959,40 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 		break;
 
 	case CG_CM_LOADMAP:
+#ifdef TEMPORALCORTEX
+		{	//collisions
+			int i, j, t;
+			char buffer[256];
+			char *mapname = VM_POINTER(arg[0]);
+			char *oldname = Z_StrDup(mapname);
+
+			for (t = 0, j = 0; t < MAX_TIME_PERIODS; t++)
+			{
+				mapname = VM_POINTER(arg[0]);
+				Q_strncpyz(buffer, mapname, sizeof(buffer));
+
+				ccs.worldmodel = ccs.model_precache[j] = Q3TC_RemapQ3MapToTemporalCortexMap(buffer, t); // worldfuncs->LoadModel(mapname, MLV_SILENTSYNC);
+				if (ccs.worldmodel->loadstate != MLS_LOADED && t == 0)
+				{
+					ccs.worldmodel = ccs.model_precache[j] = worldfuncs->LoadModel(oldname, MLV_WARNSYNC);
+					if (ccs.worldmodel->loadstate != MLS_LOADED)
+						plugfuncs->EndGame("Couldn't load map %s", oldname);
+
+					for (i=1 ; i<=ccs.worldmodel->numsubmodels && i+j < countof(ccs.model_precache); i++)
+						ccs.model_precache[i+j] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), oldname), MLV_WARNSYNC);
+
+					break;
+				}
+
+				for (i=1 ; i<=ccs.worldmodel->numsubmodels && i+j < countof(ccs.model_precache); i++)
+					ccs.model_precache[i+j] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), buffer), MLV_WARNSYNC);
+
+				j += i;
+			}
+
+			Z_Free(oldname);
+		}
+#else
 		{	//collisions
 			int i;
 			char *mapname = VM_POINTER(arg[0]);
@@ -917,16 +1004,25 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 			for (i=1 ; i<=ccs.worldmodel->numsubmodels && i < countof(ccs.model_precache); i++)
 				ccs.model_precache[i] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), mapname), MLV_SILENTSYNC);
 		}
+#endif
 
 		break;
 
 	case CG_CM_INLINEMODEL:
+#ifdef TEMPORALCORTEX
 		if ((unsigned int)VM_LONG(arg[0]) > (ccs.worldmodel?ccs.worldmodel->numsubmodels:0))
+#else
+		if ((unsigned int)VM_LONG(arg[0]) > (ccs.worldmodel?ccs.worldmodel->numsubmodels:0))
+#endif
 			plugfuncs->EndGame("cgame asked for invalid model number\n");
 		VM_LONG(ret) = VM_LONG(arg[0]);
 		break;
 	case CG_CM_NUMINLINEMODELS:
+#ifdef TEMPORALCORTEX
 		VM_LONG(ret) = ccs.worldmodel?ccs.worldmodel->numsubmodels:0;
+#else
+		VM_LONG(ret) = ccs.worldmodel?ccs.worldmodel->numsubmodels:0;
+#endif
 		break;
 
 	case CG_CM_TEMPBOXMODEL:
@@ -960,7 +1056,11 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 			model_t *mod;
 			if (!name)
 				return 0;
+#ifdef TEMPORALCORTEX
 			mod = scenefuncs->LoadModel(worldfuncs->FixName(name, ccs.worldmodel->name), MLV_SILENTSYNC);
+#else
+			mod = scenefuncs->LoadModel(worldfuncs->FixName(name, ccs.worldmodel->name), MLV_SILENTSYNC);
+#endif
 			if (mod->loadstate == MLS_FAILED || mod->type == mod_dummy)
 				VM_LONG(ret) = 0;
 			else
