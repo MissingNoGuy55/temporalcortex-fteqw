@@ -129,7 +129,7 @@ Name=Client (Q3)
 Type=Native Application
 
 [Launch][Launch Configuration 12][Data]
-Arguments=-basedir "/home/stephen/.local/share/Steam/steamapps/common/Quake 3 Arena/" -game baseq3 +in_windowed_mouse 0 +map q3dm0
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +map q3dm0
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -148,7 +148,7 @@ Name=Client (Q3) (FTEQW)
 Type=Native Application
 
 [Launch][Launch Configuration 13][Data]
-Arguments=-basedir "/home/stephen/.local/share/Steam/steamapps/common/Quake 3 Arena/" -game baseq3 +in_windowed_mouse 0 +map q3dm0
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +map q3dm0
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Build
 EnvironmentGroup=
