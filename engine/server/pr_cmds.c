@@ -312,7 +312,7 @@ void PDECL ED_Spawned (struct edict_s *ent, int loading)
 pbool PDECL ED_CanFree (edict_t *ed)
 {
 #ifdef TEMPORALCORTEX
-	if (ed <= (edict_t*)sv.world.edicts + tc_sv_loaded_bsps)
+	if (ed < (edict_t*)sv.world.edicts + tc_sv_loaded_bsps && ed >= (edict_t*)sv.world.edicts)
 #else
 	if (ed == (edict_t*)sv.world.edicts)
 #endif

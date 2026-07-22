@@ -296,7 +296,7 @@ isExecutable=true
 
 [MakeBuilder]
 Abort on First Error=false
-Additional Options=FTE_CONFIG=fteqw
+Additional Options=FTE_CONFIG=fteqwtc
 Default Target=m-dbg
 Su Command=kdesudo
 
