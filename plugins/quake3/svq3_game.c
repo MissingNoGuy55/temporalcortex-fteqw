@@ -222,7 +222,7 @@ static model_t *Q3G_GetCModel(unsigned int modelindex)
 #ifdef TEMPORALCORTEX
 			if (modelindex == 1)
 			{
-				sv3.models[modelindex] = sv3.world->worldmodel[modelindex-1];
+				sv3.models[modelindex] = sv3.world->worldmodel[tc_sv3_worldmodel_indices[tc_sv3_current_bsp_index]];
 				tc_sv3_loaded_bsps++;
 			}
 			else

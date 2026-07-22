@@ -4140,7 +4140,11 @@ void Surf_NewMap (model_t *worldmodel)
 	memset (&r_worldentity, 0, sizeof(r_worldentity));
 	AngleVectors(r_worldentity.angles, r_worldentity.axis[0], r_worldentity.axis[1], r_worldentity.axis[2]);
 	VectorInverse(r_worldentity.axis[1]);
-	//r_worldentity.model = cl.worldmodel[num];
+#ifdef TEMPORALCORTEX
+	r_worldentity.model = cl.worldmodel[num];
+#else
+	r_worldentity.model = cl.worldmodel;
+#endif
 	Vector4Set(r_worldentity.shaderRGBAf, 1, 1, 1, 1);
 	VectorSet(r_worldentity.light_avg, 1, 1, 1);
 
