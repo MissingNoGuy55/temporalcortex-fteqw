@@ -1,0 +1,33 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+
+[CustomDefinesAndIncludes][ProjectPath0]
+Path=.
+parseAmbiguousAsCPP=true
+parserArguments=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c++11
+parserArgumentsC=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c99
+parserArgumentsCuda=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -std=c++11
+parserArgumentsOpenCL=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunused-parameter -Wunreachable-code -Wall -cl-std=CL1.1
+
+[CustomDefinesAndIncludes][ProjectPath0][Compiler]
+Name=Clang
+
+[CustomDefinesAndIncludes][ProjectPath0][Defines]
+HAVE_CLIENT=
+HAVE_SERVER=
+Q3CLIENT=
+Q3SERVER=
+VM_CG=
+
+[CustomDefinesAndIncludes][ProjectPath0][Includes]
+1=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine
+2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
+3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
+4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
+5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
+6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
+7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
+8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins
+
+[Project]
+VersionControlSupport=kdevgit
