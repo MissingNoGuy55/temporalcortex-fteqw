@@ -190,14 +190,14 @@ typedef enum {
 
 
 #ifdef TEMPORALCORTEX
-static model_t *Q3TC_RemapQ3MapToTemporalCortexMap(char* name, short timeperiod)
+static void Q3TC_RemapQ3MapToTemporalCortexMap(char* name, short timeperiod)
 {
 	char buffer[256];
 	char out[256];
 	char *ext;
 
 	if (!name)
-		return false;
+		return;
 
 	ext = strrchr(name, '.');
 	Q_strncpyz(buffer, name, ext - name + 1);
@@ -216,8 +216,6 @@ static model_t *Q3TC_RemapQ3MapToTemporalCortexMap(char* name, short timeperiod)
 	}
 
 	Q_strncpyz(name, out, sizeof(out));
-
-	return worldfuncs->LoadModel(name, MLV_WARN);
 }
 #endif
 
@@ -628,6 +626,10 @@ static void CG_UpdateEntityPosition(unsigned int entnum, float *origin)
 	VectorCopy(origin, entsounds[i].origin);
 }
 
+#ifdef TEMPORALCORTEX
+model_t* CLQ3TC_FindPrecache(const char* name);
+#endif
+
 /* returns the last updated position of an entity. */
 static float* CG_GetEntityPosition(unsigned int entnum)
 {
@@ -935,23 +937,33 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 			char newname[256];
 			model_t *model;
 
-			for ( t = 0; t < MAX_TIME_PERIODS; t++ )
+			model = CLQ3TC_FindPrecache(oldname);
+
+			//model = worldfuncs->LoadModel(oldname, MLV_SILENTSYNC);
+
+			if (!model)
 			{
-				Q_strncpyz(newname, oldname, sizeof(newname));
-
-				model = worldfuncs->LoadModel(oldname, MLV_SILENTSYNC);
-
-				if (model->loadstate != MLS_LOADED)
+				for (t = 0; t < MAX_TIME_PERIODS; t++)
 				{
+					Q_strncpyz(newname, oldname, sizeof(newname));
 					Q3TC_RemapQ3MapToTemporalCortexMap(newname, t);
-					model = worldfuncs->LoadModel(newname, MLV_SILENTSYNC);
 
-					if (model->loadstate != MLS_LOADED)
-						continue;
+					model = CLQ3TC_FindPrecache(newname);
+
+					if (!model)
+					{
+						Q3TC_RemapQ3MapToTemporalCortexMap(newname, t);
+						model = worldfuncs->LoadModel(newname, MLV_SILENTSYNC);
+
+						if (model->loadstate != MLS_LOADED)
+							continue;
+					}
+
+					scenefuncs->NewMap(model, t);
 				}
-
-				scenefuncs->NewMap(model, t);
 			}
+			else
+				scenefuncs->NewMap(model, 0);
 #else
 			scenefuncs->NewMap(worldfuncs->LoadModel(VM_POINTER(arg[0]), MLV_SILENTSYNC));
 #endif
@@ -966,28 +978,36 @@ static qintptr_t CG_SystemCalls(void *offset, quintptr_t mask, qintptr_t fn, con
 			char *mapname = VM_POINTER(arg[0]);
 			char *oldname = Z_StrDup(mapname);
 
-			for (t = 0, j = 0; t < MAX_TIME_PERIODS; t++)
-			{
-				mapname = VM_POINTER(arg[0]);
-				Q_strncpyz(buffer, mapname, sizeof(buffer));
+			ccs.worldmodel = ccs.model_precache[0] = worldfuncs->LoadModel(mapname, MLV_SILENTSYNC);
 
-				ccs.worldmodel = ccs.model_precache[j] = Q3TC_RemapQ3MapToTemporalCortexMap(buffer, t); // worldfuncs->LoadModel(mapname, MLV_SILENTSYNC);
-				if (ccs.worldmodel->loadstate != MLS_LOADED && t == 0)
+			if (ccs.worldmodel->loadstate != MLS_LOADED)
+			{
+				for (t = 0, j = 0; t < MAX_TIME_PERIODS; t++)
 				{
-					ccs.worldmodel = ccs.model_precache[j] = worldfuncs->LoadModel(oldname, MLV_WARNSYNC);
+					Q_strncpyz(buffer, mapname, sizeof(buffer));
+
+					Q3TC_RemapQ3MapToTemporalCortexMap(buffer, t);
+
+					ccs.worldmodel = worldfuncs->LoadModel(buffer, MLV_SILENTSYNC); // worldfuncs->LoadModel(mapname, MLV_SILENTSYNC);
+
+					if (ccs.worldmodel->loadstate != MLS_LOADED && t == 0)
+						plugfuncs->EndGame("Couldn't load map %s", buffer);
+
 					if (ccs.worldmodel->loadstate != MLS_LOADED)
-						plugfuncs->EndGame("Couldn't load map %s", oldname);
+						continue;
+
+					ccs.model_precache[j] = ccs.worldmodel;
 
 					for (i=1 ; i<=ccs.worldmodel->numsubmodels && i+j < countof(ccs.model_precache); i++)
-						ccs.model_precache[i+j] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), oldname), MLV_WARNSYNC);
+						ccs.model_precache[i+j] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), buffer), MLV_WARNSYNC);
 
-					break;
+					j += i;
 				}
-
-				for (i=1 ; i<=ccs.worldmodel->numsubmodels && i+j < countof(ccs.model_precache); i++)
-					ccs.model_precache[i+j] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), buffer), MLV_WARNSYNC);
-
-				j += i;
+			}
+			else
+			{
+				for (i=1 ; i<=ccs.worldmodel->numsubmodels && i < countof(ccs.model_precache); i++)
+					ccs.model_precache[i] = worldfuncs->LoadModel(worldfuncs->FixName(va("*%i", i), buffer), MLV_WARNSYNC);
 			}
 
 			Z_Free(oldname);

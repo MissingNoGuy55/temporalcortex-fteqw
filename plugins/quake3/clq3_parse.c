@@ -427,11 +427,26 @@ void CLQ3_ParseDownload(void)
 }
 
 #ifdef TEMPORALCORTEX
+model_t* CLQ3TC_FindPrecache(const char *name)
+{
+	int i;
+
+	for (i = 0; i < 1u << MODELINDEX_BITS && ccs.model_precache[i]; i++)
+		if (!strcmp(ccs.model_precache[i]->name, name))
+			return ccs.model_precache[i];
+
+	return NULL;
+}
+
 void CLQ3TC_ParseTimePeriod(void)
 {
 	int number;
 	char cmd[128];
 	static short bspnum_old;
+	int i;
+
+	for (i = 0; i < countof(ccs.worldmodel_indices); i++)
+		ccs.worldmodel_indices[i] = msgfuncs->ReadShort();
 
 	number = msgfuncs->ReadShort();
 
@@ -439,7 +454,11 @@ void CLQ3TC_ParseTimePeriod(void)
 	{
 		bspnum_old = number;
 
-		ccs.worldmodel = cl.worldmodel[number];
+#ifdef HAVE_CLIENT
+		ccs.worldmodel = ccs.model_precache[ccs.worldmodel_indices[number]];
+#elif defined(HAVE_SERVER)
+		ccs.worldmodel = sv3.world->worldmodel[number];
+#endif
 		snprintf(cmd, sizeof(cmd), "cl_changetimeperiod %i", number);
 		cmdfuncs->AddText(cmd, false);
 	}

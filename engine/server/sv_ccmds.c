@@ -3737,9 +3737,6 @@ void SV_ChangeTimePeriod( int bspindex )
 #ifdef Q2SERVER
 	q2edict_t *q2WorldEdict, *q2ed;
 #endif
-#ifdef Q3SERVER
-	struct q3serverEntity_t *q3ent;
-#endif
 
 	if ( bspindex == tc_sv_current_bsp_index || !sv.world.worldmodel[bspindex] )
 		return;

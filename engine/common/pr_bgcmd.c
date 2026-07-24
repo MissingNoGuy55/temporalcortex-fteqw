@@ -7065,7 +7065,7 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 		state->other = NUM_FOR_EDICT(prinst, ed);
 #ifdef TEMPORALCORTEX
 #ifdef CLIENTONLY
-		state->selfid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
+		state->otherid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
 #else
 		state->otherid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
 #endif

@@ -223,7 +223,6 @@ static model_t *Q3G_GetCModel(unsigned int modelindex)
 			if (modelindex == 1)
 			{
 				sv3.models[modelindex] = sv3.world->worldmodel[tc_sv3_worldmodel_indices[tc_sv3_current_bsp_index]];
-				tc_sv3_loaded_bsps++;
 			}
 			else
 			{
@@ -2009,10 +2008,6 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 	tc_sv3_unloaded_bsps = plugfuncs->NumUnLoadedBSPs();
 	tc_sv3_worldmodel_indices = plugfuncs->WorldmodelIndices();
 
-	//short* test = plugfuncs->WorldmodelIndices();
-
-	//memcpy(tc_sv3_worldmodel_indices, test, sizeof(short) * 3);
-
 	if (sv3.world->worldmodel[tc_sv3_current_bsp_index]->type == mod_heightmap)
 	{
 	}
@@ -2343,6 +2338,9 @@ void SVQ3_WriteSnapshotToClient(client_t *client, sizebuf_t *msg)
 	msgfuncs->WriteBits(msg, svcq3tc_timeperiod, 8);
 
 	tc_sv3_current_bsp_index = plugfuncs->CurrentBSPIndex();
+
+	for (i = 0; i < countof(sv3.world->worldmodel_indices); i++)
+		msgfuncs->WriteBits(msg, sv3.world->worldmodel_indices[i], 16);
 
 	msgfuncs->WriteBits(msg, tc_sv3_current_bsp_index, 16);
 #endif

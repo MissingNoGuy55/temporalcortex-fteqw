@@ -249,11 +249,12 @@ typedef struct {
 	int selected_weapon;
 
 	qdownload_t *download;
-#if 0
-	model_t *worldmodel[MAX_TIME_PERIODS];
-#else
+
 	model_t *worldmodel;
+#ifdef TEMPORALCORTEX
+	short	worldmodel_indices[MAX_TIME_PERIODS];
 #endif
+
 	model_t *model_precache[1u<<MODELINDEX_BITS];
 
 	clientSnap_t snapshots[Q3UPDATE_BACKUP];

@@ -8989,7 +8989,8 @@ void CLQW_ParseServerMessage (void)
 					break;
 			}
 
-			CSQC_TC_ChangeLevelName(cl.levelname);
+			if (svs.gametype != GT_QUAKE3)
+				CSQC_TC_ChangeLevelName(cl.levelname);
 
 			MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
 			MSG_WriteShort (&cls.netchan.message, bspindex);
