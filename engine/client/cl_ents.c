@@ -6613,3 +6613,12 @@ void CL_ClearPredict(void)
 	memset(predicted_players, 0, sizeof(predicted_players));
 }
 
+#ifdef TEMPORALCORTEX
+void CLTC_ClearDLights()
+{
+	dlight_t *dl = cl_dlights+rtlights_first;
+
+	for (int i=rtlights_first ; i<RTL_FIRST ; i++, dl++)
+		CL_ClearDlight(dl, dl->key, true);
+}
+#endif

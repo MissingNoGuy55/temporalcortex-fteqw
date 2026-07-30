@@ -1926,5 +1926,7 @@ int CLTC_Record_Lightstyles(sizebuf_t *buf, int seq);
 int CLTC_RecordInitialPlayers(sizebuf_t *buf, int seq, qboolean isnq);
 int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
 
+void CLTC_ClearDLights();
+
 void CL_ClearPrecaches();
 #endif

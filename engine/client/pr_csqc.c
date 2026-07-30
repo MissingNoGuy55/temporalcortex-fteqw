@@ -8696,7 +8696,7 @@ void CSQC_WorldLoaded(void)
 	int tmp;
 	int wmodelindex;
 #ifdef TEMPORALCORTEX
-	int t;
+	int t, empty_bsps;
 #endif
 
 	if (!csqcprogs)
@@ -8718,15 +8718,21 @@ void CSQC_WorldLoaded(void)
 
 #ifdef TEMPORALCORTEX
 	// Missi: Iterate through each time period (2025.9.20)
-	for ( t = 0; t < tc_cl_loaded_bsps; t++ )
+	for ( t = 0, empty_bsps = 0; t < MAX_TIME_PERIODS; t++ )
 	{
+		if (!csqc_world.worldmodel[t])
+		{
+			empty_bsps++;
+			continue;
+		}
+
 		csqcmapentitydata = Mod_GetEntitiesString(csqc_world.worldmodel[t]);
 #else
 		csqcmapentitydata = Mod_GetEntitiesString(csqc_world.worldmodel);
 #endif
 		World_RBE_Start(&csqc_world);
 #ifdef TEMPORALCORTEX
-		worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, t);
+		worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, t-empty_bsps);
 #else
 		worldent = (csqcedict_t *)EDICT_NUM_PB(csqcprogs, 0);
 #endif
