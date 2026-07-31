@@ -3127,13 +3127,20 @@ static void Mod_BuildCubemaps_f(void)
 {
 	size_t i;
 
+#ifdef TEMPORALCORTEX
+	if (!cls.state || !cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
+#else
 	if (!cls.state || !cl.worldmodel || cl.worldmodel->loadstate != MLS_LOADED)
+#endif
 	{
 		Con_Printf("Please start a map first\n");
 		return;
 	}
-
+#ifdef TEMPORALCORTEX
+	if (!cl.worldmodel[tc_cl_current_bsp_index]->numenvmaps)
+#else
 	if (!cl.worldmodel->numenvmaps)
+#endif
 	{
 		// lump is not present or is empty. attempt to find cubemaps and then take screenshots.
 		Mod_FindCubemaps(true);
@@ -3141,8 +3148,13 @@ static void Mod_BuildCubemaps_f(void)
 	}
 
 	// cubemaps present. take screenshots for each one.
+#ifdef TEMPORALCORTEX
+	for (i = 0; i < cl.worldmodel[tc_cl_current_bsp_index]->numenvmaps; i++)
+		SCR_ScreenShot_Cubemap(cl.worldmodel[tc_cl_current_bsp_index]->envmaps[i].origin, cl.worldmodel[tc_cl_current_bsp_index]->envmaps[i].cubesize);
+#else
 	for (i = 0; i < cl.worldmodel->numenvmaps; i++)
 		SCR_ScreenShot_Cubemap(cl.worldmodel->envmaps[i].origin, cl.worldmodel->envmaps[i].cubesize);
+#endif
 }
 
 static void Mod_Realign_f(void)

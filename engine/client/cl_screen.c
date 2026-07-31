@@ -3128,7 +3128,6 @@ static void SCR_ScreenShot_Cubemap_Internal(vec3_t origin, int size, const char 
 	unsigned int bb, bw, bh, bd;
 
 	refdef_t oldrefdef;
-
 #ifdef TEMPORALCORTEX
 	if (!cls.state || !cl.worldmodel[tc_cl_current_bsp_index] || cl.worldmodel[tc_cl_current_bsp_index]->loadstate != MLS_LOADED)
 #else
