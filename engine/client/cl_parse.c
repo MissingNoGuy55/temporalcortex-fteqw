@@ -9677,6 +9677,10 @@ isillegible:
 
 				R_SetSky(cl.skyname[bspindex], bspindex);
 
+				// Missi: Any Dlights at this point are considered stale, and the renderer will crash
+				// if it tries to render stale shadow data for them (2026.7.30)
+				CLTC_ClearDLights();
+
 				tc_cl_current_bsp_index = bspindex;
 				track = MSG_ReadShort();
 				Media_NumberedTrack(track, track, bspindex);
