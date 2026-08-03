@@ -3812,8 +3812,12 @@ void SV_ChangeTimePeriod( int bspindex )
 		MSG_WriteShort (&sv.reliable_datagram, track);
 		MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
 	}
-	else
-		tc_sv_current_bsp_index = bspindex;
+
+	tc_sv_current_bsp_index = bspindex;
+#ifdef Q2SERVER
+	if (svs.gametype == GT_QUAKE2)
+		ge->current_bsp_index = bspindex;
+#endif
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
@@ -3863,38 +3867,52 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 
 void SV_ChangeTimePeriod_f()
 {
-	const char* pszArg;
-	int i;
-	char szPrintString[256];
-	const char* suffix;
-	trace_t tTrace;
-	client_t* pClient;
-	edict_t* pClientEdict;
+	const char *arg = Cmd_Argv(1);
+	const char *arg2 = Cmd_Argv(2);
+	int i, bspnum, pnum;
+	char printstring[256];
+	const char *suffix;
+	trace_t tr;
 	cvar_t *cvar;
-	qboolean bStuck = false;
+	qboolean stuck = false;
 
-	if ( !(pszArg = Cmd_Argv(1)) )
+	if (!arg)
 	{
 		Con_Printf("sv_changetimeperiod usage: \"sv_changetimeperiod [time period index]\"\n");
 		return;
 	}
 
-	if (Q_atoi(pszArg) < TIME_PERIOD_PRESENT || Q_atoi(pszArg) > TIME_PERIOD_FUTURE)
+	bspnum = Q_atoi(arg);
+
+	if (bspnum < TIME_PERIOD_PRESENT || bspnum > TIME_PERIOD_FUTURE)
 	{
-		Con_Printf("Invalid time period requested!\n");
+		Con_Printf("Invalid time period requested! Working values are 0 (present), 1 (past), and 2 (future).\n");
 		return;
 	}
 
 	cvar = Cvar_Get("tc_sv_allow_host_time_travel", "1", 0, "Allows the host in multiplayer to utilize time travel, taking other players with them.");
 
-	if (!cvar || (svs.allocated_client_slots > 1 && cvar->value < 1))
+	if (!cvar)
 		return;
 
-	if (!sv.world.worldmodel[Q_atoi(pszArg)])
+	if (arg2)
+		pnum = Q_atoi(arg2);
+	else
+		pnum = -1;
+
+	if (cvar->ival < 1)
+	{
+		if (pnum > -1 && svs.clients[pnum].edict)
+			Con_Printf (CON_WARNING "Player %i (\"%s\") attempted to change the time period!\n", pnum, svs.clients[pnum].name);
+
+		return;
+	}
+
+	if (!sv.world.worldmodel[bspnum])
 	{
 		const char* suffix_postfix = NULL;
 
-		switch( atoi(pszArg) )
+		switch(bspnum)
 		{
 			case TIME_PERIOD_PRESENT:
 				suffix = "present";
@@ -3925,34 +3943,34 @@ void SV_ChangeTimePeriod_f()
 				break;
 		}
 
-		if ( svs.allocated_client_slots == 1 )
-			snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix );
+		if (svs.allocated_client_slots == 1)
+			snprintf(printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix);
 		else
-			snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix );
+			snprintf(printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix);
 
-		for ( i = 0; i < svs.allocated_client_slots; i++ )
+		for (i = 0; i < svs.allocated_client_slots; i++)
 #ifdef HAVE_CLIENT
-			SCR_CenterPrint(i, szPrintString, true);
+			SCR_CenterPrint(i, printstring, true);
 #elif defined(HAVE_SERVER)
-			Con_Printf(szPrintString);
+			Con_Printf(printstring);
 #endif
 
 		return;
 	}
 
-	for ( i = 0; i < svs.allocated_client_slots; i++ )
+	for (i = 0; i < svs.allocated_client_slots; i++)
 	{
-		pClient = &svs.clients[i];
-		pClientEdict = pClient->edict;
+		client_t* client = &svs.clients[i];
+		edict_t* clientedict = client->edict;
 
-		if ( !pClientEdict )
+		if (!clientedict)
 			break;
 
-		tTrace = World_Move( &sv.world, pClientEdict->v->origin, pClientEdict->v->mins, pClientEdict->v->maxs, pClientEdict->v->origin, MOVE_NORMAL, (wedict_t*)pClientEdict, (timeperiod_t)atoi(pszArg) );
+		tr = World_Move(&sv.world, clientedict->v->origin, clientedict->v->mins, clientedict->v->maxs, clientedict->v->origin, MOVE_NORMAL, (wedict_t*)clientedict, bspnum);
 
-		if ( tTrace.allsolid )
+		if (tr.allsolid)
 		{
-			switch( atoi(pszArg) )
+			switch(bspnum)
 			{
 				case TIME_PERIOD_PRESENT:
 					suffix = "present";
@@ -3969,20 +3987,20 @@ void SV_ChangeTimePeriod_f()
 			}
 
 			if (svs.allocated_client_slots == 1)
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "You would be stuck if you went to the %s!\n", suffix );
+				snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", suffix);
 			else
-				snprintf( szPrintString, sizeof(szPrintString), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, suffix );
+				snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, suffix);
 
-			Con_Printf( "%s\n", szPrintString );
+			Con_Printf("%s\n", printstring);
 
-			bStuck = true;
+			stuck = true;
 		}
 	}
 
-	if (bStuck)
+	if (stuck)
 		return;
 
-	SV_ChangeTimePeriod( atoi(pszArg) );
+	SV_ChangeTimePeriod(bspnum);
 }
 
 #undef Q2EDICT_NUM
