@@ -83,7 +83,7 @@ External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
 Project Target=
 Use External Terminal=true
-Working Directory=file:///home/stephen/Documents/game_projects/quake_engine/game_files
+Working Directory=file:///home/stephen/Documents/game_projects/quake_engine/game_files/quake1/
 isExecutable=true
 
 [Launch][Launch Configuration 10]
@@ -93,7 +93,7 @@ Name=Client (Q2)
 Type=Native Application
 
 [Launch][Launch Configuration 10][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake2/" -game baseq2 +developer 2 +in_windowed_mouse 0 +cl_shownet 0 +maxplayers 1 +map q2test
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake2/" -game baseq2temporalcortex +developer 2 +in_windowed_mouse 0 +cl_shownet 0 +maxplayers 1 +map q2test
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x02\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\n\x00m\x00-\x00d\x00b\x00g\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\x16\x00p\x00l\x00u\x00g\x00i\x00n\x00s\x00-\x00d\x00b\x00g)
 Dependency Action=Nothing
 EnvironmentGroup=
