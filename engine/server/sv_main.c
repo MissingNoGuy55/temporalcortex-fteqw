@@ -1238,13 +1238,14 @@ short SV_NumParticlePrecaches()
 	return i;
 }
 
-modelprecache_t *SV_FindPrecacheByModelName(const char* name, modelprecache_t *head)
+modelprecache_t *SV_FindPrecacheByModelName(const char* name, modelprecache_t *head, short timeperiod)
 {
 	struct modelprecache_s* precache;
 
 	for (precache = head; precache; precache = precache->next)
 		if (!strcmp(precache->name, name))
-			return precache;
+			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
+				return precache;
 
 	return NULL;
 }
@@ -1260,7 +1261,7 @@ modelprecache_t *SV_FindPrecacheByModelIndex(short modelindex, modelprecache_t *
 	return NULL;
 }
 
-soundprecache_t *SV_FindPrecacheBySoundName(const char* name, soundprecache_t *head)
+soundprecache_t *SV_FindPrecacheBySoundName(const char* name, soundprecache_t *head, short timeperiod)
 {
 	struct soundprecache_s* precache = head;
 
@@ -1293,17 +1294,17 @@ modelprecache_t *SV_AddModelPrecache(const char* name, modelprecache_t *head, sh
 		return NULL;
 	}
 
-	for (i = 0; precache; precache = precache->next, i++)
+	precache = SV_FindPrecacheByModelName(name, head, timeperiod);
+	if (precache)
+		return precache;
+
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
 			Host_EndGame("SV_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
 			return NULL;
 		}
-
-		if (!strcmp(precache->name, name))
-			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
-				return precache;
 	}
 
 	precache = head;
@@ -1333,18 +1334,19 @@ modelprecache_t *SV_AddModelPrecache(const char* name, modelprecache_t *head, sh
 soundprecache_t *SV_AddSoundPrecache(const char* name, soundprecache_t *head, short timeperiod)
 {
 	int i;
-	struct soundprecache_s* precache = head;
+	struct soundprecache_s* precache;
 
-	for (i = 0; precache; precache = precache->next, i++)
+	precache = SV_FindPrecacheBySoundName(name, head, timeperiod);
+	if (precache)
+		return precache;
+
+	for (i = 0, precache = head; precache; precache = precache->next, i++)
 	{
 		if (i == MAX_PRECACHE_SOUNDS)
 		{
 			Host_EndGame("SV_AddSoundPrecache: i == MAX_PRECACHE_SOUNDS\n");
 			return NULL;
 		}
-
-		if (!strcmp(precache->name, name))
-			return precache;
 	}
 
 	precache = head;

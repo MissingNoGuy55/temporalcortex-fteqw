@@ -112,6 +112,7 @@ static cvar_t dpcompat_precachesoundhack = CVARD("dpcompat_precachesoundhack", "
 extern cvar_t sv_listen_dp;
 
 #ifdef TEMPORALCORTEX
+#if 0
 static cvar_t tc_sv_friendlyfire_pvp					= CVARD("tc_sv_friendlyfire_pvp", "0", "Enables/disables friendly fire between players.");
 static cvar_t tc_sv_friendlyfire_monster				= CVARD("tc_sv_friendlyfire_monster", "0", "Enables/disables friendly fire between monsters.");
 static cvar_t tc_sv_friendlyfire_misc					= CVARD("tc_sv_friendlyfire_misc", "0", "Enables/disables friendly fire between misc objects.");
@@ -146,8 +147,8 @@ static cvar_t tc_sv_army_gunner_damage					= CVARD("tc_sv_army_gunner_damage", "
 static cvar_t tc_sv_army_gunner_accuracy_x				= CVARD("tc_sv_army_gunner_accuracy_x", "0.05", "The horizontal spread of gunfire from monster_army_gunner." );
 static cvar_t tc_sv_army_gunner_accuracy_y				= CVARD("tc_sv_army_gunner_accuracy_y", "0.05", "The vertical spread of gunfire from monster_army_gunner." );
 static cvar_t tc_sv_army_gunner_accuracy_z				= CVARD("tc_sv_army_gunner_accuracy_z", "0.0", "The Z spread of gunfire from monster_army_gunner. This axis is generally never used for this purpose." );
-
 static char cvargroup_tc_progs[] = "Temporal Cortex (Progs)";
+#endif
 #endif
 
 static cvar_t sv_addon[MAXADDONS];
@@ -1697,6 +1698,7 @@ void PR_Init(void)
 	Cvar_Register (&dpcompat_nopreparse, cvargroup_progs);
 
 #ifdef TEMPORALCORTEX
+#if 0
 	Cvar_Register (&tc_sv_friendlyfire_pvp, cvargroup_tc_progs);
 	Cvar_Register (&tc_sv_friendlyfire_monster, cvargroup_tc_progs);
 	Cvar_Register (&tc_sv_friendlyfire_misc, cvargroup_tc_progs);
@@ -1731,6 +1733,7 @@ void PR_Init(void)
 	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_x, cvargroup_tc_progs);
 	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_y, cvargroup_tc_progs);
 	Cvar_Register (&tc_sv_army_heavygunner_barrage_accuracy_z, cvargroup_tc_progs);
+#endif
 #endif
 
 	Cvar_Register (&pr_nonetaccess, cvargroup_progs);
@@ -4846,7 +4849,7 @@ int PF_precache_sound_Internal (pubprogfuncs_t *prinst, const char *s, qboolean 
 		return 0;
 	}
 
-	sound_precache = SV_FindPrecacheBySoundName(s, sv.strings.sound_precache);
+	sound_precache = SV_FindPrecacheBySoundName(s, sv.strings.sound_precache, tc_sv_current_bsp_index);
 
 	if (!sound_precache)
 	{

@@ -1376,7 +1376,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		sound_precache = SV_FindPrecacheBySoundName(sample, sv.strings.sound_precache);
+		sound_precache = SV_FindPrecacheBySoundName(sample, sv.strings.sound_precache, ed->bspnum);
 
 		if (!sound_precache)
 			return;
