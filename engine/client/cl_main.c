@@ -6230,16 +6230,29 @@ void WAD_ImageList_f(void);
 
 #ifdef TEMPORALCORTEX
 // Missi: The way this console commands works is a bit tricky, so I will explain it here.
-// When a client runs this command, it sends an "sv_changetimeperiod" stuffcmd to the server,
-// which then checks if the client that sent it is player 1. If this check passes, the server
-// changes time period immediately. It then sends a svctc_timeperiod message to all clients
-// that then updates the time period for all clients.
+// When a client runs this command, it sends an "sv_changetimeperiod" clc_stringcmd to the server,
+// which then checks if the client that sent it is player 1. If this check passes, and if
+// the tc_sv_allow_host_time_travel cvar is set, then the server changes time period immediately.
+// It then sends a svctc_timeperiod message to all clients that then updates the time
+// period for all clients.
+//
+// If tc_sv_allow_host_time_travel is 0, then the server has ultimate authority over time travel,
+// and this command will fail immediately if a client attempts to use it.
+//
+// This console command has to exist for time travel in single player and dedicated servers.
+// Otherwise players on dedis wouldn't be able to utilize the tc_sv_allow_host_time_travel cvar.
+// If you're planning to get rid of that cvar entirely, and also give the server ultimate
+// authority on time travel, you can erase this console command.
+//
 static void CL_ChangeTimePeriod_f()
 {
 	const char*	arg = Cmd_Argv(1);
 	const char*	suffix;
+	int		bspnum;
+	int		pnum;
 	char	cmd[64];
 	char	printstring[256];
+
 
 	if (!arg)
 	{
@@ -6247,11 +6260,13 @@ static void CL_ChangeTimePeriod_f()
 		return;
 	}
 
-	if (!cl.worldmodel[Q_atoi(arg)])
+	bspnum = Q_atoi(arg);
+
+	if (!cl.worldmodel[bspnum])
 	{
 		const char* suffix_postfix = NULL;
 
-		switch( atoi(arg) )
+		switch(bspnum)
 		{
 			case TIME_PERIOD_PRESENT:
 				suffix = "present";
@@ -6266,7 +6281,7 @@ static void CL_ChangeTimePeriod_f()
 				suffix = "unknown";
 				break;
 		}
-		switch( tc_cl_current_bsp_index )
+		switch(tc_cl_current_bsp_index)
 		{
 			case TIME_PERIOD_PRESENT:
 				suffix_postfix = "melancholy";
@@ -6282,30 +6297,34 @@ static void CL_ChangeTimePeriod_f()
 				break;
 		}
 
-		if ( cl.allocated_client_slots == 1 )
-			snprintf( printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix );
+		if (cl.allocated_client_slots == 1)
+			snprintf(printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix);
 		else
-			snprintf( printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix );
+			snprintf(printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix);
 
 		SCR_CenterPrint(CL_TargettedSplit(true), printstring, true);
 
 		return;
 	}
 
-	// Missi: NOTE: This is handled by the server command in a MSG_WriteByte
-	//tc_cl_current_bsp_index = (timeperiod_t)atoi(pszArg);
+	r_worldentity.model = cl.worldmodel[bspnum];
 
-	r_worldentity.model = cl.worldmodel[atoi(arg)];
+	pnum = CL_TargettedSplit(false);
 
 	if (cls.protocol == CP_QUAKE3)
-		tc_cl_current_bsp_index = atoi(arg);
+	{
+		// Missi: In Quake III, we just cheat and set it here instead. It's lame, but it works since we're in
+		// the scope of a VM if the code reaches this point. We conseqeuently lose access to using
+		// clc_stringcmd, as that is a Q1 server message (2026.8.3)
+		tc_cl_current_bsp_index = bspnum;
+	}
 	else
 	{
-		snprintf( cmd, sizeof(cmd), "%s %s", "sv_changetimeperiod", Cmd_Argv(1) );
-		MSG_WriteByte ( &cls.netchan.message, clc_stringcmd );
-		MSG_WriteString( &cls.netchan.message, cmd );
+		snprintf(cmd, sizeof(cmd), "%s %s %i", "sv_changetimeperiod", Cmd_Argv(1), pnum);
+		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString (&cls.netchan.message, cmd);
+		Cmd_ForwardToServer();
 	}
-	Cmd_ForwardToServer();
 }
 #endif
 /*
