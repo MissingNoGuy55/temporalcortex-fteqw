@@ -450,14 +450,6 @@ void SCR_CenterPrint (int pnum, const char *str, qboolean skipgamecode)
 #endif
 	}
 
-#ifdef TEMPORALCORTEX
-	if ( pnum < 0 || pnum >= cl.allocated_client_slots + tc_cl_loaded_bsps )	// Missi: Second case is a bot (2026.1.8)
-	{
-		Con_Printf( "CL_ChangeTimePeriod_f: Attempted to centerprint for invalid player #%d\n", pnum );
-		return;
-	}
-#endif
-
 	if (Cmd_AliasExist("f_centerprint", RESTRICT_LOCAL))
 	{
 		cvar_t *var;
