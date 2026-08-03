@@ -800,15 +800,6 @@ void V_CalcPowerupCshift (playerview_t *pv)
 		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
 	}
-#ifdef TEMPORALCORTEX
-	else if (im & IT2_PSYCHOSIS)
-	{
-		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
-		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
-		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
-		pv->cshifts[CSHIFT_POWERUP].percent = 40*v_psychosiscshift.value;
-	}
-#endif
 	else
 		pv->cshifts[CSHIFT_POWERUP].percent = 0;
 
