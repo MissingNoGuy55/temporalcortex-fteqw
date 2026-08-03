@@ -1809,6 +1809,10 @@ MSV_OpenUserDatabase();
 #endif
 #endif
 
+#ifdef TEMPORALCORTEX
+	sv.world.model_time_periods = BZ_Realloc(sv.world.model_time_periods, sizeof(short) * j+1);
+#endif
+
 #ifndef SERVERONLY
 	current_loading_size+=10;
 	//SCR_BeginLoadingPlaque();
