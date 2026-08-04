@@ -360,8 +360,8 @@ static qboolean SV_LegacySavegame (const char *savename, qboolean verbose)
 			VFS_PRINTF(f, "sv.lightstyles %i %s\n", i, sv.lightstyles[i].str);
 	}
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 	const char *particle_precache;
 
 	for (model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next)
@@ -516,19 +516,19 @@ static void PDECL SV_SaveMemoryReset (pubprogfuncs_t *progfuncs, void *ctx)
 {
 	size_t i;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 
 	//model names are pointers to vm-accessible memory. as that memory is going away, we need to destroy and recreate, which requires preserving them.
 	for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 	{
-		if ((model_precache = SV_FindPrecacheByModelIndex(i, sv.strings.model_precache)) == NULL)
+		if ((model_precache = SV_FindPrecacheByIndex(i, sv.strings.model_precache)) == NULL)
 			break;
 		SV_AddModelPrecache(PR_AddString(svprogfuncs, model_precache->name, 0, false), sv.strings.model_precache, tc_sv_current_bsp_index);
 	}
 	for (i = 1; i < MAX_PRECACHE_SOUNDS; i++)
 	{
-		if ((sound_precache = SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache)) == NULL)
+		if ((sound_precache = SV_FindPrecacheByIndex(i, sv.strings.sound_precache)) == NULL)
 			break;
 		SV_AddSoundPrecache(PR_AddString(svprogfuncs, sound_precache->name, 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
 	}
@@ -1085,8 +1085,8 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 	int version = CACHEGAME_VERSION_DEFAULT;
 	func_t func;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 #endif
 
 	if (!sv.state)
@@ -2026,8 +2026,8 @@ static qboolean SV_Loadgame_Legacy(const char *savename, const char *filename, v
 	char *file;
 #ifdef TEMPORALCORTEX
 	int timeperiod = 0;
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;

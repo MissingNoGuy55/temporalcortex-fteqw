@@ -934,13 +934,13 @@ typedef struct
 #endif
 	char				*model_name[MAX_PRECACHE_MODELS];
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s		*model_precache;
+	struct precache_s		*model_precache;
 #else
 	struct model_s		*model_precache[MAX_PRECACHE_MODELS];
 #endif
 	char				*sound_name[MAX_PRECACHE_SOUNDS];
 #ifdef TEMPORALCORTEX
-	struct soundprecache_s		*sound_precache;
+	struct precache_s		*sound_precache;
 #else
 	struct sfx_s		*sound_precache[MAX_PRECACHE_SOUNDS];
 #endif
@@ -960,7 +960,7 @@ typedef struct
 
 	char				model_csqcname[MAX_CSMODELS][MAX_QPATH];
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s		*model_csqcprecache;
+	struct precache_s		*model_csqcprecache;
 #else
 	struct model_s		*model_csqcprecache[MAX_CSMODELS];
 #endif
@@ -1228,13 +1228,13 @@ void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
 #ifdef TEMPORALCORTEX
 short CL_NumModelPrecaches();
 short CL_NumSoundPrecaches();
-modelprecache_t *CL_FindPrecacheByModelName(const char* name, modelprecache_t *head);
-modelprecache_t *CL_FindPrecacheByModelIndex(short modelindex, modelprecache_t *head);
-modelprecache_t *CL_AddModelPrecache(const char* name, modelprecache_t *head, short timeperiod, qboolean csqc);
-soundprecache_t *CL_FindPrecacheBySoundName(const char* name, soundprecache_t *head);
-soundprecache_t *CL_FindPrecacheBySoundIndex(short soundindex, soundprecache_t *head);
-soundprecache_t *CL_AddSoundPrecache(const char* name, soundprecache_t *head, short timeperiod);
-#define CSQC_FindPrecacheByModelIndex CL_FindPrecacheByModelIndex
+precache_t *CL_FindPrecacheByModelName(const char* name, precache_t *head);
+precache_t *CL_FindPrecacheByIndex(short modelindex, precache_t *head);
+precache_t *CL_AddModelPrecache(const char* name, precache_t *head, short timeperiod, qboolean csqc);
+precache_t *CL_FindPrecacheBySoundName(const char* name, precache_t *head);
+precache_t *CL_FindPrecacheBySoundIndex(short soundindex, precache_t *head);
+precache_t *CL_AddSoundPrecache(const char* name, precache_t *head, short timeperiod);
+#define CSQC_FindPrecacheByModelIndex CL_FindPrecacheByIndex
 #define CSQC_FindPrecacheByModelName CL_FindPrecacheByModelName
 #endif
 

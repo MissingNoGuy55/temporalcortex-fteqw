@@ -4838,7 +4838,7 @@ static int PScript_RunParticleEffectState (vec3_t org, vec3_t dir, float count, 
 				{
 					lerpents_t *le = cl.lerpents+ctx.entity;
 #ifdef TEMPORALCORTEX
-					ctx.model = CL_FindPrecacheByModelIndex(le->entstate->modelindex, cl.model_precache)->model;
+					ctx.model = CL_FindPrecacheByIndex(le->entstate->modelindex, cl.model_precache)->data;
 #else
 					ctx.model = cl.model_precache[le->entstate->modelindex];
 #endif
@@ -7599,7 +7599,7 @@ static void PScript_DrawParticleTypes (void)
 								{	//this trace hit a door or something.
 									lerpents_t *le = cl.lerpents+ctx.entity;
 #ifdef TEMPORALCORTEX
-									model = CL_FindPrecacheByModelIndex(le->entstate->modelindex, cl.model_precache)->model;
+									model = CL_FindPrecacheByIndex(le->entstate->modelindex, cl.model_precache)->data;
 #else
 									model = cl.model_precache[le->entstate->modelindex];
 #endif

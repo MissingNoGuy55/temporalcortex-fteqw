@@ -174,7 +174,7 @@ static void SV_SetTimePeriodForEnt_f()
 	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
 	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
 	int timeperiod = atoi(Cmd_Argv(3));
-	modelprecache_t *model_precache = SV_FindPrecacheByModelIndex(mdlidx, sv.strings.model_precache);
+	precache_t *model_precache = SV_FindPrecacheByIndex(mdlidx, sv.strings.model_precache);
 	struct edict_s *ent = EDICT_NUM_PB(svprogfuncs, entnum);
 
 	ent->bspnum = timeperiod;
@@ -2399,8 +2399,8 @@ static void SV_Status_f (void)
 	float pi, po, bi, bo;
 #ifdef TEMPORALCORTEX
 	const char*	str;
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 #endif
 
 	int columns = 80;
@@ -3581,8 +3581,7 @@ void SV_PrecacheList_f(void)
 {
 	unsigned int i;
 #ifdef TEMPORALCORTEX
-	struct modelprecache_s* model_precache;
-	struct soundprecache_s* sound_precache;
+	precache_t* precache;
 	const char* part_precache;
 #endif
 
@@ -3605,16 +3604,16 @@ void SV_PrecacheList_f(void)
 #ifdef TEMPORALCORTEX
 	if (!*group || !strncmp(group, "model", 5))
 	{
-		for (i = 0, model_precache = sv.strings.model_precache->next; model_precache; i++, model_precache = model_precache->next)
+		for (i = 0, precache = sv.strings.model_precache->next; precache; i++, precache = precache->next)
 		{
-			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, model_precache->name, Mod_FixName(model_precache->name, sv.modelname[model_precache->timeperiod]));
+			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, precache->name, Mod_FixName(precache->name, sv.modelname[precache->timeperiod]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))
 	{
-		for (i = 0, sound_precache = sv.strings.sound_precache->next; sound_precache; i++, sound_precache = sound_precache->next)
+		for (i = 0, precache = sv.strings.sound_precache->next; precache; i++, precache = precache->next)
 		{
-			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, sound_precache->name, sound_precache->name);
+			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, precache->name, precache->name);
 		}
 	}
 	if (!*group || !strncmp(group, "part", 4))

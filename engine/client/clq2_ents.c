@@ -2047,7 +2047,7 @@ unsigned int CLQ2_GatherSounds(vec3_t *positions, unsigned int *entnums, sfx_t *
 		if (s1->u.q2.sound > 0 && s1->u.q2.sound < MAX_PRECACHE_SOUNDS)
 		{
 #ifdef TEMPORALCORTEX
-			sfx = CL_FindPrecacheBySoundIndex(s1->u.q2.sound, cl.sound_precache)->snd;
+			sfx = CL_FindPrecacheBySoundIndex(s1->u.q2.sound, cl.sound_precache)->data;
 #else
 			sfx = cl.sound_precache[s1->u.q2.sound];
 #endif
@@ -2425,7 +2425,7 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 				ent.skinnum = s1->skinnum;
 //				ent.skin = NULL;
 #ifdef TEMPORALCORTEX
-				ent.model = CL_FindPrecacheByModelIndex(s1->modelindex, cl.model_precache)->model;
+				ent.model = CL_FindPrecacheByIndex(s1->modelindex, cl.model_precache)->data;
 #else
 				ent.model = cl.model_precache[s1->modelindex];
 #endif
@@ -2646,7 +2646,7 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 			}
 			else
 #ifdef TEMPORALCORTEX
-				ent.model = CL_FindPrecacheByModelIndex(s1->modelindex2, cl.model_precache)->model;
+				ent.model = CL_FindPrecacheByIndex(s1->modelindex2, cl.model_precache)->data;
 #else
 				ent.model = cl.model_precache[s1->modelindex2];
 #endif
@@ -2671,7 +2671,7 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 		if (s1->u.q2.modelindex3)
 		{
 #ifdef TEMPORALCORTEX
-			ent.model = CL_FindPrecacheByModelIndex(s1->u.q2.modelindex3, cl.model_precache)->model;
+			ent.model = CL_FindPrecacheByIndex(s1->u.q2.modelindex3, cl.model_precache)->data;
 #else
 			ent.model = cl.model_precache[s1->u.q2.modelindex3];
 #endif
@@ -2680,7 +2680,7 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 		if (s1->u.q2.modelindex4)
 		{
 #ifdef TEMPORALCORTEX
-			ent.model = CL_FindPrecacheByModelIndex(s1->u.q2.modelindex4, cl.model_precache)->model;
+			ent.model = CL_FindPrecacheByIndex(s1->u.q2.modelindex4, cl.model_precache)->data;
 #else
 			ent.model = cl.model_precache[s1->u.q2.modelindex4];
 #endif
@@ -2877,7 +2877,7 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 	playerview_t *pv = &cl.playerview[seat];
 	struct model_s *om = pv->vm.oldmodel;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
 #endif
 
 	pv->vm.oldmodel = NULL;
@@ -2899,14 +2899,14 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 	VectorInverse(r_refdef.weaponmatrix[1]);
 	memcpy(r_refdef.weaponmatrix_bob, r_refdef.weaponmatrix, sizeof(r_refdef.weaponmatrix_bob));
 #ifdef TEMPORALCORTEX
-	model_precache = CL_FindPrecacheByModelIndex(ps->gunindex, cl.model_precache);
+	model_precache = CL_FindPrecacheByIndex(ps->gunindex, cl.model_precache);
 
-	if (om != model_precache->model)
+	if (om != model_precache->data)
 	{
 		pv->vm.prevframe = pv->vm.oldframe = ps->gunframe;
 		pv->vm.lerptime = pv->vm.oldlerptime = cl.oldgametime;
 	}
-	pv->vm.oldmodel = model_precache->model;
+	pv->vm.oldmodel = model_precache->data;
 #else
 	if (om != cl.model_precache[ps->gunindex])
 	{

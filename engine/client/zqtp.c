@@ -2924,7 +2924,7 @@ void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_
 {
 	playerview_t *pv = &cl.playerview[SP];
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
 #endif
 
 //	if (TP_NeedRefreshSkins())
@@ -2937,9 +2937,9 @@ void TP_ParsePlayerInfo(player_state_t *oldstate, player_state_t *state, player_
 	{
 		qboolean eyes;
 #ifdef TEMPORALCORTEX
-		model_precache = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache);
+		model_precache = CL_FindPrecacheByIndex(state->modelindex, cl.model_precache);
 
-		eyes = state->modelindex && model_precache->model && !strcmp(model_precache->name, "progs/eyes.mdl");
+		eyes = state->modelindex && model_precache->data && !strcmp(model_precache->name, "progs/eyes.mdl");
 #else
 		eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
 #endif
@@ -3258,7 +3258,8 @@ static void TP_FindPoint (void)
 	int oldskip = pmove.skipent;
 	playerview_t *pv = &cl.playerview[SP];
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
+	model_t	*model;
 #endif
 
 	if (vars.pointtime == realtime)
@@ -3341,9 +3342,10 @@ static void TP_FindPoint (void)
 		{
 			qboolean teammate, eyes = false;
 #ifdef TEMPORALCORTEX
-			model_precache = CL_FindPrecacheByModelIndex(state->modelindex, cl.model_precache);
+			model_precache = CL_FindPrecacheByIndex(state->modelindex, cl.model_precache);
+			model = (model_t*)model_precache->data;
 
-			eyes = state->modelindex && model_precache->model && !strcmp(model_precache->model->name, "progs/eyes.mdl");
+			eyes = state->modelindex && model && !strcmp(model->name, "progs/eyes.mdl");
 #else
 			eyes = state->modelindex && cl.model_precache[state->modelindex] && !strcmp(cl.model_precache[state->modelindex]->name, "progs/eyes.mdl");
 #endif
@@ -3367,9 +3369,10 @@ static void TP_FindPoint (void)
 		qboolean teammate, eyes;
 		char *name, buf[256] = {0};
 #ifdef TEMPORALCORTEX
-		model_precache = CL_FindPrecacheByModelIndex(beststate->modelindex, cl.model_precache);
+		model_precache = CL_FindPrecacheByIndex(beststate->modelindex, cl.model_precache);
+		model = (model_t*)model_precache->data;
 
-		eyes = beststate->modelindex && model_precache->model && !strcmp(model_precache->model->name, "progs/eyes.mdl");
+		eyes = beststate->modelindex && model && !strcmp(model->name, "progs/eyes.mdl");
 #else
 		eyes = beststate->modelindex && cl.model_precache[beststate->modelindex] && !strcmp(cl.model_precache[beststate->modelindex]->name, "progs/eyes.mdl");
 #endif

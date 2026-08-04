@@ -140,7 +140,7 @@ void CLQ2_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 		if (ent->solidsize == ES_SOLID_BSP)
 		{	// special value for bmodel
 #ifdef TEMPORALCORTEX
-			cmodel = CL_FindPrecacheByModelIndex(ent->modelindex, cl.model_precache)->model; // cl.model_precache[ent->modelindex].model;
+			cmodel = CL_FindPrecacheByIndex(ent->modelindex, cl.model_precache)->data; // cl.model_precache[ent->modelindex].model;
 #else
 			cmodel = cl.model_precache[ent->modelindex];
 #endif
@@ -225,7 +225,7 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 		if (ent->solidsize != ES_SOLID_BSP) // special value for bmodel
 			continue;
 #ifdef TEMPORALCORTEX
-		cmodel = CL_FindPrecacheByModelIndex(ent->modelindex, cl.model_precache)->model;
+		cmodel = CL_FindPrecacheByIndex(ent->modelindex, cl.model_precache)->data;
 #else
 		cmodel = cl.model_precache[ent->modelindex];
 #endif
@@ -790,12 +790,13 @@ static void CL_DecodeStateSize(unsigned int solid, int modelindex, vec3_t mins, 
 	if (solid == ES_SOLID_BSP)
 	{
 #ifdef TEMPORALCORTEX
-		modelprecache_t *model_precache = CL_FindPrecacheByModelIndex(modelindex, cl.model_precache);
+		precache_t *model_precache = CL_FindPrecacheByIndex(modelindex, cl.model_precache);
+		model_t *mod = model_precache->data;
 
-		if (modelindex < MAX_PRECACHE_MODELS && model_precache && model_precache->model->loadstate == MLS_LOADED)
+		if (modelindex < MAX_PRECACHE_MODELS && mod && mod->loadstate == MLS_LOADED)
 		{
-			VectorCopy(model_precache->model->mins, mins);
-			VectorCopy(model_precache->model->maxs, maxs);
+			VectorCopy(mod->mins, mins);
+			VectorCopy(mod->maxs, maxs);
 		}
 #else
 		if (modelindex < MAX_PRECACHE_MODELS && cl.model_precache[modelindex] && cl.model_precache[modelindex]->loadstate == MLS_LOADED)

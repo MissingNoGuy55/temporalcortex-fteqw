@@ -2200,7 +2200,7 @@ void S_DoRestart (qboolean onlyifneeded)
 		if (!cl.sound_name[i])
 			break;
 #ifdef TEMPORALCORTEX
-		cl.sound_precache[i].snd = S_FindName (cl.sound_name[i], true, false);
+		cl.sound_precache[i].data = S_FindName (cl.sound_name[i], true, false);
 #else
 		cl.sound_precache[i] = S_FindName (cl.sound_name[i], true, false);
 #endif
@@ -2748,6 +2748,9 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 	int i, v;
 	float volscale;
 	int seat;
+#ifdef TEMPORALCORTEX
+	model_t *mod;
+#endif
 
 	if (ch->flags & CF_FOLLOW)
 	{
@@ -2781,17 +2784,18 @@ static void SND_Spatialize(soundcardinfo_t *sc, channel_t *ch)
 
 			//bmodels should report the center of the entity rather than the origin (which is frequently at 0 0 0 or merely used as a pivot)
 #ifdef TEMPORALCORTEX
-			struct modelprecache_s* precache;
+			precache_t* precache;
 
 			if (le->entstate->solidsize == ES_SOLID_BSP && midx > 0 && midx < CL_NumModelPrecaches())
 			{
-				precache = CL_FindPrecacheByModelIndex(midx, cl.model_precache);
+				precache = CL_FindPrecacheByIndex(midx, cl.model_precache);
+				mod = (model_t*)precache->data;
 
-				if (precache->model && precache->model->loadstate == MLS_LOADED && precache->model->type == mod_brush)
+				if (mod && mod->loadstate == MLS_LOADED && mod->type == mod_brush)
 				{
 					//fixme: should probably deal with rotations.
-					VectorMA(ch->origin, 0.5, precache->model->mins, ch->origin);
-					VectorMA(ch->origin, 0.5, precache->model->maxs, ch->origin);
+					VectorMA(ch->origin, 0.5, mod->mins, ch->origin);
+					VectorMA(ch->origin, 0.5, mod->maxs, ch->origin);
 				}
 			}
 #else

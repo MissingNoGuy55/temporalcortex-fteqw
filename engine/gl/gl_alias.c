@@ -634,7 +634,7 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 #endif
 	int frame;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
 #endif
 
 	*forcedtex = NULL;
@@ -707,7 +707,7 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 		else if (!plskin || plskin->loadstate != SKIN_LOADED)
 		{
 #ifdef TEMPORALCORTEX
-			model_precache = CL_FindPrecacheByModelIndex(cl_playerindex, cl.model_precache);
+			model_precache = CL_FindPrecacheByIndex(cl_playerindex, cl.model_precache);
 
 			if (e->playerindex >= 0 && e->playerindex <= MAX_CLIENTS && model_precache)
 #else
@@ -716,7 +716,7 @@ static shader_t *GL_ChooseSkin(galiasinfo_t *inf, model_t *model, int surfnum, e
 			{
 				//heads don't get skinned, only players (and weaponless players), they do still get recoloured.
 #ifdef TEMPORALCORTEX
-				if (model==model_precache->model
+				if (model==model_precache->data
 #else
 				if (model==cl.model_precache[cl_playerindex]
 #endif
@@ -1779,7 +1779,7 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 
 	texnums_t *skin;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
 #endif
 
 	if ((r_refdef.externalview || r_refdef.recurse) && (e->flags & RF_WEAPONMODEL))
@@ -1791,9 +1791,9 @@ void R_GAlias_GenerateBatches(entity_t *e, batch_t **batches)
 	{
 		extern int cl_playerindex;
 #ifdef TEMPORALCORTEX
-		model_precache = CL_FindPrecacheByModelIndex(cl_playerindex, cl.model_precache);
+		model_precache = CL_FindPrecacheByIndex(cl_playerindex, cl.model_precache);
 
-		if (e->playerindex >= 0 && model_precache && e->model == model_precache->model)
+		if (e->playerindex >= 0 && model_precache && e->model == model_precache->data)
 #else
 		if (e->playerindex >= 0 && e->model == cl.model_precache[cl_playerindex])
 #endif

@@ -1329,7 +1329,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	struct startsoundcontext_s ctx;
 #ifdef TEMPORALCORTEX
 	struct edict_s *ed;
-	soundprecache_t *sound_precache;
+	precache_t *sound_precache;
 #endif
 
 	if (volume < 0 || volume > 255)
@@ -1376,7 +1376,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		sound_precache = SV_FindPrecacheBySoundName(sample, sv.strings.sound_precache, ed->bspnum);
+		sound_precache = SV_FindPrecacheByName(sample, sv.strings.sound_precache, ed->bspnum);
 
 		if (!sound_precache)
 			return;
@@ -1603,7 +1603,7 @@ void SV_FindModelNumbers (void)
 	sv_supernailmodel = -1;
 	sv_playermodel = -1;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
+	precache_t *model_precache;
 
 	if (!sv.strings.model_precache)
 		return;

@@ -595,8 +595,8 @@ void SVNQ_New_f (void)
 	unsigned int modelcount, soundcount;
 	extern cvar_t allow_download;
 #ifdef TEMPORALCORTEX
-	modelprecache_t *model_precache;
-	soundprecache_t *sound_precache;
+	precache_t *model_precache;
+	precache_t *sound_precache;
 #endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
@@ -920,7 +920,7 @@ void SVNQ_New_f (void)
 			if (!sv.world.worldmodel_indices[i])
 				continue;
 
-			model_precache = SV_FindPrecacheByModelIndex(sv.world.worldmodel_indices[i], sv.strings.model_precache);
+			model_precache = SV_FindPrecacheByIndex(sv.world.worldmodel_indices[i], sv.strings.model_precache);
 
 			MSG_WriteString (&host_client->netchan.message, model_precache->name);
 		}
@@ -937,7 +937,7 @@ void SVNQ_New_f (void)
 		//fixme: don't send too many models.
 		for (i = 0; i < SV_NumModelPrecaches() ; i++)
 		{
-			model_precache = SV_FindPrecacheByModelIndex(i, sv.strings.model_precache);
+			model_precache = SV_FindPrecacheByIndex(i, sv.strings.model_precache);
 			MSG_WriteString (&host_client->netchan.message, model_precache->name);
 		}
 		MSG_WriteByte (&host_client->netchan.message, 0);
@@ -945,7 +945,7 @@ void SVNQ_New_f (void)
 		//fixme: don't send too many sounds.
 		for (i = 0; SV_NumSoundPrecaches() ; i++)
 		{
-			sound_precache = SV_FindPrecacheBySoundIndex(i, sv.strings.sound_precache);
+			sound_precache = SV_FindPrecacheByIndex(i, sv.strings.sound_precache);
 			MSG_WriteString (&host_client->netchan.message, sound_precache->name);
 		}
 		MSG_WriteByte (&host_client->netchan.message, 0);
@@ -1295,8 +1295,8 @@ void SV_SendClientPrespawnInfo(client_t *client)
 	svcustomtents_t *ctent;
 	int maxsize;
 #ifdef TEMPORALCORTEX
-	static modelprecache_t *model_precache = NULL;
-	static soundprecache_t *sound_precache = NULL;
+	static precache_t *model_precache = NULL;
+	static precache_t *sound_precache = NULL;
 
 	if (client->prespawn_idx == 0)
 	{
