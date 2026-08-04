@@ -8848,7 +8848,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int		seq_hash;
 #ifdef TEMPORALCORTEX
 	float	newspeed;
-	int		input;
 #endif
 
 	if (!cl->frameunion.frames)
@@ -9199,7 +9198,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 		// to send a network packet to the server that it can parse once everything
 		// is set up. (2025.12.6)
 		case clctc_timeperiod:
-			input = MSG_ReadShort();
+			MSG_ReadShort();
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();
@@ -9785,7 +9784,6 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 
 #ifdef TEMPORALCORTEX
 	float	newspeed;
-	int input;
 #endif
 
 	cl->netchan.outgoing_sequence++;
@@ -9991,7 +9989,7 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 #ifdef TEMPORALCORTEX
 		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
 		case clctc_timeperiod:
-			input = MSG_ReadShort();
+			MSG_ReadShort();
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();
