@@ -963,21 +963,32 @@ static void CL_NullReadPacket(void)
 #ifdef TEMPORALCORTEX
 void CL_ClearPrecaches()
 {
-	precache_t *next_model;
-	precache_t *next_sound;
+	precache_t *next;
 
 	while(cl.model_precache)
 	{
-		next_model = cl.model_precache->next;
+		next = cl.model_precache->next;
 		BZ_Free(cl.model_precache);
-		cl.model_precache = next_model;
+		cl.model_precache = next;
 	}
 
 	while(cl.sound_precache)
 	{
-		next_sound = cl.sound_precache->next;
+		next = cl.sound_precache->next;
 		BZ_Free(cl.sound_precache);
-		cl.sound_precache = next_sound;
+		cl.sound_precache = next;
+	}
+}
+
+void CL_ClearCSQCPrecaches()
+{
+	precache_t *next;
+
+	while (cl.model_csqcprecache)
+	{
+		next = cl.model_csqcprecache->next;
+		BZ_Free(cl.model_csqcprecache);
+		cl.model_csqcprecache = next;
 	}
 }
 
@@ -2573,10 +2584,6 @@ void CL_ClearState (qboolean gamestart)
 			BZ_Free(cl.item_name[i]);
 #endif
 
-#if 0 && defined(TEMPORALCORTEX)
-	CL_ClearPrecaches();
-#endif
-
 	while (cl.itemtimers)
 	{
 		struct itemtimer_s *t = cl.itemtimers;
@@ -2716,6 +2723,7 @@ void CL_Disconnect (const char *reason)
 	memset(cl.model_time_periods, 0, sizeof(cl.model_time_periods));
 
 	CL_ClearPrecaches();
+	CL_ClearCSQCPrecaches();
 #endif
 
 	if (reason)

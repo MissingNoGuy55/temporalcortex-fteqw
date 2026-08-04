@@ -1929,4 +1929,5 @@ int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
 void CLTC_ClearDLights();
 
 void CL_ClearPrecaches();
+void CL_ClearCSQCPrecaches();
 #endif
