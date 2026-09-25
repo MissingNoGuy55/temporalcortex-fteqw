@@ -1581,11 +1581,13 @@ MSV_OpenUserDatabase();
 		memset(sv.world.model_time_periods, 0, sizeof(short) * 16385);
 	}
 
+#ifdef Q2SERVER
 	if (svs.gametype == GT_QUAKE2)
 	{
 		// init map checksum config string but only for Q2/Q3 maps
 		sv.strings.configstring[Q2CS_MAPCHECKSUM] = Z_StrDupf("%i %i", sv.world.worldmodel[0]->checksum, sv.world.worldmodel[0]->checksum2);
 	}
+#endif
 
 	// Missi: HACK: sv.models cannot have any NULL entries, or
 	// else the logic behind the whole array collapses. (2026.5.29)

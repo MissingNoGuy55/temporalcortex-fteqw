@@ -63,6 +63,10 @@ typedef enum {
 	QWSTDBLOOD_POINT,	//same
 	QWLGBLOOD_POINT,	//same
 
+#ifdef TEMPORALCORTEX
+	TC_DRAGONSBREATH_POINT,
+#endif
+
 	EFFECTTYPE_MAX
 } effect_type_t;
 
@@ -219,6 +223,11 @@ static qboolean PClassic_Query(int type, int body, char *outstr, int outstrlen)
 	case BRIGHTFIELD_POINT:
 		n = "ef_brightfield";
 		break;
+#ifdef TEMPORALCORTEX
+	case TC_DRAGONSBREATH_POINT:
+		n = "tr_dragonsbreath";
+		break;
+#endif
 	}
 
 	if (!n)

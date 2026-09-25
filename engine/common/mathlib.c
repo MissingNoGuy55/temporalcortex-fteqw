@@ -27,6 +27,9 @@ vec3_t vec3_origin = {0,0,0};
 /*-----------------------------------------------------------------*/
 
 #define DEG2RAD( a ) ( a * M_PI ) / 180.0F
+#ifdef TEMPORALCORTEX
+#define RAD2DEG( a ) ( a * 180.0F ) / M_PI
+#endif
 
 static void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
@@ -2059,3 +2062,52 @@ void MakeNormalVectors (const vec3_t forward, vec3_t right, vec3_t up)
 	VectorNormalize (right);
 	CrossProduct (right, forward, up);
 }
+
+#ifdef TEMPORALCORTEX
+void QDECL LerpVector(vec3_t v1, vec3_t v2, float alpha, vec3_t dest)
+{
+	dest[0] = LerpFloat(v1[0], v2[0], alpha);
+	dest[1] = LerpFloat(v1[1], v2[1], alpha);
+	dest[2] = LerpFloat(v1[2], v2[2], alpha);
+}
+
+void QDECL EulerToQuaternion(const vec3_t in, vec4_t out)
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+
+	angle = in[2] * 0.5f;
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = in[1] * 0.5f;
+	sp = sin(angle);
+	cp = cos(angle);
+	angle = in[0] * 0.5f;
+	sr = sin(angle);
+	cr = cos(angle);
+
+	out[0] = cr*cp*cy+sr*sp*sy; // W
+	out[1] = sr*cp*cy-cr*sp*sy; // X
+	out[2] = cr*sp*cy+sr*cp*sy; // Y
+	out[3] = cr*cp*sy-sr*sp*cy; // Z
+}
+
+void QDECL QuaternionToEuler(const vec4_t in, vec3_t out)
+{
+	float sp = 2.0f * (in[0]*in[1] - in[2]*in[3]);
+
+	if (fabs(sp) > 0.9999f) // gimbal lock
+	{
+		Con_DPrintf("Gimbal lock detected\n");
+		out[0] = RAD2DEG((M_PI / 2) * sp);
+		out[1] = RAD2DEG(atan2(-in[1]*in[3] + in[0]*in[2], 0.5f - in[2]*in[2] - in[3]*in[3]));
+		out[2] = 0;
+	}
+	else
+	{
+		out[0] = RAD2DEG(asin(sp));
+		out[1] = RAD2DEG(atan2(in[1]*in[3] + in[0]*in[2], 0.5f - in[1]*in[1] - in[2]*in[2]));
+		out[2] = RAD2DEG(atan2(in[1]*in[2] + in[0]*in[3], 0.5f - in[1]*in[1] - in[3]*in[3]));
+	}
+}
+#endif

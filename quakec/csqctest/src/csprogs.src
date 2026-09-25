@@ -1,4 +1,4 @@
-../csprogs.dat
+#output "../csprogs.dat"
 
 #define CSQC
 optsall.qc
@@ -9,6 +9,7 @@ fteextensions.qc
 #endif
 cs/defs.qc
 
+#includelist
 common/classes.qc
 
 common/econstants.qc
@@ -45,3 +46,4 @@ cs/test.qc
 
 cs/fun/skinchooser.qc
 cs/entrypoints.qc
+#endlist

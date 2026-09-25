@@ -1134,9 +1134,10 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 #endif
 
 #ifdef TEMPORALCORTEX
-#define	IT2_GRAPPLING_HOOK		(1u<<23)
-#define	IT2_PSYCHOSIS			(1u<<24)
-#define	IT2_INCENDIARY_AMMO		(1u<<25)
+#define	IT2_GRAPPLING_HOOK		1
+#define	IT2_MDMA				2
+#define	IT2_INCENDIARY_AMMO		4
+#define	IT2_SLOWMO				8
 #endif
 
 //

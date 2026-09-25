@@ -772,6 +772,31 @@ void V_CalcPowerupCshift (playerview_t *pv)
 #ifdef QUAKESTATS
 	int im = pv->stats[STAT_ITEMS];
 
+#ifdef TEMPORALCORTEX
+	// Missi: These entries pertain to self.items2 in QC (2026.8.27)
+	if ((im >> 23) & IT2_MDMA)
+	{
+		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 128;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
+		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+	}
+	else if ((im >> 23) & IT2_INCENDIARY_AMMO)
+	{
+		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 128;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
+		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+	}
+	else if ((im >> 23) & IT2_SLOWMO)
+	{
+		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
+		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 255;
+		pv->cshifts[CSHIFT_POWERUP].percent = 60*v_pentcshift.value;
+	}
+	else
+#endif
 	if (im & IT_QUAD)
 	{
 		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;

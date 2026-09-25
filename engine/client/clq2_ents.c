@@ -2047,7 +2047,7 @@ unsigned int CLQ2_GatherSounds(vec3_t *positions, unsigned int *entnums, sfx_t *
 		if (s1->u.q2.sound > 0 && s1->u.q2.sound < MAX_PRECACHE_SOUNDS)
 		{
 #ifdef TEMPORALCORTEX
-			sfx = CL_FindPrecacheBySoundIndex(s1->u.q2.sound, cl.sound_precache)->data;
+			sfx = CL_FindPrecacheByIndex(s1->u.q2.sound, cl.sound_precache)->data;
 #else
 			sfx = cl.sound_precache[s1->u.q2.sound];
 #endif

@@ -1139,7 +1139,6 @@ void QCBUILTIN PF_cl_getmousepos (pubprogfuncs_t *prinst, struct globalvars_s *p
 	ret[2] = 0;
 }
 
-
 void QCBUILTIN PF_SubConGetSet (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	const char *conname = PR_GetStringOfs(prinst, OFS_PARM0);
@@ -2902,6 +2901,10 @@ static struct {
 	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
 	{"getworldtimeperiod",		PF_Fixme,					747},
 	{"getentitytimeperiod",		PF_Fixme,					748},
+	{"flerp",					PF_flerp,					749},
+	{"vlerp",					PF_vlerp,					750},
+	{"slerpangle",				PF_slerpangle,				751},
+	{"rotateaxis",				PF_rotatearbitraryaxis,		752},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype

@@ -6646,6 +6646,173 @@ void QCBUILTIN PF_ceil (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 	G_FLOAT(OFS_RETURN) = ceil(G_FLOAT(OFS_PARM0));
 }
 
+#ifdef TEMPORALCORTEX
+void QCBUILTIN PF_flerp(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float f1 = G_FLOAT(OFS_PARM0);
+	float f2 = G_FLOAT(OFS_PARM1);
+	float alpha = G_FLOAT(OFS_PARM2);
+
+	if (alpha < 0.001f)
+		alpha = 0.0f;
+
+	if (alpha == 0.0f)
+		PR_RunError (prinst, "PF_flerp detected a divide by zero attempt. Aborting.\n");
+
+	G_FLOAT(OFS_RETURN) = LerpFloat(f1, f2, alpha);
+}
+
+void QCBUILTIN PF_vlerp(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float* v1 = G_VECTOR(OFS_PARM0);
+	float* v2 = G_VECTOR(OFS_PARM1);
+	float alpha = G_FLOAT(OFS_PARM2);
+
+	if (alpha < 0.001f)
+		alpha = 0.0f;
+
+	if (alpha == 0.0f)
+		PR_RunError (prinst, "PF_vlerp detected a divide by zero attempt. Aborting.\n");
+
+	LerpVector(v1, v2, alpha, G_VECTOR(OFS_RETURN));
+}
+
+void QCBUILTIN PF_slerpangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float *v1, *v2, alpha;
+	vec4_t quat1, quat2, quat3;
+	vec3_t eul1;
+
+	v1 = G_VECTOR(OFS_PARM0);
+	v2 = G_VECTOR(OFS_PARM1);
+	alpha = G_FLOAT(OFS_PARM2);
+
+	EulerToQuaternion(v1, quat1);
+	EulerToQuaternion(v2, quat2);
+
+	Vector4Interpolate(quat1, alpha, quat2, quat3);
+
+	QuaternionToEuler(quat3, eul1);
+
+	VectorCopy(eul1, G_VECTOR(OFS_RETURN));
+
+	Con_DPrintf("euler to quaternion test: %f %f %f %f\n", quat3[0], quat3[1], quat3[2], quat3[3]);
+	Con_DPrintf("quaternion to euler test: %f %f %f\n", eul1[0], eul1[1], eul1[2]);
+
+	//Con_DPrintf("quat1: %f %f %f %f\n", quat1[0], quat1[1], quat1[2], quat1[3]);
+	//Con_DPrintf("quat2: %f %f %f %f\n", quat2[0], quat2[1], quat2[2], quat2[3]);
+	//Con_DPrintf("quat3: %f %f %f %f\n", quat3[0], quat3[1], quat3[2], quat3[3]);
+}
+
+void QCBUILTIN PF_rotatearbitraryaxis(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+#if 1
+	float *axis;
+	float *angle;
+	float degrees;
+	float *origin;
+	float mat[16], mat2[16], mat3[16];
+	vec3_t out[4];
+	vec3_t angles;
+	vec3_t fwd, rt, up;
+
+	axis = G_VECTOR(OFS_PARM0);
+	angle = G_VECTOR(OFS_PARM1);
+	degrees = G_FLOAT(OFS_PARM2);
+	origin = G_VECTOR(OFS_PARM3);
+
+	memset(mat, 0, sizeof(mat));
+	memset(mat2, 0, sizeof(mat2));
+	memset(mat3, 0, sizeof(mat3));
+	memset(out, 0, sizeof(out));
+
+	AngleVectors(angle, fwd, rt, up);
+	Matrix4x4_RM_FromVectors(mat, fwd, rt, up, origin);
+
+	Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees, axis[0], axis[1], axis[2]), mat, mat2);
+
+	//Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees[YAW], 0, 0, axis[YAW]), mat2, mat);
+	//Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees[ROLL], axis[ROLL], 0, 0), mat, mat2);
+
+	//Matrix3x4_Invert(mat, mat2);
+
+	//Matrix4_Multiply(mat2, Matrix4x4_CM_NewRotation(-degrees,  axis[ROLL], axis[PITCH], axis[YAW]), tempmat);	    // put Z going up
+	//Matrix4_Multiply(tempmat, Matrix4x4_CM_NewRotation(degrees,  axis[ROLL], axis[PITCH], axis[YAW]), mat2);	    // put Z going up
+
+	Matrix3x4_RM_ToVectors(mat2, out[0], out[1], out[2], out[3]);
+	VectorAngles(out[0], out[1], angles, false);
+
+	VectorCopy(angles, G_VECTOR(OFS_RETURN));
+
+	//Con_DPrintf("out: %f %f %f", out[0][0], out[0][1], out[0][2]);
+	//Con_DPrintf("axis: %f %f %f\n", axis[0], axis[1], axis[2]);
+	//Con_DPrintf("angle: %f %f %f\n", angle[0], angle[1], angle[2]);
+
+	//VectorCopy(out[0], pr_global_struct->v_forward);
+	//VectorCopy(out[1], pr_global_struct->v_right);
+	//VectorCopy(out[2], pr_global_struct->v_up);
+
+	//Con_DPrintf("PF_rotatearbitraryaxis:\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n", out[0][0], out[0][1], out[0][2], out[1][0], out[1][1], out[1][2], out[2][0], out[2][1], out[2][2], out[3][0], out[3][1], out[3][2], angles[0], angles[1], angles[2]);
+#else
+	float	m[3][3];
+	float	im[3][3];
+	float	zrot[3][3];
+	float	tmpmat[3][3];
+	float	rot[3][3];
+	int	i;
+	vec3_t vr, vup, vf;
+
+	float* ang = G_VECTOR(OFS_PARM0);
+	float* dir = G_VECTOR(OFS_PARM1);
+	float degrees = G_FLOAT(OFS_PARM2);
+
+	vf[0] = dir[0];
+	vf[1] = dir[1];
+	vf[2] = dir[2];
+
+	PerpendicularVector( vr, dir );
+	CrossProduct( vr, vf, vup );
+
+	m[0][0] = vr[0];
+	m[1][0] = vr[1];
+	m[2][0] = vr[2];
+
+	m[0][1] = vup[0];
+	m[1][1] = vup[1];
+	m[2][1] = vup[2];
+
+	m[0][2] = vf[0];
+	m[1][2] = vf[1];
+	m[2][2] = vf[2];
+
+	memcpy( im, m, sizeof( im ) );
+
+	im[0][1] = m[1][0];
+	im[0][2] = m[2][0];
+	im[1][0] = m[0][1];
+	im[1][2] = m[2][1];
+	im[2][0] = m[0][2];
+	im[2][1] = m[1][2];
+
+	memset( zrot, 0, sizeof( zrot ) );
+	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
+
+	zrot[0][0] = cos( degrees / 180.0F * M_PI );
+	zrot[0][1] = sin( degrees / 180.0F * M_PI );
+	zrot[1][0] = -sin( degrees / 180.0F * M_PI );
+	zrot[1][1] = cos( degrees / 180.0F * M_PI );
+
+	R_ConcatRotations( m, zrot, tmpmat );
+	R_ConcatRotations( tmpmat, im, rot );
+
+	for ( i = 0; i < 3; i++ )
+	{
+		G_VECTOR(OFS_RETURN)[i] = rot[i][0] + rot[i][1] + rot[i][2];
+	}
+#endif
+}
+#endif
+
 void QCBUILTIN PF_anglemod (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	float v = G_FLOAT(OFS_PARM0);
@@ -7038,7 +7205,7 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 	qcstate_t *state;
 	edict_t *ed;
 #ifdef TEMPORALCORTEX
-#ifdef CLIENTONLY
+#ifdef HAVE_CLIENT
 	extern world_t csqc_world;
 #endif
 #endif
@@ -7053,9 +7220,9 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 		ed = PROG_TO_EDICT(prinst, world->g.self?*world->g.self:0);
 		state->self = NUM_FOR_EDICT(prinst, ed);
 #ifdef TEMPORALCORTEX
-#ifdef CLIENTONLY
+#ifdef HAVE_CLIENT
 		state->selfid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
-#else
+#elif defined(HAVE_SERVER)
 		state->selfid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
 #endif
 #else
@@ -7064,9 +7231,9 @@ qcstate_t *PR_CreateThread(pubprogfuncs_t *prinst, float retval, float resumetim
 		ed = PROG_TO_EDICT(prinst, world->g.self?*world->g.self:0);
 		state->other = NUM_FOR_EDICT(prinst, ed);
 #ifdef TEMPORALCORTEX
-#ifdef CLIENTONLY
+#ifdef HAVE_CLIENT
 		state->otherid = (prinst==csqc_world.progs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
-#else
+#elif defined(HAVE_SERVER)
 		state->otherid = (prinst==svprogfuncs&&ed->ereftype==ER_ENTITY)?ed->xv->uniquespawnid:0;
 #endif
 #else

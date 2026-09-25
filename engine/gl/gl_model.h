@@ -929,6 +929,10 @@ typedef enum {sb_none, sb_quake64, sb_long1, sb_long2} subbsp_t; // used to deno
 #define  MFH2_BLOODSHOT			(1u<<23)		// Blood rain shot trail
 #define  MFH2_SPIDERBLOOD		(1u<<31)		// spider blood (remapped from MF_ROCKET, to avoid dlight issues)
 
+#ifdef TEMPORALCORTEX
+#define MF_TC_DRAGONSBREATH		(1u<<24)
+#endif
+
 typedef union {
 	struct {
 		int numlinedefs;

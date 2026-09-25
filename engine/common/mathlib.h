@@ -216,8 +216,17 @@ int			VectorCompare (const vec3_t v1, const vec3_t v2);
 int			Vector4Compare (const vec4_t v1, const vec4_t v2);
 void		VectorInverse (vec3_t v);
 void		_VectorMA (const vec3_t veca, const float scale, const vec3_t vecb, vec3_t vecc);
+
 float		QDECL VectorNormalize (vec3_t v);		// returns vector length
 vec_t		QDECL VectorNormalize2 (const vec3_t v, vec3_t out);
 void		VectorNormalizeFast(vec3_t v);
 void		VectorTransform (const vec3_t in1, const matrix3x4 in2, vec3_t out);
 void		VectorVectors (const vec3_t forward, vec3_t right, vec3_t up);
+
+#ifdef TEMPORALCORTEX
+#define LerpFloat(f1, f2, alpha) f1 + alpha * (f2 - f1)
+
+void QDECL LerpVector(vec3_t v1, vec3_t v2, float alpha, vec3_t dest);
+void QDECL EulerToQuaternion(const vec3_t in, vec4_t out);
+void QDECL QuaternionToEuler(const vec4_t in, vec3_t out);
+#endif

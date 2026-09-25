@@ -459,7 +459,7 @@ void CLQ3TC_ParseTimePeriod(void)
 #elif defined(HAVE_SERVER)
 		ccs.worldmodel = sv3.world->worldmodel[number];
 #endif
-		snprintf(cmd, sizeof(cmd), "cl_changetimeperiod %i", number);
+		snprintf(cmd, sizeof(cmd), "sv_changetimeperiod %i", number);
 		cmdfuncs->AddText(cmd, false);
 	}
 }

@@ -3148,7 +3148,7 @@ void PF_setmodel_Internal (pubprogfuncs_t *prinst, edict_t *e, const char *m)
 #ifdef VM_Q1
 					if (svs.gametype != GT_Q1QVM)
 #endif
-						m = model_precache->publicname;
+						m = model_precache->name;
 					break;
 				}
 			}
@@ -13218,10 +13218,14 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	// Missi: Temporal Cortex extras (2025.12.17)
 	{"timeperiod_change",									PF_TimePeriod_Change,0,0,0,743,	"void(float timeperiod)", "Changes the time period on the server and relays it to all clients."},
 	{"timeperiod_change_ent",								PF_TimePeriod_Change_Ent,0,0,0,744,	"void(entity ent, float timeperiod)", "Changes the time period for the specified entity only."},
-	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 2d points."},
+	{"drawline3d",											PF_Fixme,0,0,0,745,	"void(float width, vector start, vector end, vector rgb, float alpha)", "Draws a 3d line between the two 3d points."},
 	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
 	{"getworldtimeperiod",									PF_CurrentTimePeriod,0,0,0,747,	"float()", "Obtains the current time period for the world."},
 	{"getentitytimeperiod",									PF_EntityTimePeriod,0,0,0,748,	"float(entity e)", "Obtains the current time period for a specific entity."},
+	{"flerp",												PF_flerp,0,0,0,749, "float(float f1, float f2, float alpha)", "Lerps between two floats."},
+	{"vlerp",												PF_vlerp,0,0,0,750, "vector(vector v1, vector v2, float alpha)", "Lerps between two vectors."},
+	{"slerpangle",											PF_slerpangle,0,0,0,751, "vector(vector ang1, vector ang2, vector amount)", "Lerps between two angles that are interpreted as quaternions."},
+	{"rotateaxis",											PF_rotatearbitraryaxis,0,0,0,752, "vector(vector axis, vector angle, float degrees, vector origin)", "Rotates the given angles by an arbitrary axis and returns the result."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin

@@ -2260,8 +2260,7 @@ void Sbar_DrawFace (playerview_t *pv)
 		Sbar_DrawPic (112, 0, 24, 24, sb_face_quad_invis);
 		return;
 	}
-	if ( (pv->stats[STAT_ITEMS] & IT2_PSYCHOSIS )
-	== IT2_PSYCHOSIS )
+	if ( (pv->stats[STAT_ITEMS] & IT2_MDMA ) == IT2_MDMA )
 	{
 		Sbar_DrawPic (112, 0, 24, 24, sb_face_psychosis);
 		return;

@@ -1215,6 +1215,14 @@ void P_DefaultTrail (unsigned int entityeffects, unsigned int modelflags, int *t
 		*trailpalidx = 70;	//fixme
 	}
 #endif
+#ifdef TEMPORALCORTEX
+	else if (modelflags & MF_TC_DRAGONSBREATH)
+	{
+		//spiders
+		*trailid = P_FindParticleType("TR_GREENBLOOD");
+		*trailpalidx = 70;	//fixme
+	}
+#endif
 	else
 	{
 		*trailid = P_INVALID;

@@ -16,26 +16,24 @@ parserArgumentsOpenCL=-ferror-limit=100 -fspell-checking -Wdocumentation -Wunuse
 Name=GCC
 
 [CustomDefinesAndIncludes][ProjectPath0][Defines]
-HAVE_CLIENT=1
-TEMPORALCORTEX=1
-TEMPORALCORTEX_QCC=1
-VM_CG=1
+TEMPORALCORTEX=
+TEMPORALCORTEX_QCC=
 
 [CustomDefinesAndIncludes][ProjectPath0][Includes]
 1=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine
-10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
-11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins
-12=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/quake3
-13=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/botlib
-14=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
-2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
-3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
-4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
-5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
-6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
-7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
-8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
-9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
+10=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/botlib
+11=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/common
+12=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/d3d
+13=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/droid
+14=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/gl
+2=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/http
+3=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/qclib
+4=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/server
+5=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/sw
+6=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/vk
+7=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/client
+8=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins
+9=/home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/plugins/quake3
 
 [Launch]
 Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7,Launch Configuration 8,Launch Configuration 9,Launch Configuration 10,Launch Configuration 11,Launch Configuration 12,Launch Configuration 13
@@ -74,7 +72,7 @@ Name=Server
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
-Arguments=-game temporalcortex +developer 0 +maxplayers 4 +coop 1 +deathmatch 0 +changelevel mall
+Arguments=-game temporalcortex +developer 0 +maxplayers 4 +coop 1 +deathmatch 0 +changelevel mall +record the_mall
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -265,7 +263,7 @@ Name=Client (FTEQW)
 Type=Native Application
 
 [Launch][Launch Configuration 8][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files" -game "temporalcortex" +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake1" -game "lq1" +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
@@ -274,7 +272,7 @@ External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
 Project Target=
 Use External Terminal=false
-Working Directory=file:///home/stephen/Documents/game_projects/quake_engine/game_files
+Working Directory=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug
 isExecutable=true
 
 [Launch][Launch Configuration 9]

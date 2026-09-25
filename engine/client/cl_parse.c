@@ -1365,46 +1365,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	pmove.physents[0].model = NULL;
 
 #ifdef TEMPORALCORTEX
-	if (!cl.model_precache)
-	{
-		cl.model_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_precache, 0, sizeof(precache_t));
-
-		cl.model_precache->name = Z_Malloc(sizeof(char));
-		cl.model_precache->publicname = Z_Malloc(sizeof(char));
-		cl.model_precache->index = 0;
-		cl.model_precache->timeperiod = 0;
-		cl.model_precache->data = Mod_ForName("", MLV_WARN);
-
-		memset(cl.model_precache->name, 0, sizeof(*cl.model_precache->name));
-		memset(cl.model_precache->publicname, 0, sizeof(*cl.model_precache->publicname));
-	}
-	if (!cl.model_csqcprecache)
-	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_csqcprecache, 0, sizeof(precache_t));
-
-		cl.model_csqcprecache->name = Z_Malloc(sizeof(char));
-		cl.model_csqcprecache->publicname = Z_Malloc(sizeof(char));
-		cl.model_csqcprecache->index = 0;
-		cl.model_csqcprecache->timeperiod = 0;
-		cl.model_csqcprecache->data = NULL;
-
-		memset(cl.model_csqcprecache->name, 0, sizeof(*cl.model_csqcprecache->name));
-		memset(cl.model_csqcprecache->publicname, 0, sizeof(*cl.model_csqcprecache->publicname));
-	}
-	if (!cl.sound_precache)
-	{
-		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.sound_precache, 0, sizeof(precache_t));
-
-		cl.sound_precache->name = Z_Malloc(sizeof(char));
-		cl.sound_precache->index = 0;
-		cl.sound_precache->timeperiod = 0;
-		cl.sound_precache->data = NULL;
-
-		memset(cl.sound_precache->name, 0, sizeof(*cl.sound_precache->name));
-	}
+	CL_InitPrecaches();
 #endif
 
 #if defined(CSQC_DAT) && defined(NQPROT)
@@ -3791,36 +3752,7 @@ static void CLQW_ParseServerData (void)
 	cl.teamfortress = !!Q_strcasestr(str, "fortress");
 
 #ifdef TEMPORALCORTEX
-	if (!cl.model_precache)
-	{
-		cl.model_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_precache, 0, sizeof(precache_t));
-
-		cl.model_precache->name = Z_Malloc(sizeof(char));;
-		cl.model_precache->publicname = Z_Malloc(sizeof(char));;
-		cl.model_precache->index = 0;
-		cl.model_precache->data = Mod_ForName("", MLV_WARN);
-	}
-	if (!cl.model_csqcprecache)
-	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_csqcprecache, 0, sizeof(precache_t));
-
-		cl.model_csqcprecache->name = Z_Malloc(sizeof(char));;
-		cl.model_csqcprecache->publicname = Z_Malloc(sizeof(char));;
-		cl.model_csqcprecache->index = 0;
-		cl.model_csqcprecache->data = Mod_ForName("", MLV_WARN);
-	}
-	if (!cl.sound_precache)
-	{
-		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.sound_precache, 0, sizeof(precache_t));
-
-		cl.sound_precache->name = Z_Malloc(sizeof(char));;
-		cl.sound_precache->index = 0;
-		cl.sound_precache->timeperiod = 0;
-		cl.sound_precache->data = S_FindName("", false, false);
-	}
+	CL_InitPrecaches();
 #endif
 
 	if (cl.gamedirchanged)
@@ -4495,9 +4427,25 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 #ifdef QUAKEHUD
 	Stats_NewMap();
 #endif
+
+#ifdef TEMPORALCORTEX
+	CL_InitPrecaches();
+#endif
+
 	Cvar_ForceCallback(Cvar_FindVar("r_particlesdesc"));
 
 	CLNQ_ParseProtoVersion();
+
+#ifdef TEMPORALCORTEX
+	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
+	tc_cl_loaded_bsps = MSG_ReadShort();
+	tc_cl_unloaded_bsps = MSG_ReadShort();
+
+	tc_cl_current_bsp_index = MSG_ReadShort();
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		cl.worldmodel_indices[t] = MSG_ReadShort();
+#endif
 
 	if (cls.qex)
 	{
@@ -4519,16 +4467,6 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 		if (!sv.state)
 #endif
 			COM_Gamedir(str, NULL);
-#ifdef TEMPORALCORTEX
-		// Missi: Read the number of worlds loaded from the server. (2026.1.14)
-		tc_cl_loaded_bsps = MSG_ReadShort();
-		tc_cl_unloaded_bsps = MSG_ReadShort();
-
-		tc_cl_current_bsp_index = MSG_ReadShort();
-
-		for (int t = 0; t < MAX_TIME_PERIODS; t++)
-			cl.worldmodel_indices[t] = MSG_ReadShort();
-#endif
 	}
 	if (cl.allocated_client_slots > MAX_CLIENTS)
 	{
@@ -4557,6 +4495,10 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 #endif
 
 	SCR_BeginLoadingPlaque();
+
+#ifdef TEMPORALCORTEX
+	CL_InitPrecaches();
+#endif
 
 	Surf_PreNewMap();
 
@@ -7991,42 +7933,6 @@ static void CL_ParsePrecache(void)
 	precache_t *sound_precache;
 #endif
 
-#ifdef TEMPORALCORTEX
-	if (!cl.model_precache)
-	{
-		cl.model_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_precache, 0, sizeof(precache_t));
-
-		cl.model_precache->name = Z_Malloc(sizeof(char));
-		cl.model_precache->publicname = Z_Malloc(sizeof(char));
-		cl.model_precache->index = 0;
-		cl.model_precache->data = Mod_ForName("", MLV_WARN);
-		cl.model_precache->next = NULL;
-	}
-	if (!cl.model_csqcprecache)
-	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.model_csqcprecache, 0, sizeof(precache_t));
-
-		cl.model_csqcprecache->name = Z_Malloc(sizeof(char));
-		cl.model_csqcprecache->publicname = Z_Malloc(sizeof(char));;
-		cl.model_csqcprecache->index = 0;
-		cl.model_csqcprecache->data = Mod_ForName("", MLV_WARN);
-		cl.model_csqcprecache->next = NULL;
-	}
-	if (!cl.sound_precache)
-	{
-		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
-		memset(cl.sound_precache, 0, sizeof(precache_t));
-
-		cl.sound_precache->name = Z_Malloc(sizeof(char));
-		cl.sound_precache->index = 0;
-		cl.sound_precache->timeperiod = 0;
-		cl.sound_precache->data = S_FindName("", false, false);
-		cl.sound_precache->next = NULL;
-	}
-#endif
-
 	i = code & ~PC_TYPE;
 	switch(code & PC_TYPE)
 	{
@@ -9003,23 +8909,9 @@ void CLQW_ParseServerMessage (void)
 
 			memset(cl.levelname, 0, sizeof(cl.levelname));
 
-			Q_strcpy(cl.levelname, MSG_ReadString());
+			Q_strncpyz(cl.levelname, MSG_ReadString(), sizeof(cl.levelname));
 
-			switch(bspindex)
-			{
-				case TIME_PERIOD_PRESENT:
-					Q_strcat(cl.levelname, " (present)");
-					break;
-				case TIME_PERIOD_PAST:
-					Q_strcat(cl.levelname, " (past)");
-					break;
-				case TIME_PERIOD_FUTURE:
-					Q_strcat(cl.levelname, " (future)");
-					break;
-			}
-
-			if (cls.protocol != CP_QUAKE3)
-				CSQC_TC_ChangeLevelName(cl.levelname);
+			CSQC_TC_ChangeLevelName(cl.levelname);
 
 			MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
 			MSG_WriteShort (&cls.netchan.message, bspindex);
@@ -9712,22 +9604,9 @@ isillegible:
 
 				memset(cl.levelname, 0, sizeof(cl.levelname));
 
-				Q_strcpy(cl.levelname, MSG_ReadString());
+				Q_strncpyz(cl.levelname, MSG_ReadString(), sizeof(cl.levelname));
 
-				switch(bspindex)
-				{
-					case TIME_PERIOD_PRESENT:
-						Q_strcat(cl.levelname, " (present)");
-						break;
-					case TIME_PERIOD_PAST:
-						Q_strcat(cl.levelname, " (past)");
-						break;
-					case TIME_PERIOD_FUTURE:
-						Q_strcat(cl.levelname, " (future)");
-						break;
-				}
-
-				//CSQC_TC_ChangeLevelName(cl.levelname);
+				CSQC_TC_ChangeLevelName(cl.levelname);
 
 				MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
 				MSG_WriteShort (&cls.netchan.message, bspindex);

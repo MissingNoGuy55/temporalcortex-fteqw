@@ -681,24 +681,31 @@ static void QCBUILTIN PF_cs_makevectors (pubprogfuncs_t *prinst, struct globalva
 static int CS_FindModel(const char *name, int *free, short timeperiod)
 {
 	int i;
-	precache_t *model_precache;
+	const char *fixedname;
 
-	for (i = 1, model_precache = cl.model_precache->next; model_precache; model_precache = model_precache->next, i++)
-	{
-		if (!strcmp(model_precache->publicname, name))
-			return model_precache->index;
-	}
+	*free = 0;
 
-	for (i = 1, model_precache = cl.model_csqcprecache->next; model_precache; model_precache = model_precache->next, i++)
+	if (!name || !*name)
+		return 0;
+
+	fixedname = Mod_FixName(name, csqc_world.worldmodel[timeperiod]->publicname);
+
+	for (i = 1; i < MAX_CSMODELS; i++)
 	{
 		if (!*cl.model_csqcname[i])
 		{
 			*free = -i;
 			break;
 		}
-
-		if (!strcmp(model_precache->publicname, name))
-			return model_precache->index;
+		if (!strcmp(cl.model_csqcname[i], fixedname))
+			return -i;
+	}
+	for (i = 1; i < MAX_PRECACHE_MODELS; i++)
+	{
+		if (!cl.model_name[i])
+			break;
+		if (!strcmp(cl.model_name[i], name))
+			return i;
 	}
 
 	return 0;
@@ -752,8 +759,8 @@ static model_t *CSQC_GetModelForIndex(int index)
 	{
 		model_precache = CSQC_FindPrecacheByModelIndex(-index, cl.model_csqcprecache);
 
-		if (!model_precache->data)
-			model_precache->data = Mod_ForName(Mod_FixName(cl.model_csqcname[-index], csqc_world.worldmodel[cl.model_time_periods[model_precache->index]]?csqc_world.worldmodel[cl.model_time_periods[model_precache->index]]->publicname:NULL), MLV_WARN);
+		if (!model_precache)
+			model_precache = CL_AddModelPrecache(cl.model_csqcname[-index], cl.model_csqcprecache, tc_cl_current_bsp_index, true);
 		return model_precache->data;
 	}
 	else
@@ -7686,6 +7693,10 @@ static struct {
 	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
 	{"getworldtimeperiod",		PF_CL_CurrentTimePeriod,	747},
 	{"getentitytimeperiod",		PF_Fixme,					748},
+	{"flerp",					PF_flerp,					749},
+	{"vlerp",					PF_vlerp,					750},
+	{"slerpangle",				PF_slerpangle,				751},
+	{"rotateaxis",				PF_rotatearbitraryaxis,		752},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype
@@ -8514,7 +8525,8 @@ qboolean CSQC_Init (qboolean anycsqc, const char *csprogsname, unsigned int chec
 			if (!cl.worldmodel_indices[i])
 				continue;
 
-			csqc_world.worldmodel[i] = Mod_ForName(cl.model_name[cl.worldmodel_indices[i]], MLV_SILENT);
+			if (!csqc_world.worldmodel[i])
+				csqc_world.worldmodel[i] = Mod_ForName("", MLV_SILENT);
 		}
 #else
 		if (!csqc_world.worldmodel)

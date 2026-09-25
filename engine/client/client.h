@@ -1301,6 +1301,7 @@ extern 	kbutton_t 	in_speed;
 
 #ifdef TEMPORALCORTEX
 extern kbutton_t	in_slowtime, in_speeduptime, in_centertime;
+extern cvar_t tc_cl_allow_time_travel;
 #endif
 
 extern	float in_sensitivityscale;
@@ -1928,6 +1929,7 @@ int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
 
 void CLTC_ClearDLights();
 
+void CL_InitPrecaches();
 void CL_ClearPrecaches();
 void CL_ClearCSQCPrecaches();
 #endif

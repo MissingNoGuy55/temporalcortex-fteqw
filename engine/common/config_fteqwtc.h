@@ -7,19 +7,19 @@
 //general rebranding
 //#define DISTRIBUTION			"FTE"							//should be kept short. 8 or less letters is good, with no spaces.
 //#define DISTRIBUTIONLONG		"Forethought Entertainment"		//think of this as your company name. It isn't shown too often, so can be quite long.
-//#define FULLENGINENAME		"FTE Quake"						//nominally user-visible name.
-//#define ENGINEWEBSITE			"http://fte.triptohell.info"	//for shameless self-promotion purposes.
+//#define FULLENGINENAME		"FTEQW Temporal Cortex"		//nominally user-visible name.
+//#define ENGINEWEBSITE			"https://steamcommunity.com/id/missingnoguy55"	//for shameless self-promotion purposes.
 //#define BRANDING_ICON			"fte_eukara.ico"				//The file to use in windows' resource files - for linux your game should include an icon.[png|ico] file in the game's data.
 
 //filesystem rebranding
-//#define GAME_SHORTNAME		"quake"			//short alphanumeric description
+//#define GAME_SHORTNAME			"temporalcortex"			//short alphanumeric description
 //#define GAME_FULLNAME			FULLENGINENAME 	//full name of the game we're playing
-//#define GAME_BASEGAMES		GAME_SHORTNAME	//comma-separate list of basegame strings to use
+//#define GAME_BASEGAMES			"lq1","temporalcortex"	//comma-separate list of basegame strings to use
 //#define GAME_PROTOCOL			"FTE-Quake"		//so other games won't show up in the server browser
 //#define GAME_DEFAULTPORT		27500			//slightly reduces the chance of people connecting to the wrong type of server
 //#define GAME_IDENTIFYINGFILES	NULL			//with multiple games, this string-list gives verification that the basedir is actually valid. if null, will just be assumed correct.
 //#define GAME_DOWNLOADSURL		NULL			//url for the package manger to update from
-//#define GAME_DEFAULTCMDS		NULL			//a string containing the things you want to exec in order to override default.cfg 
+//#define GAME_DEFAULTCMDS		NULL			//a string containing the things you want to exec in order to override default.cfg
 
 //#define ENGINE_HAS_ZIP	//when defined, the engine is effectively a self-extrating zip with the gamedata zipped onto the end (if it in turn contains nested packages then they should probably be STOREd pk3s)
 
@@ -121,12 +121,16 @@
 #define CSQC_DAT
 #define MENU_DAT
 //#define MENU_NATIVECODE		//Use an external dll for menus.
+
 #define VM_Q1					//q1qvm implementation, to support ktx.
+
 //#define VM_LUA				//optionally supports lua instead of ssqc.
+
 #define Q2SERVER				//q2 server+gamecode.
 #define Q2CLIENT				//q2 client. file formats enabled separately.
 #define Q3CLIENT				//q3 client stuff.
 #define Q3SERVER				//q3 server stuff.
+
 #define AVAIL_BOTLIB			//q3 botlib
 //#undef BOTLIB_STATIC			//should normally be set only in the makefile, and only if AVAIL_BOTLIB is defined above.
 #define HEXEN2					//runs hexen2 gamecode, supports hexen2 file formats.

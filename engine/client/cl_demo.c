@@ -2098,6 +2098,16 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 	MSG_WriteLong (buf, cl.servercount);
 	MSG_WriteString (buf, gamedirfile);
 
+#ifdef TEMPORALCORTEX
+	MSG_WriteShort (buf, tc_cl_loaded_bsps);
+	MSG_WriteShort (buf, tc_cl_unloaded_bsps);
+
+	MSG_WriteShort (buf, tc_cl_current_bsp_index);
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		MSG_WriteShort (buf, cl.worldmodel_indices[t]);
+#endif
+
 	if (cls.fteprotocolextensions2 & PEXT2_MAXPLAYERS)
 	{
 		MSG_WriteByte (buf, cl.allocated_client_slots);
@@ -2375,16 +2385,22 @@ void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
 	if (protmain == PROTOCOL_VERSION_RMQ)
 		MSG_WriteLong (buf, protfl);
 
+#ifdef TEMPORALCORTEX
+	MSG_WriteShort (buf, tc_cl_loaded_bsps);
+	MSG_WriteShort (buf, tc_cl_unloaded_bsps);
+
+	MSG_WriteShort (buf, tc_cl_current_bsp_index);
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		MSG_WriteShort (buf, cl.worldmodel_indices[t]);
+#endif
+
 	if (cls.fteprotocolextensions2 & PEXT2_PREDINFO)
 		MSG_WriteString(buf, FS_GetGamedir(true));
+
 	MSG_WriteByte (buf, cl.allocated_client_slots);
 	MSG_WriteByte (buf, cl.deathmatch?GAME_DEATHMATCH:GAME_COOP);
 	MSG_WriteString (buf, cl.levelname);
-
-#ifdef TEMPORALCORTEX
-	// Missi: Send full mapname (2026.1.6)
-	MSG_WriteString (buf, cl.mapname[tc_cl_current_bsp_index]);
-#endif
 
 	for (i = 1; cl.model_name[i] && i < MAX_PRECACHE_MODELS; i++)
 		MSG_WriteString (buf, cl.model_name[i]);
@@ -3073,6 +3089,10 @@ void CL_Record_f (void)
 	int seq = 1;
 	const char *defaultext;
 
+#ifdef TEMPORALCORTEX
+	struct precache_s *precache;
+#endif
+
 	c = Cmd_Argc();
 	if (c > 2)
 	{
@@ -3276,6 +3296,81 @@ void CL_Record_f (void)
 		MSG_WriteByte (&buf, svc_soundlist);
 		MSG_WriteByte (&buf, 0);
 
+#ifdef TEMPORALCORTEX
+		n = 0;
+		precache = cl.sound_precache->next;
+
+		while (precache && precache->name && *precache->name)
+		{
+			MSG_WriteString (&buf, precache->name);
+			MSG_WriteShort (&buf, precache->timeperiod);
+			if (buf.cursize > buf.maxsize/2 && (n&0xff))
+			{
+				MSG_WriteByte (&buf, 0);
+				MSG_WriteByte (&buf, n);
+				CL_WriteRecordDemoMessage (&buf, seq++);
+			
+				if (n + 1 > 0xff)
+				{
+					MSG_WriteByte (&buf, svcfte_soundlistshort);
+					MSG_WriteShort (&buf, n + 1);
+				}
+				else
+				{
+					MSG_WriteByte (&buf, svc_soundlist);
+					MSG_WriteByte (&buf, n + 1);
+				}
+			}
+			n++;
+			precache = precache->next;
+		}
+		if (buf.cursize)
+		{
+			MSG_WriteByte (&buf, 0);
+			MSG_WriteByte (&buf, 0);
+			CL_WriteRecordDemoMessage (&buf, seq++);
+		}
+
+		//FIXME: vweps
+
+	// modellist
+		MSG_WriteByte (&buf, svc_modellist);
+		MSG_WriteByte (&buf, 0);
+
+		n = 0;
+		precache = cl.model_precache->next;
+
+		while (precache && precache->name && *precache->name)
+		{
+			MSG_WriteString (&buf, precache->name);
+			MSG_WriteShort (&buf, precache->timeperiod);
+			if (buf.cursize > buf.maxsize/2 && (n&0xff))
+			{
+				MSG_WriteByte (&buf, 0);
+				MSG_WriteByte (&buf, n);
+				CL_WriteRecordDemoMessage (&buf, seq++);
+
+				if (n + 1 > 0xff)
+				{
+					MSG_WriteByte (&buf, svcfte_modellistshort);
+					MSG_WriteShort (&buf, n + 1);
+				}
+				else
+				{
+					MSG_WriteByte (&buf, svc_modellist);
+					MSG_WriteByte (&buf, n + 1);
+				}
+			}
+			n++;
+			precache = precache->next;
+		}
+		if (buf.cursize)
+		{
+			MSG_WriteByte (&buf, 0);
+			MSG_WriteByte (&buf, 0);
+			CL_WriteRecordDemoMessage (&buf, seq++);
+		}
+#else
 		n = 0;
 		s = cl.sound_name[n+1];
 
@@ -3287,7 +3382,7 @@ void CL_Record_f (void)
 				MSG_WriteByte (&buf, 0);
 				MSG_WriteByte (&buf, n);
 				CL_WriteRecordDemoMessage (&buf, seq++);
-			
+
 				if (n + 1 > 0xff)
 				{
 					MSG_WriteByte (&buf, svcfte_soundlistshort);
@@ -3347,6 +3442,7 @@ void CL_Record_f (void)
 			MSG_WriteByte (&buf, 0);
 			CL_WriteRecordDemoMessage (&buf, seq++);
 		}
+#endif
 
 		seq = CL_Record_ParticlesStaticsBaselines(&buf, seq);
 
@@ -3404,11 +3500,6 @@ void CL_Record_f (void)
 			MSG_WriteShort (&buf, cl.playerview[0].playernum);
 
 		MSG_WriteString (&buf, cl.levelname);
-
-#ifdef TEMPORALCORTEX
-		// Missi: Send full mapname (2026.1.6)
-		MSG_WriteString (&buf, cl.mapname[tc_cl_current_bsp_index]);
-#endif
 
 		for (i = 0; i < Q2MAX_CONFIGSTRINGS; i++)
 		{

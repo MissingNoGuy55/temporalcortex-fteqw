@@ -1240,11 +1240,11 @@ short SV_NumParticlePrecaches()
 
 precache_t *SV_FindPrecacheByName(const char* name, precache_t *head, short timeperiod)
 {
-	precache_t* precache;
+	precache_t* precache = head;
 
-	for (precache = head; precache; precache = precache->next)
+	for (; precache; precache = precache->next)
 		if (!strcmp(precache->name, name))
-			if (!strcmp(precache->publicname, Mod_FixName(precache->name, sv.modelname[timeperiod])))
+			if (!strcmp(precache->publicname, Mod_FixName(name, sv.modelname[timeperiod])))
 				return precache;
 
 	return NULL;

@@ -249,6 +249,10 @@ cvar_t  ruleset_allow_watervis				= CVARFCD("ruleset_allow_watervis", "1", CVAR_
 cvar_t  ruleset_allow_fbmodels				= CVARFD("ruleset_allow_fbmodels", "0", CVAR_SHADERSYSTEM, "When 1, allows all models to be displayed fullbright, completely ignoring the lightmaps. This feature exists only for parity with ezquake's defaults."RULESETADVICE);
 cvar_t  ruleset_allow_triggers				= CVARAD("ruleset_allow_triggers", "1", "tp_msgtriggers"/*ez*/, "When 0, blocks the use of msg_trigger checks."RULESETADVICE);
 
+#ifdef TEMPORALCORTEX
+cvar_t	tc_cl_allow_time_travel = CVARFD("tc_cl_allow_time_travel", "1", CVAR_SEMICHEAT, "When 0, this completely disables the ability for the player to change the time period in single player.");
+#endif
+
 extern cvar_t cl_hightrack;
 extern cvar_t	vid_renderer;
 
@@ -961,18 +965,59 @@ static void CL_NullReadPacket(void)
 #endif
 
 #ifdef TEMPORALCORTEX
+void CL_InitPrecaches()
+{
+	if (!cl.model_precache)
+	{
+		cl.model_precache = BZ_Malloc(sizeof(precache_t));
+		memset(cl.model_precache, 0, sizeof(precache_t));
+
+		cl.model_precache->name = Z_Malloc(sizeof(char));;
+		cl.model_precache->publicname = Z_Malloc(sizeof(char));;
+		cl.model_precache->index = 0;
+		cl.model_precache->timeperiod = 0;
+		cl.model_precache->data = Mod_ForName("", MLV_WARN);
+	}
+	if (!cl.model_csqcprecache)
+	{
+		cl.model_csqcprecache = BZ_Malloc(sizeof(precache_t));
+		memset(cl.model_csqcprecache, 0, sizeof(precache_t));
+
+		cl.model_csqcprecache->name = Z_Malloc(sizeof(char));;
+		cl.model_csqcprecache->publicname = Z_Malloc(sizeof(char));;
+		cl.model_csqcprecache->index = 0;
+		cl.model_csqcprecache->timeperiod = 0;
+		cl.model_csqcprecache->data = Mod_ForName("", MLV_WARN);
+	}
+	if (!cl.sound_precache)
+	{
+		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
+		memset(cl.sound_precache, 0, sizeof(precache_t));
+
+		cl.sound_precache->name = Z_Malloc(sizeof(char));;
+		cl.sound_precache->index = 0;
+		cl.sound_precache->timeperiod = 0;
+		cl.sound_precache->data = S_FindName("", false, false);
+	}
+}
+
 void CL_ClearPrecaches()
 {
 	precache_t *next;
 
-	while(cl.model_precache)
+	while (cl.model_precache)
 	{
 		next = cl.model_precache->next;
 		BZ_Free(cl.model_precache);
 		cl.model_precache = next;
 	}
-
-	while(cl.sound_precache)
+	while (cl.model_csqcprecache)
+	{
+		next = cl.model_csqcprecache->next;
+		BZ_Free(cl.model_csqcprecache);
+		cl.model_csqcprecache = next;
+	}
+	while (cl.sound_precache)
 	{
 		next = cl.sound_precache->next;
 		BZ_Free(cl.sound_precache);
@@ -1139,6 +1184,7 @@ precache_t *CL_AddSoundPrecache(const char* name, precache_t *head, short int ti
 	}
 
 	precache = head;
+
 	while (precache->next)
 		precache = precache->next;
 
@@ -2723,7 +2769,6 @@ void CL_Disconnect (const char *reason)
 	memset(cl.model_time_periods, 0, sizeof(cl.model_time_periods));
 
 	CL_ClearPrecaches();
-	CL_ClearCSQCPrecaches();
 #endif
 
 	if (reason)
@@ -5103,10 +5148,6 @@ void CL_WriteDemoMessage (sizebuf_t *msg, int payloadoffset);
 
 void CL_ReadPacket(void)
 {
-#ifdef TEMPORALCORTEX
-	int readcount;
-#endif
-
 	if (!qrenderer)
 		return;
 
@@ -5242,9 +5283,7 @@ void CL_ReadPacket(void)
 			return;		// wasn't accepted for some reason
 
 #ifdef TEMPORALCORTEX
-		readcount = MSG_GetReadCount();
-
-		CL_WriteDemoMessage (&net_message, readcount);
+		CL_WriteDemoMessage (&net_message, MSG_GetReadCount());
 		//CL_WriteTemporalCache( &net_message, readcount);
 #else
 		CL_WriteDemoMessage (&net_message, MSG_GetReadCount());
@@ -6244,7 +6283,7 @@ void WAD_ImageList_f(void);
 
 #ifdef TEMPORALCORTEX
 // Missi: The way this console commands works is a bit tricky, so I will explain it here.
-// When a client runs this command, it sends an "sv_changetimeperiod" clc_stringcmd to the server,
+// When a client runs this command, it sends a clctc_timeperiod message to the server,
 // which then checks if the client that sent it is player 1. If this check passes, and if
 // the tc_sv_allow_host_time_travel cvar is set, then the server changes time period immediately.
 // It then sends a svctc_timeperiod message to all clients that then updates the time
@@ -6264,15 +6303,24 @@ static void CL_ChangeTimePeriod_f()
 	const char*	suffix;
 	int		bspnum;
 	int		pnum;
-	char	cmd[64];
 	char	printstring[256];
-
+	cvar_t	*cvar;
 
 	if (!arg)
 	{
-		Con_Printf( "cl_changetimeperiod usage: \"cl_changetimeperiod [time period index]\"\n");
+		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
 		return;
 	}
+
+	pnum = CL_TargettedSplit(false);
+
+	cvar = Cvar_Get("tc_cl_allow_time_travel", "1", 0, "When 0, this completely disables the ability for the player to change the time period in single player.");
+
+	if (!cvar)
+		return;
+
+	if (cvar->ival < 1 || (pnum > -1 && cl.allocated_client_slots > 1))
+		return;
 
 	bspnum = Q_atoi(arg);
 
@@ -6323,22 +6371,9 @@ static void CL_ChangeTimePeriod_f()
 
 	r_worldentity.model = cl.worldmodel[bspnum];
 
-	pnum = CL_TargettedSplit(false);
-
-	if (cls.protocol == CP_QUAKE3)
-	{
-		// Missi: In Quake III, we just cheat and set it here instead. It's lame, but it works since we're in
-		// the scope of a VM if the code reaches this point. We conseqeuently lose access to using
-		// clc_stringcmd, as that is a Q1 server message (2026.8.3)
-		tc_cl_current_bsp_index = bspnum;
-	}
-	else
-	{
-		snprintf(cmd, sizeof(cmd), "%s %s %i", "sv_changetimeperiod", Cmd_Argv(1), pnum);
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, cmd);
-		Cmd_ForwardToServer();
-	}
+	tc_cl_current_bsp_index = bspnum;
+	MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
+	MSG_WriteShort (&cls.netchan.message, bspnum);
 }
 #endif
 /*
@@ -6569,6 +6604,10 @@ void CL_Init (void)
 	Cvar_Register (&ruleset_allow_watervis,			cl_controlgroup);
 	Cvar_Register (&ruleset_allow_fbmodels,			cl_controlgroup);
 
+#ifdef TEMPORALCORTEX
+	Cvar_Register (&tc_cl_allow_time_travel,			cl_controlgroup);
+#endif
+
 	Cvar_Register (&qtvcl_forceversion1,				cl_controlgroup);
 	Cvar_Register (&qtvcl_eztvextensions,				cl_controlgroup);
 #ifdef FTPCLIENT
@@ -6700,11 +6739,6 @@ void CL_Init (void)
 	Cmd_AddCommand ("spiderpig", NULL);
 	Cmd_AddCommand ("fly", NULL);
 	Cmd_AddCommand ("setpos", NULL);
-#ifdef TEMPORALCORTEX
-#ifdef HAVE_CLIENT
-	Cmd_AddCommand ("cl_changetimeperiod", CL_ChangeTimePeriod_f);
-#endif
-#endif
 	Cmd_AddCommand ("notarget", NULL);
 
 	Cmd_AddCommand ("topten", NULL);

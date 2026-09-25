@@ -255,9 +255,6 @@ void SV_New_f (void)
 	int splitnum;
 	client_t *split;
 	unsigned int fteext1, fteext2, ezext1, vers;	//reported to client
-#ifdef TEMPORALCORTEX
-	char suffix[64];
-#endif
 
 	host_client->prespawn_stage = PRESPAWN_INVALID;
 	host_client->prespawn_idx = 0;
@@ -503,22 +500,6 @@ void SV_New_f (void)
 #endif
 	{
 #ifdef TEMPORALCORTEX
-		switch(tc_sv_current_bsp_index)
-		{
-			case TIME_PERIOD_PRESENT:
-				Q_strncpyz(suffix, " (present)", 11);
-				break;
-			case TIME_PERIOD_PAST:
-				Q_strncpyz(suffix, " (past)", 8);
-				break;
-			case TIME_PERIOD_FUTURE:
-				Q_strncpyz(suffix, " (future)", 10);
-				break;
-		}
-
-		if (sv.mapname[tc_sv_current_bsp_index][0])
-			Q_strncatz(sv.mapname[tc_sv_current_bsp_index], suffix, sizeof(sv.mapname[tc_sv_current_bsp_index]));
-
 		ClientReliableWrite_String (host_client, sv.mapname[tc_sv_current_bsp_index]);
 #else
 		ClientReliableWrite_String (host_client, sv.mapname);
@@ -887,12 +868,6 @@ void SVNQ_New_f (void)
 	if (protmain == PROTOCOL_VERSION_RMQ)
 		MSG_WriteLong (&host_client->netchan.message, protfl);
 
-	if (protext2 & PEXT2_PREDINFO)
-		MSG_WriteString(&host_client->netchan.message, gamedir);
-	MSG_WriteByte (&host_client->netchan.message, (sv.allocated_client_slots>host_client->max_net_clients)?host_client->max_net_clients:sv.allocated_client_slots);
-	if (host_client->qex)
-		MSG_WriteString(&host_client->netchan.message, gamedir);
-
 #ifdef TEMPORALCORTEX
 	// Missi: Write the number of worlds loaded. (2026.1.14)
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_loaded_bsps);
@@ -903,6 +878,12 @@ void SVNQ_New_f (void)
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
 		MSG_WriteShort (&host_client->netchan.message, sv.world.worldmodel_indices[t]);
 #endif
+
+	if (protext2 & PEXT2_PREDINFO)
+		MSG_WriteString(&host_client->netchan.message, gamedir);
+	MSG_WriteByte (&host_client->netchan.message, (sv.allocated_client_slots>host_client->max_net_clients)?host_client->max_net_clients:sv.allocated_client_slots);
+	if (host_client->qex)
+		MSG_WriteString(&host_client->netchan.message, gamedir);
 
 	if (!coop.value && deathmatch.value)
 		MSG_WriteByte (&host_client->netchan.message, GAME_DEATHMATCH);
@@ -1556,7 +1537,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				else
 				{
-					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending sound %s to client %d\n", sound_precache->name, client->edict->entnum - tc_sv_loaded_bsps);
+					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending sound %s to client %s\n", sound_precache->name, client->name);
 					MSG_WriteString (&client->netchan.message, sound_precache->name);
 					MSG_WriteShort (&client->netchan.message, sound_precache->timeperiod);
 				}
@@ -1776,6 +1757,8 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					}
 				}
 				client->prespawn_idx++;
+
+				// Missi: Skip the first precache, which is usually just an empty string. (2026.9.18)
 				model_precache = model_precache->next;
 
 				if (client->prespawn_idx >= client->maxmodels || !model_precache)
@@ -1798,8 +1781,8 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				else
 				{
 					MSG_WriteString (&client->netchan.message, model_precache->name);
-					MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
-					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending model %s to client %d with time period of %d\n", model_precache->name, client->edict->entnum - tc_sv_loaded_bsps, sv.world.model_time_periods[client->prespawn_idx]);
+					MSG_WriteShort (&client->netchan.message, model_precache->timeperiod);
+					Con_DPrintf(S_COLOR_GRAY "[TEMPORAL CORTEX] [SV] Sending model %s to client %s with time period of %d\n", model_precache->name, client->name, model_precache->timeperiod);
 				}
 			}
 			if (started)
@@ -1817,6 +1800,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 			}
 			while (client->netchan.message.cursize < maxsize)
 			{
+				// Missi: Skip the first precache, which is usually just an empty string. (2026.9.18)
+				model_precache = model_precache->next;
+
 				if (client->prespawn_idx >= client->maxmodels || !model_precache)
 				{
 					if (model_precache && !(client->plimitwarned & PLIMIT_MODELS))
@@ -1832,9 +1818,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
 				MSG_WriteString (&client->netchan.message, model_precache->name);
-				MSG_WriteShort (&client->netchan.message, sv.world.model_time_periods[client->prespawn_idx]);
+				MSG_WriteShort (&client->netchan.message, model_precache->timeperiod);
+
 				client->prespawn_idx++;
-				model_precache = model_precache->next;
 			}
 		}
 		else
@@ -7033,9 +7019,7 @@ ucmd_t ucmds[] =
 	{"fly",			Cmd_Fly_f},
 	{"notarget",	Cmd_Notarget_f},
 	{"setpos",		Cmd_SetPos_f},
-#ifdef TEMPORALCORTEX
-	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
-#endif
+
 #if defined(_DEBUG) && defined(SUBSERVERS)
 	{"ssvtransfer", Cmd_SSV_Transfer_f},//transfer the player to a different map/server
 	{"ssvsay",		Cmd_SSV_AllSay_f},	//says realm-wide
@@ -7052,6 +7036,10 @@ ucmd_t ucmds[] =
 	{"muteall",		SV_Voice_MuteAll_f},	/*disables*/
 #endif
 	{"unmuteall",	SV_Voice_UnmuteAll_f}, /*reenables*/
+
+#ifdef TEMPORALCORTEX
+	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
+#endif
 
 	{NULL, NULL}
 };
@@ -7161,6 +7149,10 @@ ucmd_t nqucmds[] =
 #endif
 
 	{"playerexflags", SV_PlayerExFlags_f},
+
+#ifdef TEMPORALCORTEX
+	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
+#endif
 
 	{NULL, NULL}
 };
@@ -9192,13 +9184,8 @@ void SV_ExecuteClientMessage (client_t *cl)
 			SV_AckEntityFrame(cl, cl->delta_sequence);
 			break;
 #ifdef TEMPORALCORTEX
-		// Missi: This is only used for savegame loading.
-		// While the level is loading from a savegame, it is dangerous to change
-		// the time period due to the way entities are parsed. It is much safer
-		// to send a network packet to the server that it can parse once everything
-		// is set up. (2025.12.6)
 		case clctc_timeperiod:
-			MSG_ReadShort();
+			tc_sv_current_bsp_index = MSG_ReadShort();
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();
@@ -9989,7 +9976,7 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 #ifdef TEMPORALCORTEX
 		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
 		case clctc_timeperiod:
-			MSG_ReadShort();
+			tc_sv_current_bsp_index = MSG_ReadShort();
 			break;
 		case clctc_gamespeed:
 			newspeed = MSG_ReadFloat();

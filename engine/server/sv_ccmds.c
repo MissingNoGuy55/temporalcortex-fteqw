@@ -3828,10 +3828,6 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
-	// Missi: At the point in which this function is called, changing tc_sv_current_bsp_index is not safe and will lead to
-	// thrashing the edict list, resulting in a crash. (2025.12.6)
-	//tc_sv_current_bsp_index = (int)tTimePeriod;
-
 	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
 
 	if ( !pWorldEdict )
@@ -3862,6 +3858,8 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	MSG_WriteShort (&buf, bspindex);
 	MSG_WriteShort (&buf, track);
 	MSG_WriteString (&buf, sv.modelname[bspindex]);
+
+	tc_sv_current_bsp_index = bspindex;
 }
 
 void SV_ChangeTimePeriod_f()
@@ -3899,7 +3897,7 @@ void SV_ChangeTimePeriod_f()
 	else
 		pnum = -1;
 
-	if (cvar->ival < 1)
+	if (cvar->ival < 1 && svs.allocated_client_slots > 1)
 	{
 		if (pnum > -1 && svs.clients[pnum].edict)
 			Con_Printf (CON_WARNING "Player %i (\"%s\") attempted to change the time period!\n", pnum, svs.clients[pnum].name);
@@ -4045,7 +4043,7 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("fraglogfile", SV_Fraglogfile_f);
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
-	Cmd_AddCommandD ("sv_changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
+	Cmd_AddCommandD ("changetimeperiod", SV_ChangeTimePeriod_f, "Changes the current time period.");
 	Cmd_AddCommand ("setenttimeperiod", SV_SetTimePeriodForEnt_f);
 #endif
 #endif

@@ -20,7 +20,7 @@ extern short tc_sv_loaded_bsps;
 // in sv.world.worldmodel. (2026.5.30)
 extern short tc_sv_unloaded_bsps;
 
-// Missi: Incremented as each BSP is parsed in SV_SpawnServer, then reset back to 0. Changes with "cl_changetimeperiod" console command. (2026.7.1)
+// Missi: Incremented as each BSP is parsed in SV_SpawnServer, then reset back to 0. Changes with "changetimeperiod" console command. (2026.7.1)
 extern short tc_sv_current_bsp_index;
 #endif
 #ifdef HAVE_CLIENT

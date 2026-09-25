@@ -1764,6 +1764,16 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 	MSG_WriteLong (&buf, svs.spawncount);
 	MSG_WriteString (&buf, gamedir);
 
+#ifdef TEMPORALCORTEX
+	MSG_WriteShort (&buf, tc_sv_loaded_bsps);
+	MSG_WriteShort (&buf, tc_sv_unloaded_bsps);
+
+	MSG_WriteShort (&buf, tc_sv_current_bsp_index);
+
+	for (int t = 0; t < MAX_TIME_PERIODS; t++)
+		MSG_WriteShort (&buf, sv.world.worldmodel_indices[t]);
+#endif
+
 	if (demo.recorder.fteprotocolextensions2 & PEXT2_MAXPLAYERS)
 		MSG_WriteByte(&buf, demo.recorder.max_net_ents);
 
