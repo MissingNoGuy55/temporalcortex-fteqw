@@ -10274,9 +10274,13 @@ void CLNQ_ParseServerMessage (void)
 			if (!cl.playerview[destsplit].viewentity)
 			{
 				if (!i || i > cl.allocated_client_slots)
-					cl.playerview[destsplit].playernum = cl.allocated_client_slots;	//the mvd spectator slot.
+				 	cl.playerview[destsplit].playernum = cl.allocated_client_slots;	//the mvd spectator slot.
 				else
+#ifdef TEMPORALCORTEX
+					cl.playerview[destsplit].playernum = (unsigned int)i-tc_cl_loaded_bsps;
+#else
 					cl.playerview[destsplit].playernum = (unsigned int)i-1;
+#endif
 			}
 			cl.playerview[destsplit].viewentity = i;
 			break;

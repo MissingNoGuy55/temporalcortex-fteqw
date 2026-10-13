@@ -469,6 +469,8 @@ void QCBUILTIN PF_flerp (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals
 void QCBUILTIN PF_vlerp (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_slerpangle (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_rotatearbitraryaxis (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+void QCBUILTIN PF_anglestoaxisangle (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
+void QCBUILTIN PF_rotateaxisangle (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 #endif
 void QCBUILTIN PF_CL_drawfill (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);
 void QCBUILTIN PF_CL_drawsetcliparea (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals);

@@ -6674,7 +6674,7 @@ void QCBUILTIN PF_vlerp(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 	if (alpha == 0.0f)
 		PR_RunError (prinst, "PF_vlerp detected a divide by zero attempt. Aborting.\n");
 
-	LerpVector(v1, v2, alpha, G_VECTOR(OFS_RETURN));
+	VectorInterpolate(v1, alpha, v2, G_VECTOR(OFS_RETURN));
 }
 
 void QCBUILTIN PF_slerpangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
@@ -6810,6 +6810,107 @@ void QCBUILTIN PF_rotatearbitraryaxis(pubprogfuncs_t *prinst, struct globalvars_
 		G_VECTOR(OFS_RETURN)[i] = rot[i][0] + rot[i][1] + rot[i][2];
 	}
 #endif
+}
+
+void QCBUILTIN PF_anglestoaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float *arg = G_VECTOR(OFS_PARM0);
+	float angle;
+	float w, x, y, z, norm;
+
+	float c1 = cos(((arg[YAW]) / 180.0f * M_PI) / 2);
+	float s1 = sin(((arg[YAW]) / 180.0f * M_PI) / 2);
+	float c2 = cos(((arg[PITCH]) / 180.0f * M_PI) / 2);
+	float s2 = sin(((arg[PITCH]) / 180.0f * M_PI) / 2);
+	float c3 = cos(((arg[ROLL]) / 180.0f * M_PI) / 2);
+	float s3 = sin(((arg[ROLL]) / 180.0f * M_PI) / 2);
+	float c1c2 = c1*c2;
+	float s1s2 = s1*s2;
+
+	w = c1c2*c3 - s1s2*s3;
+	x = c1c2*s3 + s1s2*c3;
+	y = s1*c2*c3 + c1*s2*s3;
+	z = c1*s2*c3 - s1*c2*s3;
+
+	angle = 2 * acos(w);
+	norm = x*x+y*y+z*z;
+	if (norm < 0.001f)
+	{
+		x = 1;
+		y = z = 0;
+	}
+	else
+	{
+		norm = sqrt(norm);
+    	x /= norm;
+    	y /= norm;
+    	z /= norm;
+	}
+
+	G_VECTOR(OFS_RETURN)[0] = w;
+	G_VECTOR(OFS_RETURN)[1] = x;
+	G_VECTOR(OFS_RETURN)[2] = y;
+	G_VECTOR(OFS_RETURN)[3] = z;
+}
+
+void QCBUILTIN PF_rotateaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float *origin = G_VECTOR(OFS_PARM0);
+	float *angles = G_VECTOR(OFS_PARM1);
+	float *axis = G_VECTOR(OFS_PARM2);
+	float rotangle = G_FLOAT(OFS_PARM3);
+	float ctheta;
+	float stheta;
+	float dot;
+	vec3_t vmult, vcos, vsin, vdot;
+	vec3_t term1, term2, term3;
+	vec3_t out;
+
+	if (angles[PITCH] > 180.0f)
+		angles[PITCH] -= 360.0f;
+	else if (angles[PITCH] < -180.0f)
+		angles[PITCH] += 360.0f;
+
+	if (angles[YAW] > 180.0f)
+		angles[YAW] -= 360.0f;
+	else if (angles[YAW] < -180.0f)
+		angles[YAW] += 360.0f;
+
+	if (angles[ROLL] > 180.0f)
+		angles[ROLL] -= 360.0f;
+	else if (angles[ROLL] < -180.0f)
+		angles[ROLL] += 360.0f;
+
+	stheta = sin(rotangle);
+	ctheta = cos(rotangle);
+
+	dot = DotProduct(axis, angles);
+
+	VectorScale(angles, ctheta, term1);
+	VectorMul(axis, angles, vmult);
+	VectorScale(vmult, stheta, term2);
+
+	vcos[PITCH] = angles[PITCH] * ctheta;
+	vcos[YAW] = angles[YAW] * ctheta;
+	vcos[ROLL] = angles[ROLL] * ctheta;
+
+	vsin[PITCH] = angles[PITCH] * stheta;
+	vsin[YAW] = angles[YAW] * stheta;
+	vsin[ROLL] = angles[ROLL] * stheta;
+
+	VectorScale(axis, dot * (1 - ctheta), term3);
+
+	out[PITCH] = term1[PITCH] + term2[PITCH] + term3[PITCH];
+	out[YAW] = term1[YAW] + term2[YAW] + term3[YAW];
+	out[ROLL] = term1[ROLL] + term2[ROLL] + term3[ROLL];
+
+	Con_DPrintf("New angle: %f %f %f\n", out[PITCH], out[YAW], out[ROLL]);
+
+	VectorCopy(out, G_VECTOR(OFS_RETURN));
+
+
+	//VectorCopy(out, G_VECTOR(OFS_RETURN));
+
 }
 #endif
 

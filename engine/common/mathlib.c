@@ -2064,13 +2064,6 @@ void MakeNormalVectors (const vec3_t forward, vec3_t right, vec3_t up)
 }
 
 #ifdef TEMPORALCORTEX
-void QDECL LerpVector(vec3_t v1, vec3_t v2, float alpha, vec3_t dest)
-{
-	dest[0] = LerpFloat(v1[0], v2[0], alpha);
-	dest[1] = LerpFloat(v1[1], v2[1], alpha);
-	dest[2] = LerpFloat(v1[2], v2[2], alpha);
-}
-
 void QDECL EulerToQuaternion(const vec3_t in, vec4_t out)
 {
 	float		angle;
@@ -2098,7 +2091,7 @@ void QDECL QuaternionToEuler(const vec4_t in, vec3_t out)
 
 	if (fabs(sp) > 0.9999f) // gimbal lock
 	{
-		Con_DPrintf("Gimbal lock detected\n");
+		Con_DPrintf("QuaternionToEuler: Fixing up detected gimbal lock case\n");
 		out[0] = RAD2DEG((M_PI / 2) * sp);
 		out[1] = RAD2DEG(atan2(-in[1]*in[3] + in[0]*in[2], 0.5f - in[2]*in[2] - in[3]*in[3]));
 		out[2] = 0;

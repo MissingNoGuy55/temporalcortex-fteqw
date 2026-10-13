@@ -690,6 +690,23 @@ void SV_UnspawnServer (void)	//terminate the running server.
 {
 	int i;
 
+#ifdef TEMPORALCORTEX
+#ifndef CLIENTONLY
+	cvar_t *cvar = Cvar_Get( "sv_gamespeed", "1", 0, "slowmo" );
+	const char *defaultspeed;
+
+	// Missi: Don't leave the server in slow motion if we're a listen server host (2026.10.10)
+	if (cvar)
+	{
+		Cvar_SetValue(cvar, 1.0f);
+		sv.gamespeed = 1;
+		defaultspeed = "";
+
+		InfoBuf_SetValueForStarKey(&svs.info, "*gamespeed", defaultspeed);
+	}
+#endif
+#endif
+
 	if (sv.state)
 	{
 		Con_TPrintf("Server ended\n");

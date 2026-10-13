@@ -13226,6 +13226,8 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"vlerp",												PF_vlerp,0,0,0,750, "vector(vector v1, vector v2, float alpha)", "Lerps between two vectors."},
 	{"slerpangle",											PF_slerpangle,0,0,0,751, "vector(vector ang1, vector ang2, vector amount)", "Lerps between two angles that are interpreted as quaternions."},
 	{"rotateaxis",											PF_rotatearbitraryaxis,0,0,0,752, "vector(vector axis, vector angle, float degrees, vector origin)", "Rotates the given angles by an arbitrary axis and returns the result."},
+	{"anglestoaxisangle",									PF_anglestoaxisangle,0,0,0,753, "vector(vector angles)", "Returns the axis component of the axis-angle representation of the given Euler angles."},
+	{"rotateaxisangle",									PF_rotateaxisangle,0,0,0,754, "vector(vector angles, vector dir, float angle)", "Returns a rotated vector."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin

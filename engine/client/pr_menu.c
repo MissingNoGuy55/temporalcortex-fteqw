@@ -2905,6 +2905,8 @@ static struct {
 	{"vlerp",					PF_vlerp,					750},
 	{"slerpangle",				PF_slerpangle,				751},
 	{"rotateaxis",				PF_rotatearbitraryaxis,		752},
+	{"angletoaxisangle",		PF_anglestoaxisangle,		753},
+	{"rotateaxisangle",			PF_rotateaxisangle,			754},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype

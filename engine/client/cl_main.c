@@ -2768,6 +2768,11 @@ void CL_Disconnect (const char *reason)
 #ifdef TEMPORALCORTEX
 	memset(cl.model_time_periods, 0, sizeof(cl.model_time_periods));
 
+	// Missi: Don't leave the client in slow motion if they leave under the
+	// effects of a slowmo powerup (2026.10.10)
+	if (cl.gamespeed != 1.0f)
+		cl.gamespeed = 1.0f;
+
 	CL_ClearPrecaches();
 #endif
 
@@ -6281,7 +6286,7 @@ static void CL_UserinfoChanged(void *ctx, const char *keyname)
 void CL_Skygroup_f(void);
 void WAD_ImageList_f(void);
 
-#ifdef TEMPORALCORTEX
+#if 0
 // Missi: The way this console commands works is a bit tricky, so I will explain it here.
 // When a client runs this command, it sends a clctc_timeperiod message to the server,
 // which then checks if the client that sent it is player 1. If this check passes, and if

@@ -263,7 +263,7 @@ Name=Client (FTEQW)
 Type=Native Application
 
 [Launch][Launch Configuration 8][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake1" -game "lq1" +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake1" -manifest temporalcortex.fmf +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=

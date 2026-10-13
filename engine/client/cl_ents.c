@@ -5931,7 +5931,11 @@ void CL_LinkPlayers (void)
 		angles[ROLL] = 0;
 		angles[ROLL] = V_CalcRoll (angles, state->velocity)*4;
 
+#ifdef TEMPORALCORTEX
+		if (j+tc_cl_loaded_bsps == r_refdef.playerview->viewentity || (r_refdef.playerview->cam_state == CAM_EYECAM && r_refdef.playerview->cam_spec_track == j))
+#else
 		if (j+1 == r_refdef.playerview->viewentity || (r_refdef.playerview->cam_state == CAM_EYECAM && r_refdef.playerview->cam_spec_track == j))
+#endif
 			ent->flags |= RF_EXTERNALMODEL;
 		// the player object gets added with flags | 2
 		for (pnum = 0; pnum < cl.splitclients; pnum++)
