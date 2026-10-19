@@ -10142,7 +10142,7 @@ qboolean CSQC_TC_ChangeLevelName(const char* newname)
 	return true;
 }
 
-//void (float width, float height, vector pos1, vector pos2, vector rgb, float alpha) drawline3d;
+//void (float width, vector pos1, vector pos2, vector rgb, float alpha) drawline3d;
 void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	float width;
@@ -10153,7 +10153,7 @@ void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr
 	float r, g, b;
 	vec3_t	dir, forward, right, up, norm;
 
-	static shader_t *shader_draw_cylinder;
+	static shader_t *shader_draw_box;
 
 	width = G_FLOAT(OFS_PARM0);
 	point1 = G_VECTOR(OFS_PARM1);
@@ -10161,9 +10161,9 @@ void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr
 	rgb = G_VECTOR(OFS_PARM3);
 	alpha = G_FLOAT(OFS_PARM4);
 
-	//this shader lookup might get pricy.
-	if (!shader_draw_cylinder)
-		shader_draw_cylinder = R_RegisterShader("shader_draw_cylinder", SUF_NONE,
+	if (!shader_draw_box)
+	{
+		shader_draw_box = R_RegisterShader("shader_draw_box", SUF_NONE,
 			"{\n"
 				"polygonoffset\n"
 				"sort additive\n"
@@ -10174,11 +10174,10 @@ void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr
 					"alphagen vertex\n"
 				"}\n"
 			"}\n");
+	}
 
-	VectorSubtract (point1, point2, norm);
+	VectorSubtract (point2, point1, norm);
 	VectorAngles (norm, NULL, dir, false);
-
-	dir[0] += 90.0f;
 
 	AngleVectors (dir, forward, right, up);
 	Matrix3x4_RM_FromVectors (matrix, forward, right, up, point2);
@@ -10187,10 +10186,10 @@ void QCBUILTIN PF_CL_drawline3D (pubprogfuncs_t *prinst, struct globalvars_s *pr
 	g = rgb[1];
 	b = rgb[2];
 
-	vec3_t mins = { width, width, VectorLength(norm) };
-	vec3_t maxs = { -width, -width, -width };
+	vec3_t mins = { width, width, width };
+	vec3_t maxs = { -VectorLength(norm), -width, -width };
 
-	CLQ1_AddOrientedCube (shader_draw_cylinder, mins, maxs, matrix, r, g, b, alpha);
+	CLQ1_AddOrientedCube (shader_draw_box, mins, maxs, matrix, r, g, b, alpha);
 }
 
 //float () numloadedbsps;
