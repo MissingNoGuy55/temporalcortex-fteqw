@@ -762,6 +762,21 @@ void V_SetContentsColor (int contents)
 	}
 }
 
+#ifdef TEMPORALCORTEX
+static double last_mdma_color_time;
+static short mdma_color_index;
+static qboolean mdma_time_color_running;
+
+enum
+{
+	MDMA_COLOR_TEAL,
+	MDMA_COLOR_PURPLE,
+	MDMA_COLOR_PINK,
+	MDMA_COLOR_YELLOW,
+	MDMA_COLOR_BLUE
+};
+#endif
+
 /*
 =============
 V_CalcPowerupCshift
@@ -773,22 +788,63 @@ void V_CalcPowerupCshift (playerview_t *pv)
 	int im = pv->stats[STAT_ITEMS];
 
 #ifdef TEMPORALCORTEX
-	// Missi: These entries pertain to self.items2 in QC (2026.8.27)
-	if ((im >> 23) & IT2_MDMA)
+	int im2 = (pv->stats[STAT_ITEMS] >> 23);	// Missi: self.items2 (2026.10.21)
+
+	// This whole loop is ass!!!!
+	if ((im2 & IT2_MDMA) == IT2_MDMA)
+	{
+		if (cl.time >= last_mdma_color_time)
+		{
+			switch(mdma_color_index)
+			{
+				case MDMA_COLOR_TEAL:
+					pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 255;
+					pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+					break;
+				case MDMA_COLOR_PURPLE:
+					pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 128;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
+					pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+					break;
+				case MDMA_COLOR_PINK:
+					pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 255;
+					pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+					break;
+				case MDMA_COLOR_YELLOW:
+					pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
+					pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+					break;
+				case MDMA_COLOR_BLUE:
+					pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
+					pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 255;
+					pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
+					break;
+			}
+
+			mdma_color_index++;
+
+			if (mdma_color_index > MDMA_COLOR_BLUE)
+				mdma_color_index = MDMA_COLOR_TEAL;
+
+			last_mdma_color_time = cl.time + 0.4;
+		}
+	}
+	else if ((im2 & IT2_INCENDIARY_AMMO) == IT2_INCENDIARY_AMMO)
 	{
 		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 128;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
 	}
-	else if ((im >> 23) & IT2_INCENDIARY_AMMO)
-	{
-		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
-		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 128;
-		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
-		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
-	}
-	else if ((im >> 23) & IT2_SLOWMO)
+	else if ((im2 & IT2_SLOWMO) == IT2_SLOWMO)
 	{
 		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
