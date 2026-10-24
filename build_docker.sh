@@ -14,6 +14,6 @@ fi
 
 image=$(docker build --tag ${imagename} .)
 
-container=$(docker container create --name ${containername} --env DISPLAY=${DISPLAY} --user=fteqwtc:fteqwtc --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix,readonly --mount type=bind,src=${PWD},dst=/temporalcortex --mount type=bind,src=${PWD}/../game_files/quake1,dst=/mnt/game --mount type=bind,src=${HOME},dst=/mnt/home-host,readonly -i -t ${imagename})
+container=$(docker container create -it --name ${containername} --env DISPLAY=${DISPLAY} --user=fteqwtc:fteqwtc --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix,readonly --mount type=bind,src=${PWD},dst=/temporalcortex --mount type=bind,src=${PWD}/../game_files/quake1,dst=/mnt/game --mount type=bind,src=${HOME},dst=/mnt/home-host,readonly ${imagename})
 
-docker container start -i ${container}
+docker cp ${container}:/usr/local/bin/fteqwtc ../game_files/quake1

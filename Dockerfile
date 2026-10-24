@@ -12,4 +12,18 @@ COPY . .
 RUN groupadd -r fteqwtc -g 1000 && useradd -u 1000 -r -g fteqwtc -d /temporalcortex -s /sbin/nologin -c "fteqwtc user" fteqwtc && \
     chmod 775 /temporalcortex && chown fteqwtc /temporalcortex/engine
 
+WORKDIR /temporalcortex/engine
+RUN make -j${nproc} FTE_CONFIG=fteqwtc m-rel
+
+WORKDIR /temporalcortex
+RUN mkdir game
+
+FROM build as finalize
+COPY --from=build . .
+RUN cp -r engine/release/fteqwtc /usr/local/bin
+
+FROM finalize AS runtime
 USER fteqwtc
+
+ENTRYPOINT ["fteqwtc"]
+CMD ["-basedir", "/mnt/game", "-manifest", "/mnt/game/temporalcortex.fmf"]
