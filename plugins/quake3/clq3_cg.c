@@ -499,11 +499,9 @@ int CG_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projecti
 	ctx.frags = fragmentBuffer;
 	ctx.numfrags = 0;
 	ctx.maxfrags = maxFragments;
-#if 0
-	scenefuncs->ClipDecal(ccs.worldmodel[tc_sv3_current_bsp_index], center, axis[0], axis[1], axis[2], radius, 0,0, CG_MarkFragments_Callback, &ctx);
-#else
+
 	scenefuncs->ClipDecal(ccs.worldmodel, center, axis[0], axis[1], axis[2], radius, 0,0, CG_MarkFragments_Callback, &ctx);
-#endif
+
 	return ctx.numfrags;
 }
 

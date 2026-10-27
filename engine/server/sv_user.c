@@ -7038,7 +7038,7 @@ ucmd_t ucmds[] =
 	{"unmuteall",	SV_Voice_UnmuteAll_f}, /*reenables*/
 
 #ifdef TEMPORALCORTEX
-	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
+	{"changetimeperiod", SV_ChangeTimePeriod_f},
 #endif
 
 	{NULL, NULL}
@@ -7151,7 +7151,7 @@ ucmd_t nqucmds[] =
 	{"playerexflags", SV_PlayerExFlags_f},
 
 #ifdef TEMPORALCORTEX
-	{"sv_changetimeperiod", SV_ChangeTimePeriod_f},
+	{"changetimeperiod", SV_ChangeTimePeriod_f},
 #endif
 
 	{NULL, NULL}

@@ -3875,13 +3875,13 @@ void SV_ChangeTimePeriod_f()
 
 	if (!arg)
 	{
-		Con_Printf("sv_changetimeperiod usage: \"sv_changetimeperiod [time period index]\"\n");
+		Con_Printf("changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
 		return;
 	}
 
 	bspnum = Q_atoi(arg);
 
-	if (bspnum < TIME_PERIOD_PRESENT || bspnum > TIME_PERIOD_FUTURE)
+	if (bspnum < TIME_PERIOD_PRESENT || bspnum >= MAX_TIME_PERIODS)
 	{
 		Con_Printf("Invalid time period requested! Working values are 0 (present), 1 (past), and 2 (future).\n");
 		return;
@@ -3936,7 +3936,7 @@ void SV_ChangeTimePeriod_f()
 				suffix_postfix = "wretched";
 				break;
 			default:
-				suffix = "unknown";
+				suffix_postfix = "unknown";
 				break;
 		}
 

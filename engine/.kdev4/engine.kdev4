@@ -45,7 +45,7 @@ Name=Client
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake1" -game temporalcortex +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
+Arguments=-manifest temporalcortex.fmf -game temporalcortex +developer 1 +sv_bigcoords 1 +sv_cheats 1 +maxplayers 1 +coop 0 +deathmatch 0 +in_windowed_mouse 0
 Debugger Shell=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
@@ -129,8 +129,8 @@ Name=Client (Q3)
 Type=Native Application
 
 [Launch][Launch Configuration 12][Data]
-Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +developer 2 +tc_sv_allow_host_time_travel 1 +map testq3
-Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\n\x00f\x00t\x00e\x00q\x00w\x00\x00\x00\n\x00m\x00-\x00d\x00b\x00g)
+Arguments=-basedir "/home/stephen/Documents/game_projects/quake_engine/game_files/quake3" -game baseq3 +in_windowed_mouse 0 +developer 2 +tc_sv_allow_host_time_travel 1 +spdevmap testq3
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
 Executable=file:///home/stephen/Documents/game_projects/quake_engine/temporalcortex_fteqw/engine/debug/fteqwtc

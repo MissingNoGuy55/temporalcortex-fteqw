@@ -1,0 +1,9 @@
+services:
+  temporalcortex-fteqw:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    container_name: temporalcortex-fteqw
+    image: missingnoguy55/temporalcortex-fteqw:latest
+    volumes:
+      - ./engine:/engine/release

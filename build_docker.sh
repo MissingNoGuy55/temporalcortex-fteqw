@@ -14,6 +14,10 @@ fi
 
 image=$(docker build --tag ${imagename} .)
 
-container=$(docker container create -it --name ${containername} --env DISPLAY=${DISPLAY} --user=fteqwtc:fteqwtc --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix,readonly --mount type=bind,src=${PWD},dst=/temporalcortex --mount type=bind,src=${PWD}/../game_files/quake1,dst=/mnt/game --mount type=bind,src=${HOME},dst=/mnt/home-host,readonly ${imagename})
+container=$(docker container create -it --name ${containername} --env DISPLAY=${DISPLAY} --user=fteqwtc:fteqwtc --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix,readonly --mount type=bind,src=${PWD}/../game_files/quake1,dst=/mnt/game,readonly --mount type=bind,src=${HOME},dst=/mnt/home-host,readonly --mount type=bind,src=${PWD},dst=/temporalcortex ${imagename})
 
+# Copy final result to host system
 docker cp ${container}:/usr/local/bin/fteqwtc ../game_files/quake1
+docker cp ${container}:/usr/local/bin/fteqwtc.db ../game_files/quake1
+docker cp ${container}:/usr/local/bin/fteqwtc-sv ../game_files/quake1
+docker cp ${container}:/usr/local/bin/fteqwtc-sv.db ../game_files/quake1

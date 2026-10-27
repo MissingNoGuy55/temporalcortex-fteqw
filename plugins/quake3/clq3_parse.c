@@ -21,6 +21,10 @@ void MSG_WriteBits(sizebuf_t *msg, int value, int bits);
 static qboolean CLQ3_Netchan_Process(sizebuf_t *msg);
 
 
+#ifdef TEMPORALCORTEX
+short tc_cl3_current_bsp_index;
+#endif
+
 ClientConnectionState_t ccs;
 
 
@@ -440,7 +444,6 @@ model_t* CLQ3TC_FindPrecache(const char *name)
 
 void CLQ3TC_ParseTimePeriod(void)
 {
-	int number;
 	char cmd[128];
 	static short bspnum_old;
 	int i;
@@ -448,18 +451,21 @@ void CLQ3TC_ParseTimePeriod(void)
 	for (i = 0; i < countof(ccs.worldmodel_indices); i++)
 		ccs.worldmodel_indices[i] = msgfuncs->ReadShort();
 
-	number = msgfuncs->ReadShort();
+	tc_cl3_current_bsp_index = msgfuncs->ReadShort();
 
-	if (bspnum_old != number)
+	if (bspnum_old != tc_cl3_current_bsp_index)
 	{
-		bspnum_old = number;
+		bspnum_old = tc_cl3_current_bsp_index;
 
 #ifdef HAVE_CLIENT
-		ccs.worldmodel = ccs.model_precache[ccs.worldmodel_indices[number]];
+		ccs.worldmodel = ccs.model_precache[ccs.worldmodel_indices[tc_cl3_current_bsp_index]];
 #elif defined(HAVE_SERVER)
-		ccs.worldmodel = sv3.world->worldmodel[number];
+		ccs.worldmodel = sv3.world->worldmodel[tc_cl3_current_bsp_index];
 #endif
-		snprintf(cmd, sizeof(cmd), "sv_changetimeperiod %i", number);
+		Con_DPrintf("%d\n", tc_cl3_current_bsp_index);
+		Con_DPrintf("%s\n", ccs.worldmodel->name);
+
+		snprintf(cmd, sizeof(cmd), "changetimeperiod %i", tc_cl3_current_bsp_index);
 		cmdfuncs->AddText(cmd, false);
 	}
 }

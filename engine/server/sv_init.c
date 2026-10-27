@@ -1720,6 +1720,16 @@ MSV_OpenUserDatabase();
 			j += i;
 		}
 #endif
+#ifdef TEMPORALCORTEX
+#ifdef Q3SERVER
+		else if (svs.gametype == GT_QUAKE3)
+		{
+			Con_DPrintf("sv.world.worldmodel[t]->name: %s\n", sv.world.worldmodel[t]->name);
+			sv.world.worldmodel_indices[t] = SV_ModelIndex(sv.world.worldmodel[t]->name);
+			sv.world.model_time_periods[j] = t;
+		}
+#endif
+#endif
 		// o++;
 	}
 

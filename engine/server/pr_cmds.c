@@ -14313,6 +14313,8 @@ void PR_DumpPlatform_f(void)
 #ifdef TEMPORALCORTEX
 		{ "grappling",			".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
+		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
+		{ "tc_weapons[32]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
 #endif
 
 #undef comfieldfloatdep
