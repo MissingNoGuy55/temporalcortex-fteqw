@@ -4002,6 +4002,11 @@ void SV_ChangeTimePeriod_f()
 
 #undef Q2EDICT_NUM
 
+void SV_Bot_f (void)
+{
+	// Missi: No-op
+}
+
 #endif
 /*
 ==================
@@ -4025,6 +4030,9 @@ void SV_InitOperatorCommands (void)
 		Cmd_AddCommandD ("god", SV_God_f, "Makes you immune to damage.");
 #ifdef QUAKESTATS
 		Cmd_AddCommand ("give", SV_Give_f);
+#endif
+#ifdef TEMPORALCORTEX
+		Cmd_AddCommand ("bot", NULL);
 #endif
 		Cmd_AddCommandD ("noclip", SV_Noclip_f, "Disables clipping, allowing you to fly through the level.");
 

@@ -1757,7 +1757,7 @@ entity(entity player, string w) W_AddWeaponToPlayer =
 	local entity pw;
 	local float i;
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < MAX_TC_WEAPONS; i++)
 	{
 		pw = player.tc_weapons[i];
 		if (pw)
@@ -1798,7 +1798,6 @@ entity(entity player, string w) W_AddWeaponToPlayer =
 entity(vector org, string w) W_SpawnWeapon =
 {
 	local entity pw;
-	local float i;
 
 	pw = spawn();
 	pw.classname = w;
@@ -1840,7 +1839,7 @@ void(entity player) W_ClearWeaponsFromPlayer =
 	local entity pw;
 	local float i;
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < MAX_TC_WEAPONS; i++)
 	{
 		pw = player.tc_weapons[i];
 
@@ -1858,7 +1857,7 @@ entity(entity ent, string name) W_FindWeaponInInventory =
 	local float i;
 	local entity e;
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < MAX_TC_WEAPONS; i++)
 	{
 		e = ent.tc_weapons[i];
 
@@ -1877,7 +1876,7 @@ entity() W_BestWeapon =
 	local entity it;
 	local float i;
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < MAX_TC_WEAPONS; i++)
 	{
 		it = self.tc_weapons[i];
 
@@ -2968,6 +2967,7 @@ void(float speed, vector dir) W_FireGrappleHook =
 
 	shoot_grapple_hook( speed, src, dir );
 };
+
 
 
 

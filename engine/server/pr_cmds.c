@@ -14412,7 +14412,7 @@ void PR_DumpPlatform_f(void)
 		{ "grappling",			".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
-		{ "tc_weapons[32]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
+		{ "tc_weapons[64]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
 
 		{"ServerShutdown",		"void()", TC, D("Called once the server shuts down.")},
 #endif
@@ -14770,6 +14770,8 @@ void PR_DumpPlatform_f(void)
 		{"TE_TC_BULLET",		"const float", TC|TC_CS, D("Temporal Cortex QPhysics bullet."), TE_TC_BULLET},
 		{"TE_TC_SUPERBULLET",	"const float", TC|TC_CS, D("Temporal Cortex QPhysics bullet (with quad damage)."), TE_TC_SUPERBULLET},
 		{"TE_TC_GRAPPLING_HOOK", "const float", TC|TC_CS, D("Temporal Cortex grappling hook."), TE_TC_GRAPPLING_HOOK},
+
+		{"MAX_TC_WEAPONS",		"const float",	TC|TC_CS, D("Temporal Cortex: Max nuumber of ownable weapons per entity"), 64},
 
 		{"SENDFLAG_ORIGIN",		"const float", TC|TC_CS, D("Center of entity."), 1},
 		{"SENDFLAG_ANGLES",		"const float", TC|TC_CS, D("Euler angles of entity."), 2},

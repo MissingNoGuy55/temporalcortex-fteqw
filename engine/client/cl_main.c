@@ -6745,6 +6745,11 @@ void CL_Init (void)
 //
 	Cmd_AddCommand ("god", NULL);	//cheats
 	Cmd_AddCommand ("give", NULL);
+
+#ifdef TEMPORALCORTEX
+	Cmd_AddCommand ("bot", NULL);
+	#endif
+
 	Cmd_AddCommand ("noclip", NULL);
 	Cmd_AddCommand ("6dof", NULL);
 	Cmd_AddCommand ("spiderpig", NULL);

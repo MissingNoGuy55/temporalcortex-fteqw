@@ -11,6 +11,7 @@ float	modelindex_eyes, modelindex_player;
 
 #ifdef TEMPORALCORTEX
 float flashidx;
+entity tc_bots[255];
 #endif
 
 .float usingcsqc;
@@ -643,6 +644,135 @@ void() PutClientInServer =
 	spawn_tdeath (self.origin, self);
 };
 
+#ifdef TEMPORALCORTEX
+entity(float num) PutBotInServer =
+{
+	local entity e, spawn;
+
+	spawn = SelectSpawnPoint();
+
+	if (!spawn)
+		return world;
+
+	e = spawnclient();
+	e.classname = "player";
+	e.health = 100;
+	e.takedamage = DAMAGE_AIM;
+	e.solid = SOLID_SLIDEBOX;
+	e.movetype = MOVETYPE_WALK;
+	e.show_hostile = 0;
+	e.max_health = 100;
+	e.flags = FL_CLIENT;
+	e.air_finished = time + 12;
+	e.dmg = 2;   		// initial water damage
+	e.super_damage_finished = 0;
+	e.radsuit_finished = 0;
+	e.invisible_finished = 0;
+	e.invincible_finished = 0;
+	e.effects = 0;
+	e.invincible_time = 0;
+	e.netname = sprintf("%s%d", "Bot", num);
+
+	e.items2 = e.items2 | IT2_GRAPPLING_HOOK;
+
+	e.SendEntity = SendPlayer;
+	e.SendFlags = FULLSEND;
+
+	DecodeLevelParms ();
+
+	W_SetCurrentAmmo ();
+
+	e.attack_finished = time;
+	e.th_pain = player_pain;
+	e.th_die = PlayerDie;
+
+	e.deadflag = DEAD_NO;
+	// paustime is set by teleporters to keep the player from moving a while
+	e.pausetime = 0;
+
+	//	spot = SelectSpawnPoint ();
+
+	e.origin = spawn.origin + '0 0 1';
+	e.angles = spawn.angles;
+	e.fixangle = TRUE;		// turn this way immediately
+
+	// oh, this is a hack!
+	setmodel (e, "progs/eyes.mdl");
+	modelindex_eyes = e.modelindex;
+
+	setmodel (e, "progs/player.mdl");
+	modelindex_player = e.modelindex;
+
+	setsize (e, VEC_HULL_MIN, VEC_HULL_MAX);
+
+	e.view_ofs = '0 0 22';
+
+	player_stand1 ();
+
+	if (deathmatch || coop)
+	{
+		makevectors(e.angles);
+		spawn_tfog (e.origin + v_forward*20);
+	}
+
+	spawn_tdeath (e.origin, e);
+
+	return e;
+}
+
+void() BotCommand_f =
+{
+	local float i;
+
+	switch (argv(1))
+	{
+		case "add":
+		{
+			for (i = 0; i < 255; i++)
+			{
+				if (255 - (254 - i) > stof(argv(2)))
+					break;
+				if (tc_bots[i])
+					continue;
+
+				tc_bots[i] = PutBotInServer(i);
+			}
+			break;
+		}
+		case "kick":
+		{
+			switch(argv(2))
+			{
+				case "all":
+				{
+					for (i = 0; i < 255; i++)
+					{
+						if (!tc_bots[i])
+							break;
+
+						dropclient(tc_bots[i]);
+						tc_bots[i] = world;
+					}
+					break;
+				}
+				default:
+				{
+					for (i = 0; i < stof(argv(2)); i++)
+					{
+						if (!tc_bots[i] || i > 255)
+							break;
+
+						dropclient(tc_bots[i]);
+						tc_bots[i] = world;
+					}
+					break;
+				}
+			}
+			break;
+		}
+	}
+};
+#endif
 
 /*
 =============================================================================
@@ -1851,6 +1981,11 @@ void(string cmd) SV_ParseClientCommand =
 	case "give":	//we have our own additions/behaviours.
 		GiveCommand_f();
 		break;
+#ifdef TEMPORALCORTEX
+	case "bot":
+		BotCommand_f();
+		break;
+#endif
 
 	//case "god":
 	//case "noclip":
@@ -1870,6 +2005,7 @@ void() ServerShutdown =
 {
 };
 #endif
+
 
 
 

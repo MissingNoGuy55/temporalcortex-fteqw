@@ -486,7 +486,7 @@ void() weapon_touch =
 	
 	if (self.classname == stringpool_get_string("weapon_nailgun"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_nailgun")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_nailgun"))))
 			return;
 		hadammo = other.ammo_nails;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -494,7 +494,7 @@ void() weapon_touch =
 	}
 	else if (self.classname == stringpool_get_string("weapon_supernailgun"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_supernailgun")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_supernailgun"))))
 			return;
 		hadammo = other.ammo_rockets;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -502,7 +502,7 @@ void() weapon_touch =
 	}
 	else if (self.classname == stringpool_get_string("weapon_supershotgun"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_supershotgun")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_supershotgun"))))
 			return;
 		hadammo = other.ammo_rockets;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -510,7 +510,7 @@ void() weapon_touch =
 	}
 	else if (self.classname == stringpool_get_string("weapon_rocketlauncher"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_rocketlauncher")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_rocketlauncher"))))
 			return;
 		hadammo = other.ammo_rockets;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -518,7 +518,7 @@ void() weapon_touch =
 	}
 	else if (self.classname == stringpool_get_string("weapon_grenadelauncher"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_grenadelauncher")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_grenadelauncher"))))
 			return;
 		hadammo = other.ammo_rockets;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -526,7 +526,7 @@ void() weapon_touch =
 	}
 	else if (self.classname == stringpool_get_string("weapon_lightning"))
 	{
-		if (leave && (W_FindWeaponInInventory(other, "weapon_lightning")))
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_lightning"))))
 			return;
 		hadammo = other.ammo_rockets;			
 		new = W_AddWeaponToPlayer(other, self.classname);
@@ -1675,11 +1675,10 @@ PLAYER BACKPACKS
 void() BackpackTouch =
 {
 #ifdef TEMPORALCORTEX
-	local string s;
-	local entity old, new;
-	local entity best;
-	local entity stemp;
-	local float acount;
+	local	string	s;
+	local	entity	best, old, new;
+	local	entity	stemp;
+	local	float	acount;
 
 	if (other.classname != "player")
 		return;
@@ -1709,11 +1708,25 @@ void() BackpackTouch =
 	other.ammo_rockets = other.ammo_rockets + self.ammo_rockets;
 	other.ammo_cells = other.ammo_cells + self.ammo_cells;
 
-	new = self;
+	new = self.tc_currentweapon;
+	old = other.tc_currentweapon;
+
+	if (!new)
+		new = other.tc_currentweapon;
+	else
+	{
+		new = W_FindWeaponInInventory(other, stringpool_get_string(new.classname));
+
+		if (!new)
+			other.tc_currentweapon = new;
+	}
+#if 0
+	new = self.tc_currentweapon;
 	if (!new)
 		new = other.tc_currentweapon;
 	old = other.tc_currentweapon;
 	other.tc_currentweapon = new;
+#endif
 
 	bound_other_ammo ();
 

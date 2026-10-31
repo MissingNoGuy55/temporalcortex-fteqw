@@ -6937,7 +6937,12 @@ void SV_Pext_f(void)
 
 void SV_UserMVDList_f (void);
 void SV_UserMVDInfo_f (void);
+
+#ifdef TEMPORALCORTEX
 void SV_ChangeTimePeriod_f();
+void SV_Bot_f();
+#endif
+
 typedef struct
 {
 	char	*name;
@@ -7039,6 +7044,7 @@ ucmd_t ucmds[] =
 
 #ifdef TEMPORALCORTEX
 	{"changetimeperiod", SV_ChangeTimePeriod_f},
+	{"bot", SV_Bot_f},
 #endif
 
 	{NULL, NULL}
@@ -7152,6 +7158,7 @@ ucmd_t nqucmds[] =
 
 #ifdef TEMPORALCORTEX
 	{"changetimeperiod", SV_ChangeTimePeriod_f},
+	{"bot", SV_Bot_f},
 #endif
 
 	{NULL, NULL}
