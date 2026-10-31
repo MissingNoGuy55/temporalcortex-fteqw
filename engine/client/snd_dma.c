@@ -3492,6 +3492,9 @@ void S_UpdateAmbientSounds (soundcardinfo_t *sc)
 	float oldvol;
 	int ambientlevel[NUM_AMBIENTS];
 #endif
+#ifdef TEMPORALCORTEX
+	cvar_t *cvar = Cvar_Get("music_fade", "1", 0, "Media player things");
+#endif
 
 	if (!snd_ambient)
 		return;

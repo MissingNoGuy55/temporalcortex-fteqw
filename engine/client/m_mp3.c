@@ -253,12 +253,11 @@ sfx_t *Media_NextTrack(int musicchannelnum, float *starttime)
 		}
 #endif
 #ifdef TEMPORALCORTEX
-		if (media_playtrack[tc_cl_current_bsp_index][0] || *media_loopingtrack)
+		if (*media_playtrack[tc_cl_current_bsp_index] || *media_loopingtrack)
 		{
-			if (media_playtrack[tc_cl_current_bsp_index][0])
+			if (*media_playtrack[tc_cl_current_bsp_index])
 			{
 				Q_strncpyz(media_currenttrack, media_playtrack[tc_cl_current_bsp_index], sizeof(media_currenttrack));
-				*media_playtrack[0] = 0;
 			}
 			else
 			{
@@ -342,6 +341,13 @@ float Media_CrossFade(int musicchanel, float vol, float time)
 			}
 			vol = -1;	//kill it NOW
 		}
+	}
+#endif
+#ifdef TEMPORALCORTEX
+	else if (!media_fadeout && ((tc_cl_current_mus_index != tc_cl_current_bsp_index) || Q_strcmp(media_playtrack[tc_cl_current_bsp_index], media_currenttrack)))
+	{
+		vol = -1;
+		tc_cl_current_mus_index = tc_cl_current_bsp_index;
 	}
 #endif
 	return vol;
@@ -507,7 +513,7 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 	if (!track && !looptrack)
 	{
 #ifdef TEMPORALCORTEX
-		**media_playtrack = *media_loopingtrack = 0;
+		*media_playtrack[timeperiod] = *media_loopingtrack = 0;
 #else
 		*media_playtrack = *media_loopingtrack = 0;
 #endif
@@ -561,7 +567,7 @@ qboolean Media_NamedTrack(const char *track, const char *looptrack)
 
 		cdplaytracknum = tracknum;
 #ifdef TEMPORALCORTEX
-		Q_strncpyz(media_playtrack[tc_cl_current_bsp_index], "", sizeof(media_playtrack[tc_cl_current_bsp_index]));
+		Q_strncpyz(media_playtrack[timeperiod], "", sizeof(media_playtrack[timeperiod]));
 #else
 		Q_strncpyz(media_playtrack, "", sizeof(media_playtrack));
 #endif

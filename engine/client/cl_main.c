@@ -51,6 +51,7 @@ extern int	r_blockvidrestart;
 short tc_cl_loaded_bsps;
 short tc_cl_unloaded_bsps;
 short tc_cl_current_bsp_index;
+short tc_cl_current_mus_index;
 fogstate_t tc_cl_world_fog[MAX_TIME_PERIODS];
 #endif
 #endif
@@ -2950,6 +2951,11 @@ void CL_Disconnect (const char *reason)
 void CL_Disconnect_f (void)
 {
 #ifdef HAVE_SERVER
+#ifdef TEMPORALCORTEX
+	if (svprogfuncs && pr_global_ptrs->ServerShutdown)
+		PR_ExecuteProgram(svprogfuncs, pr_global_struct->ServerShutdown);
+#endif
+
 	if (sv.state)
 		SV_UnspawnServer();
 #endif

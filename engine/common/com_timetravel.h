@@ -31,6 +31,8 @@ extern short tc_cl_unloaded_bsps;
 
 extern short tc_cl_current_bsp_index;
 
+extern short tc_cl_current_mus_index;
+
 #endif
 
 #endif

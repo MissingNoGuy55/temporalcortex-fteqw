@@ -97,6 +97,9 @@ typedef struct nqglobalvars_s
 	func_t	*ClientDisconnect;
 	func_t	*SetNewParms;
 	func_t	*SetChangeParms;
+#ifdef TEMPORALCORTEX
+	func_t	*ServerShutdown;
+#endif
 	pvec_t *cycle_wrapped;
 	pvec_t *dimension_send;
 	pvec_t *dimension_default;

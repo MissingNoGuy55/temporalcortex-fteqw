@@ -925,6 +925,103 @@ void PR_LoadGlabalStruct(qboolean muted)
 #else
 	#define ssqcglobals_legacy
 #endif
+
+#ifdef TEMPORALCORTEX
+#define ssqcglobals_temporalcortex \
+	globalfunc		(true, ServerShutdown, "void()")
+
+	#define ssqcglobals	\
+	globalentity	(true, self)			\
+	globalentity	(true, other)			\
+	globalentity	(true, world)			\
+	globalfloat		(true, time)			\
+	globalfloat		(true, frametime)		\
+	globalentity	(false, newmis)			\
+	globalfloat		(false, force_retouch)	\
+	globalstring	(true, mapname)			\
+	globalfloat		(false, deathmatch)		\
+	globalfloat		(false, coop)			\
+	globalfloat		(false, teamplay)		\
+	globalfloat		(false, serverflags)	\
+	globalfloat		(false, total_secrets)	\
+	globalfloat		(false, total_monsters)	\
+	globalfloat		(false, found_secrets)	\
+	globalfloat		(false, killed_monsters)	\
+	globalvec		(true, v_forward)	\
+	globalvec		(true, v_up)	\
+	globalvec		(true, v_right)	\
+	globalfloat		(false, trace_allsolid)	\
+	globalfloat		(false, trace_startsolid)	\
+	globalfloat		(false, trace_fraction)	\
+	globalvec		(false, trace_endpos)	\
+	globalvec		(false, trace_plane_normal)	\
+	globalfloat		(false, trace_plane_dist)	\
+	globalentity	(true, trace_ent)	\
+	globalfloat		(false, trace_inopen)	\
+	globalfloat		(false, trace_inwater)	\
+	globalint		(false, trace_endcontentsi)	\
+	globalint		(false, trace_surfaceflagsi)	\
+	globalstring	(false, trace_surfacename)	\
+	globalint		(false, trace_brush_id)	\
+	globalint		(false, trace_brush_faceid)	\
+	globalint		(false, trace_surface_id)	\
+	globalint		(false, trace_bone_id)	\
+	globalint		(false, trace_triangle_id)	\
+	\
+	globalfloat		(false, cycle_wrapped)	\
+	globalentity	(false, msg_entity)	\
+	globalfunc		(false, main, "void()")	\
+	globalfunc		(true, StartFrame, "void()")	\
+	globalfunc		(true, PlayerPreThink, "void()")	\
+	globalfunc		(true, PlayerPostThink, "void()")	\
+	globalfunc		(true, ClientKill, "void()")	\
+	globalfunc		(true, ClientConnect, "void()")	\
+	globalfunc		(true, PutClientInServer, "void()")	\
+	globalfunc		(true, ClientDisconnect, "void()")	\
+	globalfunc		(false, SetNewParms, "void()")	\
+	globalfunc		(false, SetChangeParms, "void()")	\
+	globalfloat		(false, cycle_wrapped)	\
+	globalfloat		(false, dimension_send)	\
+	globalfloat		(false, dimension_default)	\
+	\
+	globalfloat		(false, input_sequence)	\
+	globalfloat		(false, input_timelength)	\
+	globalfloat		(false, input_impulse)	\
+	globalvec		(false, input_angles)	\
+	globalvec		(false, input_movevalues)	\
+	globalfloat		(false, input_buttons)	\
+	globaluint64	(false, input_weapon)	\
+	globalfloat		(false, input_lightlevel)	\
+	globalvec		(false, input_cursor_screen)	\
+	globalvec		(false, input_cursor_trace_start)	\
+	globalvec		(false, input_cursor_trace_endpos)	\
+	globalfloat		(false, input_cursor_entitynumber)	\
+	globaluint64	(false, input_head_status)	\
+	globalvec		(false, input_head_origin)	\
+	globalvec		(false, input_head_angles)	\
+	globalvec		(false, input_head_velocity)	\
+	globalvec		(false, input_head_avelocity)	\
+	globaluint64	(false, input_head_weapon)	\
+	globaluint64	(false, input_left_status)	\
+	globalvec		(false, input_left_origin)	\
+	globalvec		(false, input_left_angles)	\
+	globalvec		(false, input_left_velocity)	\
+	globalvec		(false, input_left_avelocity)	\
+	globaluint64	(false, input_left_weapon)	\
+	globaluint64	(false, input_right_status)	\
+	globalvec		(false, input_right_origin)	\
+	globalvec		(false, input_right_angles)	\
+	globalvec		(false, input_right_velocity)	\
+	globalvec		(false, input_right_avelocity)	\
+	globaluint64	(false, input_right_weapon)	\
+	globalfloat		(false, input_servertime)	\
+	\
+	globalint		(false, serverid)	\
+	globalvec		(false, global_gravitydir)	\
+	globalstring	(false, parm_string)	\
+	ssqcglobals_legacy \
+	ssqcglobals_temporalcortex
+#else
 #define ssqcglobals	\
 	globalentity	(true, self)			\
 	globalentity	(true, other)			\
@@ -1015,6 +1112,7 @@ void PR_LoadGlabalStruct(qboolean muted)
 	globalvec		(false, global_gravitydir)	\
 	globalstring	(false, parm_string)	\
 	ssqcglobals_legacy
+#endif
 
 #define globalfloat(need,name)			(pr_globals)->name = (pvec_t	*)PR_FindGlobal(svprogfuncs, #name, 0, &typ); /*if ((pr_globals)->name && (typ&0x0fff) != ev_float)    (pr_globals)->name = NULL;*/ if (need && !(pr_globals)->name) {static pvec_t    fallback##name; (pr_globals)->name = &fallback##name; if (!muted) Con_DPrintf(typ!=ev_void?CON_WARNING"ssqc: global "#name" defined as unexpected type %i\n":"Could not find \""#name"\" export in progs\n", typ&0xfff);}
 #define globalentity(need,name)			(pr_globals)->name = (pint_t	*)PR_FindGlobal(svprogfuncs, #name, 0, &typ); /*if ((pr_globals)->name && (typ&0x0fff) != ev_entity)   (pr_globals)->name = NULL;*/ if (need && !(pr_globals)->name) {static pint_t    fallback##name; (pr_globals)->name = &fallback##name; if (!muted) Con_DPrintf(typ!=ev_void?CON_WARNING"ssqc: global "#name" defined as unexpected type %i\n":"Could not find \""#name"\" export in progs\n", typ&0xfff);}
@@ -14315,6 +14413,8 @@ void PR_DumpPlatform_f(void)
 		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
 		{ "tc_weapons[32]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
+
+		{"ServerShutdown",		"void()", TC, D("Called once the server shuts down.")},
 #endif
 
 #undef comfieldfloatdep
