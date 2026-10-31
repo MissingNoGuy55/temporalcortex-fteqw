@@ -139,8 +139,8 @@ jobs:
         run: |
           cat <<EOF > engine/release/fte_macos.txt
           To allow executables to run issue for example:
-          chmod +x fteqw-glsdl2
-          xattr -d com.apple.quarantine fteqw-glsdl2
+          chmod +x fteqwtc-glsdl2
+          xattr -d com.apple.quarantine fteqwtc-glsdl2
           
           If you don't have SDL2 installed, run:
           brew install sdl2
@@ -154,7 +154,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: fteqw-${{ matrix.name }}-${{ steps.version.outputs.short_sha }}
+          name: fteqwtc-${{ matrix.name }}-${{ steps.version.outputs.short_sha }}
           path: |
             engine/release/fte*
             !engine/release/*.db
