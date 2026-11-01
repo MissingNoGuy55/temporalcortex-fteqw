@@ -567,7 +567,11 @@ void()	army_die3	=[	$death3,	army_die4	]
 {
 	self.solid = SOLID_NOT;
 	self.ammo_shells = 5;
+#ifdef TEMPORALCORTEX
+	DropWeapon();
+#else
 	DropBackpack();
+#endif
 };
 void()	army_die4	=[	$death4,	army_die5	] {};
 void()	army_die5	=[	$death5,	army_die6	] {};

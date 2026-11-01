@@ -169,7 +169,7 @@ local float		len, traveltime;
 // scale the destdelta vector by the time spent traveling to get velocity
 
 	makevectors(destdelta);
-	rotateaxis(v_right, self.angles, 90, self.origin);
+	//rotateaxis(v_right, self.angles, 90, self.origin);
 
 	self.avelocity = v_right * 2500;
 

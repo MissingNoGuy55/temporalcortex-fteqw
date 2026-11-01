@@ -6,12 +6,39 @@ TEMPORAL CORTEX ATTACK HELICOPTER
 ==============================================================================
 */
 
+$cd temporalcortex/models/heli
+$origin 0 0 24
+$base wizbase
+$skin wizbase
+
+$frame idle1 idle2 idle3 idle4 idle5 idle6
+$frame idle7 idle8 idle9 idle10 idle11 idle12
+$frame idle13 idle14 idle15 idle16
+
+void()	heli_stand1		=[	$idle1,		heli_stand2		] {};
+void()	heli_stand2		=[	$idle2,		heli_stand3		] {};
+void()	heli_stand3		=[	$idle3,		heli_stand4		] {};
+void()	heli_stand4		=[	$idle4,		heli_stand5		] {};
+void()	heli_stand5		=[	$idle5,		heli_stand6		] {};
+void()	heli_stand6		=[	$idle6,		heli_stand7		] {};
+void()	heli_stand7		=[	$idle7,		heli_stand8		] {};
+void()	heli_stand8		=[	$idle8,		heli_stand9		] {};
+void()	heli_stand9		=[	$idle9,		heli_stand10	] {};
+void()	heli_stand10	=[	$idle10,	heli_stand11	] {};
+void()	heli_stand11	=[	$idle11,	heli_stand12	] {};
+void()	heli_stand12	=[	$idle12,	heli_stand13	] {};
+void()	heli_stand13	=[	$idle13,	heli_stand14	] {};
+void()	heli_stand14	=[	$idle14,	heli_stand15	] {};
+void()	heli_stand15	=[	$idle15,	heli_stand16	] {};
+void()	heli_stand16	=[	$idle16,	heli_stand1		] {};
+
 .float windup;
 .float force;
 .float goalspeed;
 .float burst_finished;
 .float burst_next;
 .float firing;
+.float rotor_update_time;
 .vector goalpos;
 .vector desiredfacedir;
 .vector lastangleupdate;
@@ -256,11 +283,12 @@ void() heli_flight =
 void() heli_flight_mesh =
 {
 	local vector impulse;
-	local vector avel, estimate;
+	local vector avel, estimate, ang, vel;
 	local vector forward2d, vel2d;
 	local float dir, roll, dist;
 	local float side;
 	local float speed;
+	local float dt;
 	local vector adjust = '5 0 0';
 	local vector temp;
 
@@ -268,8 +296,13 @@ void() heli_flight_mesh =
 		self.goalspeed += 5;
 
 	avel = self.avelocity;
+	ang = self.angles;
+	vel = self.velocity;
 
-	makevectors(self.angles + avel * 2 + adjust);
+	dt = time-self.starttime;
+	self.starttime = time;
+
+	makevectors(ang + avel /* * 2 */ + adjust);
 
 	side = dotproduct(self.desiredfacedir, v_right);
 	if (side < 0)
@@ -285,16 +318,17 @@ void() heli_flight_mesh =
 
 	avel_y *= 0.98;
 
-	makevectors(self.angles + avel * 1 + adjust);
-	estimate = self.origin + self.velocity * 2 + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
+	makevectors(ang + avel /* * 1 */ + adjust);
+	estimate = self.origin + vel /* * 2 */ + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
 
-	makevectors(self.angles + adjust);
+	makevectors(ang + adjust);
 
 	impulse = v_up * self.force;
 	impulse_z -= 38.4;
 
-	temp = self.velocity + impulse;
+	temp = vel + impulse;
 	self.velocity = temp;
+	vel = self.velocity;
 
 	forward2d_x = v_forward_x;
 	forward2d_y = v_forward_y;
@@ -304,7 +338,7 @@ void() heli_flight_mesh =
 	vel2d_y = self.velocity_y;
 	vel2d_z = 0;
 
-	speed = vlen(self.velocity);
+	speed = vlen(vel);
 	dir = dotproduct(forward2d, vel2d);
 
 	if (dir < 0)
@@ -328,15 +362,17 @@ void() heli_flight_mesh =
 			avel_z -= 2;
 	}
 
-	temp = self.velocity;
+	temp = vel;
 	temp_x *= 1 - fabs(v_right_x) * 0.005;
 	temp_y *= 1 - fabs(v_right_y) * 0.005;
 	temp_z *= 1 - fabs(v_right_z) * 0.005;
 	self.velocity = temp;
+	vel = self.velocity;
 
-	temp = self.velocity;
+	temp = vel;
 	temp *= 0.995;
 	self.velocity = temp;
+	vel = self.velocity;
 
 	if (self.force < 80 && estimate_z < self.goalpos_z)
 	{
@@ -442,9 +478,9 @@ void() heli_update_goalpos =
 		self.prev_path = self.movetarget;
 		self.movetarget = self.next_path;
 		self.goalpos = self.movetarget.origin;
-
-		heli_closest_point_to_current_path (self.goalpos);
 	}
+
+	heli_closest_point_to_current_path (self.goalpos);
 };
 
 void() heli_facedir =
@@ -508,9 +544,22 @@ void() heli_think =
 	heli_update_goalpos();
 	heli_facedir();
 
-	heli_flight();
+	if (substring(self.model, strlen(self.model)-4, 4) == ".mdl")
+		heli_flight_mesh();
+	else
+		heli_flight();
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY | SENDFLAG_MINS | SENDFLAG_MAXS);
+	if (time > self.rotor_update_time)
+	{
+		if (self.frame < $idle16)
+			self.frame = self.frame + 1;
+		else
+			self.frame = $idle1;
+
+		self.rotor_update_time = time + 0.005;
+	}
+
+	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY);
 
 	self.nextthink = time;
 };
@@ -522,6 +571,11 @@ float(entity toplayer, float fl) SendHeli =
 	v = self.origin + self.velocity*(time-self.starttime);
 
 	WriteByte (MSG_ENTITY, CLASS_HELI);
+
+	//dprint("self.frame: ");
+	//dprint(ftos(self.frame));
+	//dprint("\n");
+
 	WriteByte (MSG_ENTITY, self.frame);
 	WriteLong (MSG_ENTITY, fl);
 
@@ -621,31 +675,24 @@ void() func_helicopter =
 	self.SendFlags = FULLSEND;
 };
 
-void() heli_rotor_update_angle;
-
-void() rotor_wait =
-{
-	self.think = heli_rotor_update_angle;
-	self.nextthink = time;
-};
-
 void() heli_rotor_update_angle =
 {
 	local float td;
 
-	makevectors(self.goalentity.angles);
+	//dprint ("self.goalentity.angles: ");
+	//dprint (vtos(self.goalentity.angles));
+	//dprint ("\n");
 
 	td = time - self.starttime;
 	self.starttime = time;
 
-	self.avelocity += self.goalentity.avelocity;
+	self.angles = self.owner.angles;
 
-	//dprint ("dir: ");
-	//dprint (vtos(dir));
-	//dprint ("\n");
-	//dprint ("rotated: ");
-	//dprint (vtos(rotated));
-	//dprint ("\n");
+	//dprint("dir: ");
+	//dprint(vtos(self.angles));
+	//dprint("\n");
+
+	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY | SENDFLAG_MINS | SENDFLAG_MAXS);
 };
 
 void() heli_rotor_think =
@@ -660,9 +707,7 @@ void() heli_rotor_think =
 
 	heli_rotor_update_angle ();
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY);
-
-	self.nextthink = time;
+	self.nextthink = time + frametime;
 };
 
 void() heli_rotor_find =
@@ -704,10 +749,9 @@ void() heli_rotor_find =
 void() func_helicopter_rotor =
 {
 	self.solid = SOLID_NOT;
-	self.movetype = MOVETYPE_NONE;
+	self.movetype = MOVETYPE_FLY;
 
 	setmodel (self, self.model);
-	setsize (self, self.mins, self.maxs);
 	self.windup = 1;
 
 	if (self.health)
@@ -726,9 +770,6 @@ void() func_helicopter_rotor =
 	self.mount_offset = VEC_ORIGIN;
 	self.mount_distance = 0;
 
-	makevectors(self.angles);
-	self.avelocity = v_right * 2500;
-
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
@@ -741,6 +782,7 @@ void() rotor_mountpoint_think =
 	{
 		setorigin (self, self.owner.origin + v_forward + self.mount_offset);
 		self.angles = self.owner.angles;
+		self.avelocity = self.owner.avelocity;
 	}
 	else
 		self.think = SUB_Remove;
@@ -791,7 +833,7 @@ Mounting point for func_helicopter_rotor if targeted. Throws an error otherwise.
 void() func_helicopter_rotormount =
 {
 	self.solid = SOLID_NOT;
-	self.movetype = MOVETYPE_NONE;
+	self.movetype = MOVETYPE_FLY;
 
 	setsize(self, VEC_ORIGIN, VEC_ORIGIN);
 
@@ -947,7 +989,6 @@ void() monster_army_helicopter =
 
 	precache_model (self.model);
 
-	setorigin (self, self.origin);
 	setmodel (self, self.model);
 	setsize (self, HELI_BBOX_MINS, HELI_BBOX_MAXS);
 
@@ -981,6 +1022,7 @@ void() monster_army_helicopter =
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
+
 
 
 

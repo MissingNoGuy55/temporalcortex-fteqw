@@ -331,6 +331,24 @@ local float		rs;
 	return;
 };
 
+#ifdef TEMPORALCORTEX
+//============================================================================
+
+void() player_uzi1   =[$light1, player_uzi2  ] {
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(4, AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+	self.attack_finished = time + 0.109;
+};
+
+void() player_uzi2   =[$light2, player_uzi1  ] {};
+#endif
+
 void()	player_pain1 =	[	$pain1,	player_pain2	] {PainSound();self.weaponframe=0;};
 void()	player_pain2 =	[	$pain2,	player_pain3	] {};
 void()	player_pain3 =	[	$pain3,	player_pain4	] {};

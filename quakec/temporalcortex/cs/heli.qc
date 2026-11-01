@@ -12,15 +12,15 @@ float() HeliProject =
 nonstatic void(float isnew) ParseHeliClass =
 {
 	local float ent;
-	local float fl;
+	local float fl, fr;
 
-	fl = readbyte();
+	fr = readbyte();
 
-	if (fl != self.frame || isnew)
+	if (fr != self.frame || isnew)
 	{
 		self.frame2 = self.frame;
 		self.lerptime = time;
-		self.frame = fl;
+		self.frame = fr;
 	}
 
 	fl = readlong();

@@ -117,8 +117,8 @@ void() DecodeLevelParms =
 #ifdef TEMPORALCORTEX
 	self.items2 = parm10;
 
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_axe"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_shotgun"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_axe"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_shotgun"));
 #endif
 };
 

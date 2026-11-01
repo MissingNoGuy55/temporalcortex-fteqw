@@ -1678,6 +1678,13 @@ void() W_SetCurrentAmmo =
 		self.weaponframe = 0;
 		self.items = self.items | IT_CELLS;
 	}
+	else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_uzi"))
+	{
+		self.currentammo = self.ammo_shells;
+		self.weaponmodel = "progs/v_light.mdl";
+		self.weaponframe = 0;
+		self.items = self.items | IT_SHELLS;
+	}
 	else
 	{
 		self.currentammo = 0;
@@ -1752,7 +1759,7 @@ void() W_SetCurrentAmmo =
 };
 
 #ifdef TEMPORALCORTEX
-entity(entity player, string w) W_AddWeaponToPlayer =
+entity(entity player, string w) W_AddWeaponToEntity =
 {
 	local entity pw;
 	local float i;
@@ -1774,13 +1781,6 @@ entity(entity player, string w) W_AddWeaponToPlayer =
 	pw = spawn();
 	pw.classname = w;
 	pw.owner = player;
-
-	switch(w)
-	{
-		case "weapon_grenadelauncher":
-			setmodel(pw, "progs/g_rock2.mdl");
-			break;
-	}
 
 	setorigin(self, player.origin);
 
@@ -1842,6 +1842,8 @@ void(entity player) W_ClearWeaponsFromPlayer =
 	for (i = 0; i < MAX_TC_WEAPONS; i++)
 	{
 		pw = player.tc_weapons[i];
+		if (!pw)
+			continue;
 
 		dprint ("destroying weapon on player: ");
 		dprint (pw.classname);
@@ -1889,6 +1891,8 @@ entity() W_BestWeapon =
 		if(self.ammo_nails >= 1 && it.classname == stringpool_get_string("weapon_nailgun"))
 			return it;
 		if(self.ammo_shells >= 1 && it.classname == stringpool_get_string("weapon_shotgun"))
+			return it;
+		if(self.ammo_shells >= 1 && it.classname == stringpool_get_string("weapon_uzi"))
 			return it;
 	}
 	return world;
@@ -1955,6 +1959,8 @@ void()	player_light1;
 void()	player_rocket1;
 
 #ifdef TEMPORALCORTEX
+void()	player_uzi1;
+
 void() W_Attack =
 {
 	local	float	r;
@@ -2016,6 +2022,12 @@ void() W_Attack =
 		player_light1();
 		self.attack_finished = time + 0.1;
 		sound (self, CHAN_AUTO, "weapons/lstart.wav", 1, ATTN_NORM);
+	}
+	else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_uzi"))
+	{
+		player_uzi1();
+		self.attack_finished = time + 0.109;
+		sound (self, CHAN_AUTO, "weapons/rocket1i.wav", 1, ATTN_NORM);
 	}
 };
 #else
@@ -2141,8 +2153,8 @@ void() W_ChangeWeapon =
 	}
 	else if (self.impulse == 8)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_lightning"));
-		if (self.ammo_cells < 1)
+		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_uzi"));
+		if (self.ammo_shells < 1)
 			am = 1;
 	}
 	else
@@ -2259,14 +2271,14 @@ void() CheatCommand =
 	self.ammo_shells = 100;
 
 #ifdef TEMPORALCORTEX
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_axe"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_shotgun"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_supershotgun"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_nailgun"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_supernailgun"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_grenadelauncher"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_rocketlauncher"));
-	W_AddWeaponToPlayer(self, stringpool_get_string("weapon_lightning"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_axe"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_shotgun"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_supershotgun"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_nailgun"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_supernailgun"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_grenadelauncher"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_rocketlauncher"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_lightning"));
 #else
 	self.items = self.items |
 		IT_AXE |
@@ -2664,7 +2676,6 @@ void() ImpulseCommands =
 			if (!self.grappling)
 			{
 				dir = aim (self, 100000);
-				makevectors (self.angles);
 
 				self.grappling = 1;
 
@@ -2738,6 +2749,7 @@ void() SuperDamageSound =
 	return;
 };
 
+#ifdef TEMPORALCORTEX
 /*
 ==============================================================================
 
@@ -2950,12 +2962,8 @@ void(float speed, vector dir) W_FireGrappleHook =
 	//makevectors(self.v_angle);
 	makevectors(self.angles);
 
-	if ( cvar( "tc_cl_q1viewmodel" ) == 0 )
-		src = self.origin + v_forward*10;
-	else
-		src = self.origin + v_forward * 10;
-
-	src_z = self.absmin_z + self.size_z * 0.7;
+	src = self.origin + v_forward * 10;
+	// src_z = self.absmin_z + self.size_z * 0.7;
 
 	ClearMultiDamage ();
 
@@ -2968,20 +2976,20 @@ void(float speed, vector dir) W_FireGrappleHook =
 	shoot_grapple_hook( speed, src, dir );
 };
 
+/*QUAKED weapon_uzi (0 .5 .8) (-16 -16 0) (16 16 4)
+model="progs/g_shot.mdl"
+*/
+void() weapon_uzi =
+{
+	precache_model ("progs/g_shot.mdl");
+	setmodel (self, "progs/g_shot.mdl");
+	self.netname = "Uzi";
+	self.touch = weapon_touch;
+	setsize (self, '-16 -16 0', '16 16 4');
 
+	self.solid = SOLID_BBOX;
+	self.movetype = MOVETYPE_TOSS;
+};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 

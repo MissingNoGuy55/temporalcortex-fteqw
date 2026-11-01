@@ -380,17 +380,17 @@ void() bound_other_ammo =
 #ifdef TEMPORALCORTEX
 float(entity w) RankForWeapon =
 {
-	if (w.classname == "weapon_lightning")
+	if (w.classname == stringpool_get_string("weapon_lightning"))
 		return 1;
-	if (w.classname == "weapon_rocketlauncher")
+	if (w.classname == stringpool_get_string("weapon_rocketlauncher"))
 		return 2;
-	if (w.classname == "weapon_supernailgun")
+	if (w.classname == stringpool_get_string("weapon_supernailgun"))
 		return 3;
-	if (w.classname == "weapon_grenadelauncher")
+	if (w.classname == stringpool_get_string("weapon_grenadelauncher"))
 		return 4;
-	if (w.classname == "weapon_supershotgun")
+	if (w.classname == stringpool_get_string("weapon_supershotgun"))
 		return 5;
-	if (w.classname == "weapon_nailgun")
+	if (w.classname == stringpool_get_string("weapon_nailgun"))
 		return 6;
 	return 7;
 };
@@ -454,7 +454,7 @@ weapon_touch
 
 #ifdef TEMPORALCORTEX
 entity() W_BestWeapon;
-entity(entity player, string w) W_AddWeaponToPlayer;
+entity(entity player, string w) W_AddWeaponToEntity;
 entity(entity ent, string name) W_FindWeaponInInventory;
 void(entity player) W_ClearWeaponsFromPlayer;
 entity(vector org, string w) W_SpawnWeapon;
@@ -489,7 +489,7 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_nailgun"))))
 			return;
 		hadammo = other.ammo_nails;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_nails = other.ammo_nails + 30;
 	}
 	else if (self.classname == stringpool_get_string("weapon_supernailgun"))
@@ -497,7 +497,7 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_supernailgun"))))
 			return;
 		hadammo = other.ammo_rockets;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_nails = other.ammo_nails + 30;
 	}
 	else if (self.classname == stringpool_get_string("weapon_supershotgun"))
@@ -505,7 +505,7 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_supershotgun"))))
 			return;
 		hadammo = other.ammo_rockets;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_shells = other.ammo_shells + 5;
 	}
 	else if (self.classname == stringpool_get_string("weapon_rocketlauncher"))
@@ -513,7 +513,7 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_rocketlauncher"))))
 			return;
 		hadammo = other.ammo_rockets;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_rockets = other.ammo_rockets + 5;
 	}
 	else if (self.classname == stringpool_get_string("weapon_grenadelauncher"))
@@ -521,7 +521,7 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_grenadelauncher"))))
 			return;
 		hadammo = other.ammo_rockets;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_rockets = other.ammo_rockets + 5;
 	}
 	else if (self.classname == stringpool_get_string("weapon_lightning"))
@@ -529,8 +529,16 @@ void() weapon_touch =
 		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_lightning"))))
 			return;
 		hadammo = other.ammo_rockets;			
-		new = W_AddWeaponToPlayer(other, self.classname);
+		new = W_AddWeaponToEntity(other, self.classname);
 		other.ammo_cells = other.ammo_cells + 15;
+	}
+	else if (self.classname == stringpool_get_string("weapon_uzi"))
+	{
+		if (leave && (W_FindWeaponInInventory(other, stringpool_get_string("weapon_uzi"))))
+			return;
+		hadammo = other.ammo_shells;
+		new = W_AddWeaponToEntity(other, self.classname);
+		other.ammo_shells = other.ammo_shells + 15;
 	}
 	else
 	{
@@ -1936,7 +1944,62 @@ void() DropBackpack =
 	item.think = SUB_Remove;
 };
 
+#ifdef TEMPORALCORTEX
+/*
+===============
+DropBackpack
+===============
+*/
+void() DropWeapon =
+{
+	local entity	item;
 
+	if (!(self.ammo_shells + self.ammo_nails + self.ammo_rockets + self.ammo_cells))
+		return;	// nothing in it
+
+	item = spawn();
+	item.origin = self.origin - '0 0 24';
+
+	item.tc_currentweapon = self.tc_currentweapon;
+	if (item.tc_currentweapon == IT_AXE)
+		item.netname = "Axe";
+	else if (item.tc_currentweapon == IT_SHOTGUN)
+		item.netname = "Shotgun";
+	else if (item.tc_currentweapon == IT_SUPER_SHOTGUN)
+		item.netname = "Double-barrelled Shotgun";
+	else if (item.tc_currentweapon == IT_NAILGUN)
+		item.netname = "Nailgun";
+	else if (item.tc_currentweapon == IT_SUPER_NAILGUN)
+		item.netname = "Super Nailgun";
+	else if (item.tc_currentweapon == IT_GRENADE_LAUNCHER)
+		item.netname = "Grenade Launcher";
+	else if (item.tc_currentweapon == IT_ROCKET_LAUNCHER)
+		item.netname = "Rocket Launcher";
+	else if (item.tc_currentweapon == IT_LIGHTNING)
+		item.netname = "Thunderbolt";
+	else
+		item.netname = "";
+
+	item.ammo_shells = self.ammo_shells;
+	item.ammo_nails = self.ammo_nails;
+	item.ammo_rockets = self.ammo_rockets;
+	item.ammo_cells = self.ammo_cells;
+
+	item.velocity_z = 300;
+	item.velocity_x = -100 + (random() * 200);
+	item.velocity_y = -100 + (random() * 200);
+
+	item.flags = FL_ITEM;
+	item.solid = SOLID_TRIGGER;
+	item.movetype = MOVETYPE_TOSS;
+	setmodel (item, "progs/backpack.mdl");
+	setsize (item, '-16 -16 0', '16 16 56');
+	item.touch = BackpackTouch;
+
+	item.nextthink = time + 120;	// remove after 2 minutes
+	item.think = SUB_Remove;
+};
+#endif
 
 
 

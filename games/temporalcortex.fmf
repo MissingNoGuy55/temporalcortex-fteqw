@@ -4,9 +4,6 @@ NAME "Temporal Cortex"
 BASEGAME lq1
 BASEGAME temporalcortex
 
-// DOWNLOADSURL http://www.frag-net.com/dl/valve_packages
-// UPDATEURL http://www.frag-net.com/mods/cstrike.fmf
-
 MAINCONFIG fte.cfg
 BASEDIR .
 DISABLEHOMEDIR never       // Only when read-only

@@ -363,6 +363,8 @@ void() worldspawn =
 	autocvar (tc_sv_super_shotgun_damage, "12");
 	autocvar (tc_sv_army_helicopter_turret_damage, "4");
 
+	// Missi: Hashed strings for quicker lookups (2026.10.31)
+	// Missi: Standard quake weapons (2026.10.31)
 	stringpool_add_string("weapon_axe")
 	stringpool_add_string("weapon_shotgun");
 	stringpool_add_string("weapon_supershotgun")
@@ -371,6 +373,11 @@ void() worldspawn =
 	stringpool_add_string("weapon_grenadelauncher")
 	stringpool_add_string("weapon_rocketlauncher")
 	stringpool_add_string("weapon_lightning")
+
+	// Missi: Temporal Cortex extra weapons (2026.10.31)
+	stringpool_add_string("weapon_uzi")
+	stringpool_add_string("weapon_mac10")
+	stringpool_add_string("weapon_vector")
 #endif
 
 //
@@ -478,5 +485,6 @@ void(entity ent) CopyToBodyQue =
 	setsize (bodyque_head, ent.mins, ent.maxs);
 	bodyque_head = bodyque_head.owner;
 };
+
 
 
