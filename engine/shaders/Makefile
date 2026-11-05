@@ -8,7 +8,7 @@ all:
 
 NAMES=	fixedemu	fixedemu_flat altwater	bloom_blur	bloom_filter	bloom_final	colourtint	crepuscular_opaque	crepuscular_rays	crepuscular_sky	depthonly	default2d	defaultadditivesprite		defaultskin	defaultsky	defaultskybox	defaultfill	defaultsprite	defaultwall	defaultwarp	defaultgammacb	drawflat_wall	lpp_depthnorm	lpp_light	lpp_wall	postproc_fisheye	postproc_panorama	postproc_laea	postproc_stereographic	postproc_equirectangular   postproc_panini	fxaa	underwaterwarp	menutint	terrain	rtlight
 
-ifneq ($(findstring -DTEMPORALCORTEX, $(CFLAGS)),)
+ifeq ($(TEMPORALCORTEX),1)
 	NAMES+=temporalcortex_timetravelwarp
 endif
 
@@ -21,7 +21,7 @@ ALLNAMES:=$(realpath $(ALLNAMES))
 VKNAMES=$(realpath $(foreach v,$(NAMES),vulkan/$v.glsl))
 VKNAMES+=postproc_fisheye
 VKNAMES+=rq_rtlight
-ifneq ($(findstring -DTEMPORALCORTEX, $(CFLAGS)),)
+ifeq ($(TEMPORALCORTEX),1)
 	VKNAMES+=temporalcortex_timetravelwarp
 endif
 VKNAMES:=$(foreach v,$(VKNAMES),vulkanblobs/$(notdir $(basename $v)).fvb)
