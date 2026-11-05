@@ -7693,12 +7693,7 @@ static struct {
 	{"numloadedbsps",			PF_CL_NumLoadedBSPs,		746},
 	{"getworldtimeperiod",		PF_CL_CurrentTimePeriod,	747},
 	{"getentitytimeperiod",		PF_Fixme,					748},
-	{"flerp",					PF_flerp,					749},
-	{"vlerp",					PF_vlerp,					750},
-	{"slerpangle",				PF_slerpangle,				751},
-	{"rotateaxis",				PF_rotatearbitraryaxis,		752},
-	{"angletoaxisangle",		PF_anglestoaxisangle,		753},
-	{"rotateaxisangle",			PF_rotateaxisangle,			754},
+	{"rotateaxisangle",			PF_rotateaxisangle,			749},
 #endif
 
 	{"gp_getlayout",			PF_cl_gp_getbuttontype,		0}, // #0 float(float devid) gp_getbuttontype

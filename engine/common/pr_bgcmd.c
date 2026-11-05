@@ -6646,274 +6646,6 @@ void QCBUILTIN PF_ceil (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 	G_FLOAT(OFS_RETURN) = ceil(G_FLOAT(OFS_PARM0));
 }
 
-#ifdef TEMPORALCORTEX
-void QCBUILTIN PF_flerp(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	float f1 = G_FLOAT(OFS_PARM0);
-	float f2 = G_FLOAT(OFS_PARM1);
-	float alpha = G_FLOAT(OFS_PARM2);
-
-	if (alpha < 0.001f)
-		alpha = 0.0f;
-
-	if (alpha == 0.0f)
-		PR_RunError (prinst, "PF_flerp detected a divide by zero attempt. Aborting.\n");
-
-	G_FLOAT(OFS_RETURN) = LerpFloat(f1, f2, alpha);
-}
-
-void QCBUILTIN PF_vlerp(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	float* v1 = G_VECTOR(OFS_PARM0);
-	float* v2 = G_VECTOR(OFS_PARM1);
-	float alpha = G_FLOAT(OFS_PARM2);
-
-	if (alpha < 0.001f)
-		alpha = 0.0f;
-
-	if (alpha == 0.0f)
-		PR_RunError (prinst, "PF_vlerp detected a divide by zero attempt. Aborting.\n");
-
-	VectorInterpolate(v1, alpha, v2, G_VECTOR(OFS_RETURN));
-}
-
-void QCBUILTIN PF_slerpangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	float *v1, *v2, alpha;
-	vec4_t quat1, quat2, quat3;
-	vec3_t eul1;
-
-	v1 = G_VECTOR(OFS_PARM0);
-	v2 = G_VECTOR(OFS_PARM1);
-	alpha = G_FLOAT(OFS_PARM2);
-
-	EulerToQuaternion(v1, quat1);
-	EulerToQuaternion(v2, quat2);
-
-	Vector4Interpolate(quat1, alpha, quat2, quat3);
-
-	QuaternionToEuler(quat3, eul1);
-
-	VectorCopy(eul1, G_VECTOR(OFS_RETURN));
-
-	Con_DPrintf("euler to quaternion test: %f %f %f %f\n", quat3[0], quat3[1], quat3[2], quat3[3]);
-	Con_DPrintf("quaternion to euler test: %f %f %f\n", eul1[0], eul1[1], eul1[2]);
-
-	//Con_DPrintf("quat1: %f %f %f %f\n", quat1[0], quat1[1], quat1[2], quat1[3]);
-	//Con_DPrintf("quat2: %f %f %f %f\n", quat2[0], quat2[1], quat2[2], quat2[3]);
-	//Con_DPrintf("quat3: %f %f %f %f\n", quat3[0], quat3[1], quat3[2], quat3[3]);
-}
-
-void QCBUILTIN PF_rotatearbitraryaxis(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-#if 1
-	float *axis;
-	float *angle;
-	float degrees;
-	float *origin;
-	float mat[16], mat2[16], mat3[16];
-	vec3_t out[4];
-	vec3_t angles;
-	vec3_t fwd, rt, up;
-
-	axis = G_VECTOR(OFS_PARM0);
-	angle = G_VECTOR(OFS_PARM1);
-	degrees = G_FLOAT(OFS_PARM2);
-	origin = G_VECTOR(OFS_PARM3);
-
-	memset(mat, 0, sizeof(mat));
-	memset(mat2, 0, sizeof(mat2));
-	memset(mat3, 0, sizeof(mat3));
-	memset(out, 0, sizeof(out));
-
-	AngleVectors(angle, fwd, rt, up);
-	Matrix4x4_RM_FromVectors(mat, fwd, rt, up, origin);
-
-	Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees, axis[0], axis[1], axis[2]), mat, mat2);
-
-	//Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees[YAW], 0, 0, axis[YAW]), mat2, mat);
-	//Matrix4_Multiply(Matrix4x4_CM_NewRotation(degrees[ROLL], axis[ROLL], 0, 0), mat, mat2);
-
-	//Matrix3x4_Invert(mat, mat2);
-
-	//Matrix4_Multiply(mat2, Matrix4x4_CM_NewRotation(-degrees,  axis[ROLL], axis[PITCH], axis[YAW]), tempmat);	    // put Z going up
-	//Matrix4_Multiply(tempmat, Matrix4x4_CM_NewRotation(degrees,  axis[ROLL], axis[PITCH], axis[YAW]), mat2);	    // put Z going up
-
-	Matrix3x4_RM_ToVectors(mat2, out[0], out[1], out[2], out[3]);
-	VectorAngles(out[0], out[1], angles, false);
-
-	VectorCopy(angles, G_VECTOR(OFS_RETURN));
-
-	//Con_DPrintf("out: %f %f %f", out[0][0], out[0][1], out[0][2]);
-	//Con_DPrintf("axis: %f %f %f\n", axis[0], axis[1], axis[2]);
-	//Con_DPrintf("angle: %f %f %f\n", angle[0], angle[1], angle[2]);
-
-	//VectorCopy(out[0], pr_global_struct->v_forward);
-	//VectorCopy(out[1], pr_global_struct->v_right);
-	//VectorCopy(out[2], pr_global_struct->v_up);
-
-	//Con_DPrintf("PF_rotatearbitraryaxis:\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n", out[0][0], out[0][1], out[0][2], out[1][0], out[1][1], out[1][2], out[2][0], out[2][1], out[2][2], out[3][0], out[3][1], out[3][2], angles[0], angles[1], angles[2]);
-#else
-	float	m[3][3];
-	float	im[3][3];
-	float	zrot[3][3];
-	float	tmpmat[3][3];
-	float	rot[3][3];
-	int	i;
-	vec3_t vr, vup, vf;
-
-	float* ang = G_VECTOR(OFS_PARM0);
-	float* dir = G_VECTOR(OFS_PARM1);
-	float degrees = G_FLOAT(OFS_PARM2);
-
-	vf[0] = dir[0];
-	vf[1] = dir[1];
-	vf[2] = dir[2];
-
-	PerpendicularVector( vr, dir );
-	CrossProduct( vr, vf, vup );
-
-	m[0][0] = vr[0];
-	m[1][0] = vr[1];
-	m[2][0] = vr[2];
-
-	m[0][1] = vup[0];
-	m[1][1] = vup[1];
-	m[2][1] = vup[2];
-
-	m[0][2] = vf[0];
-	m[1][2] = vf[1];
-	m[2][2] = vf[2];
-
-	memcpy( im, m, sizeof( im ) );
-
-	im[0][1] = m[1][0];
-	im[0][2] = m[2][0];
-	im[1][0] = m[0][1];
-	im[1][2] = m[2][1];
-	im[2][0] = m[0][2];
-	im[2][1] = m[1][2];
-
-	memset( zrot, 0, sizeof( zrot ) );
-	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
-
-	zrot[0][0] = cos( degrees / 180.0F * M_PI );
-	zrot[0][1] = sin( degrees / 180.0F * M_PI );
-	zrot[1][0] = -sin( degrees / 180.0F * M_PI );
-	zrot[1][1] = cos( degrees / 180.0F * M_PI );
-
-	R_ConcatRotations( m, zrot, tmpmat );
-	R_ConcatRotations( tmpmat, im, rot );
-
-	for ( i = 0; i < 3; i++ )
-	{
-		G_VECTOR(OFS_RETURN)[i] = rot[i][0] + rot[i][1] + rot[i][2];
-	}
-#endif
-}
-
-void QCBUILTIN PF_anglestoaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	float *arg = G_VECTOR(OFS_PARM0);
-	float angle;
-	float w, x, y, z, norm;
-
-	float c1 = cos(((arg[YAW]) / 180.0f * M_PI) / 2);
-	float s1 = sin(((arg[YAW]) / 180.0f * M_PI) / 2);
-	float c2 = cos(((arg[PITCH]) / 180.0f * M_PI) / 2);
-	float s2 = sin(((arg[PITCH]) / 180.0f * M_PI) / 2);
-	float c3 = cos(((arg[ROLL]) / 180.0f * M_PI) / 2);
-	float s3 = sin(((arg[ROLL]) / 180.0f * M_PI) / 2);
-	float c1c2 = c1*c2;
-	float s1s2 = s1*s2;
-
-	w = c1c2*c3 - s1s2*s3;
-	x = c1c2*s3 + s1s2*c3;
-	y = s1*c2*c3 + c1*s2*s3;
-	z = c1*s2*c3 - s1*c2*s3;
-
-	angle = 2 * acos(w);
-	norm = x*x+y*y+z*z;
-	if (norm < 0.001f)
-	{
-		x = 1;
-		y = z = 0;
-	}
-	else
-	{
-		norm = sqrt(norm);
-    	x /= norm;
-    	y /= norm;
-    	z /= norm;
-	}
-
-	G_VECTOR(OFS_RETURN)[0] = w;
-	G_VECTOR(OFS_RETURN)[1] = x;
-	G_VECTOR(OFS_RETURN)[2] = y;
-	G_VECTOR(OFS_RETURN)[3] = z;
-}
-
-void QCBUILTIN PF_rotateaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
-{
-	float *origin = G_VECTOR(OFS_PARM0);
-	float *angles = G_VECTOR(OFS_PARM1);
-	float *axis = G_VECTOR(OFS_PARM2);
-	float rotangle = G_FLOAT(OFS_PARM3);
-	float ctheta;
-	float stheta;
-	float dot;
-	vec3_t vmult, vcos, vsin, vdot;
-	vec3_t term1, term2, term3;
-	vec3_t out;
-
-	if (angles[PITCH] > 180.0f)
-		angles[PITCH] -= 360.0f;
-	else if (angles[PITCH] < -180.0f)
-		angles[PITCH] += 360.0f;
-
-	if (angles[YAW] > 180.0f)
-		angles[YAW] -= 360.0f;
-	else if (angles[YAW] < -180.0f)
-		angles[YAW] += 360.0f;
-
-	if (angles[ROLL] > 180.0f)
-		angles[ROLL] -= 360.0f;
-	else if (angles[ROLL] < -180.0f)
-		angles[ROLL] += 360.0f;
-
-	stheta = sin(rotangle);
-	ctheta = cos(rotangle);
-
-	dot = DotProduct(axis, angles);
-
-	VectorScale(angles, ctheta, term1);
-	VectorMul(axis, angles, vmult);
-	VectorScale(vmult, stheta, term2);
-
-	vcos[PITCH] = angles[PITCH] * ctheta;
-	vcos[YAW] = angles[YAW] * ctheta;
-	vcos[ROLL] = angles[ROLL] * ctheta;
-
-	vsin[PITCH] = angles[PITCH] * stheta;
-	vsin[YAW] = angles[YAW] * stheta;
-	vsin[ROLL] = angles[ROLL] * stheta;
-
-	VectorScale(axis, dot * (1 - ctheta), term3);
-
-	out[PITCH] = term1[PITCH] + term2[PITCH] + term3[PITCH];
-	out[YAW] = term1[YAW] + term2[YAW] + term3[YAW];
-	out[ROLL] = term1[ROLL] + term2[ROLL] + term3[ROLL];
-
-	Con_DPrintf("New angle: %f %f %f\n", out[PITCH], out[YAW], out[ROLL]);
-
-	VectorCopy(out, G_VECTOR(OFS_RETURN));
-
-
-	//VectorCopy(out, G_VECTOR(OFS_RETURN));
-
-}
-#endif
-
 void QCBUILTIN PF_anglemod (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
 	float v = G_FLOAT(OFS_PARM0);
@@ -7295,6 +7027,115 @@ void QCBUILTIN PF_rotatevectorsbymatrix (pubprogfuncs_t *prinst, struct globalva
 	VectorNegate(res[1], w->g.v_right);
 	VectorCopy(res[2], w->g.v_up);
 }
+
+#ifdef TEMPORALCORTEX
+static void eulertoaxisangle(const vec3_t input, vec4_t dst)
+{
+	float angle;
+
+	// Missi: Division is slower; use mult instead of division here. (2026.11.3)
+	float c1 = cos((input[YAW] / 180.0f * M_PI) * 0.5f);
+	float s1 = sin((input[YAW] / 180.0f * M_PI) * 0.5f);
+	float c2 = cos((input[PITCH] / 180.0f * M_PI) * 0.5f);
+	float s2 = sin((input[PITCH] / 180.0f * M_PI) * 0.5f);
+	float c3 = cos((input[ROLL] / 180.0f * M_PI) * 0.5f);
+	float s3 = sin((input[ROLL] / 180.0f * M_PI) * 0.5f);
+	float c1c2 = c1*c2;
+	float s1s2 = s1*s2;
+	dst[0] =c1c2*c3 - s1s2*s3;
+	dst[1] =c1c2*s3 + s1s2*c3;
+	dst[2] =s1*c2*c3 + c1*s2*s3;
+	dst[3] =c1*s2*c3 - s1*c2*s3;
+
+	angle = 2 * acos(dst[0]);
+	dst[0] = angle;
+
+	float norm = dst[1]*dst[1]+dst[2]*dst[2]+dst[3]*dst[3];
+	if (norm < 0.001) { // when all euler angles are zero angle =0 so
+		// we can set axis to anything to avoid divide by zero
+		dst[1]=1;
+		dst[2]=dst[3]=0;
+	} else {
+		norm = sqrt(norm);
+		dst[1] /= norm;
+		dst[2] /= norm;
+		dst[3] /= norm;
+	}
+
+	printf("euler->axisangle %f %f %f: %f %f %f %f\n", input[0], input[1], input[2], dst[0], dst[1], dst[2], dst[3]);
+}
+
+static void axisangletoeuler(const float* input, float *dst, float degrees)
+{
+	float angle = degrees / 180.0f * M_PI;
+
+	float s=sin(angle);
+	float c=cos(angle);
+	float t=1-c;
+
+	float x = input[0];
+	float y = input[1];
+	float z = input[2];
+
+	//  if axis is not already normalised then uncomment this
+	// float magnitude = Math.sqrt(x*x + y*y + z*z);
+	// if (magnitude==0) throw error;
+	// x /= magnitude;
+	// y /= magnitude;
+	// z /= magnitude;
+	if ((x*y*t + z*s) > 0.998) { // north pole singularity detected
+		dst[1] = 2*atan2(x*sin(angle/2),cos(angle/2));
+		dst[0] = M_PI/2;
+		dst[2] = 0;
+		return;
+	}
+	if ((x*y*t + z*s) < -0.998) { // south pole singularity detected
+		dst[1] = -2*atan2(x*sin(angle/2),cos(angle/2));
+		dst[0] = -M_PI/2;
+		dst[2] = 0;
+		return;
+	}
+	dst[1] = atan2(y * s- x * z * t , 1 - (y*y+ z*z ) * t);
+	dst[0] = asin(x * y * t + z * s) ;
+	dst[2] = atan2(x * s - y * z * t , 1 - (x*x + z*z) * t);
+
+	dst[0] *= 180.0f / M_PI;
+	dst[1] *= 180.0f / M_PI;
+	dst[2] *= 180.0f / M_PI;
+
+	//Con_DPrintf("axisangle->euler %f %f %f %f: %f %f %f\n", x, y, z, angle, (dst[1] * 180.0 / M_PI), (dst[0] * 180.0 / M_PI), (dst[2] * 180.0 / M_PI));
+}
+
+void QCBUILTIN PF_rotateaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
+{
+	float newrot33[9];
+	float newrot34[12];
+	float newrot44[16];
+	float *angles = G_VECTOR(OFS_PARM0);
+	float *frame = G_VECTOR(OFS_PARM1);
+	float *org = G_VECTOR(OFS_PARM2);
+	float *axis = G_VECTOR(OFS_PARM3);
+	float ang = G_FLOAT(OFS_PARM4);
+	float out[16];
+	vec3_t ret;
+
+	memset(out, 0, sizeof(out));
+
+	Matrix3x4_RM_FromAngles(frame, org, newrot34);
+	Matrix3x4_InvertTo3x3(newrot34, newrot33);
+
+	Matrix3x4_InvertTo4x4_Simple(newrot34, newrot44);
+
+	Matrix4_Multiply(newrot44, Matrix4x4_CM_NewRotation(ang, axis[0], axis[1], axis[2]), out);
+
+	//Con_DPrintf("X1: %f Y1: %f Z1: %f W1: %f\nX2: %f Y2: %f Z2: %f W2: %f\nX3: %f Y3: %f Z3: %f W3: %f\nX4: %f Y4: %f Z4: %f W4: %f\n", out[0], out[1], out[2], out[3],
+	//			out[4], out[5], out[6], out[7], out[8], out[9], out[10], out[11], out[12], out[13], out[14], out[15]);
+
+	axisangletoeuler(out, ret, ang);
+
+	VectorCopy(ret, G_VECTOR(OFS_RETURN));
+}
+#endif
 
 //Vector functions
 ////////////////////////////////////////////////////

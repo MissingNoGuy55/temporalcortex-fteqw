@@ -13320,12 +13320,7 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
 	{"getworldtimeperiod",									PF_CurrentTimePeriod,0,0,0,747,	"float()", "Obtains the current time period for the world."},
 	{"getentitytimeperiod",									PF_EntityTimePeriod,0,0,0,748,	"float(entity e)", "Obtains the current time period for a specific entity."},
-	{"flerp",												PF_flerp,0,0,0,749, "float(float f1, float f2, float alpha)", "Lerps between two floats."},
-	{"vlerp",												PF_vlerp,0,0,0,750, "vector(vector v1, vector v2, float alpha)", "Lerps between two vectors."},
-	{"slerpangle",											PF_slerpangle,0,0,0,751, "vector(vector ang1, vector ang2, vector amount)", "Lerps between two angles that are interpreted as quaternions."},
-	{"rotateaxis",											PF_rotatearbitraryaxis,0,0,0,752, "vector(vector axis, vector angle, float degrees, vector origin)", "Rotates the given angles by an arbitrary axis and returns the result."},
-	{"anglestoaxisangle",									PF_anglestoaxisangle,0,0,0,753, "vector(vector angles)", "Returns the axis component of the axis-angle representation of the given Euler angles."},
-	{"rotateaxisangle",									PF_rotateaxisangle,0,0,0,754, "vector(vector angles, vector dir, float angle)", "Returns a rotated vector."},
+	{"rotateaxisangle",										PF_rotateaxisangle,0,0,0,749,	"vector(vector ang, vector frame, vector origin, vector axis, float degrees)", "Takes a Euler angle vector, converts it to axis-angle, rotates it, and then returns the result."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin
@@ -14413,6 +14408,8 @@ void PR_DumpPlatform_f(void)
 		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
 		{ "tc_weapons[64]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
+		{ "tc_ammo[64]",		".float", TC|TC_CS,		D("Temporal Cortex: Entity ammo reserve") },
+		{ "timeperiod",			".float", TC|TC_CS, 	D("Time period of entity. If this does not match the server's time period, then it will be invisible and \"dead\", as in, left in its last position, frame, and angle until the time period from the server matches the value on this entity.") },
 
 		{"ServerShutdown",		"void()", TC, D("Called once the server shuts down.")},
 #endif
@@ -14784,9 +14781,30 @@ void PR_DumpPlatform_f(void)
 		{"SENDFLAG_ABSMINS",	"const float", TC|TC_CS, D("Minimum bounding box of entity relative to the center of the world. This is calculated automatically in the engine, so you rarely ever need to set it."), 9},
 		{"SENDFLAG_ABSMAXS",	"const float", TC|TC_CS, D("Maximum bounding box of entity relative to the center of the world. This is calculated automatically in the engine, so you rarely ever need to set it."), 10},
 
-		{"pi",					"const float", TC|TC_CS, D("The ancient number whose end has never been found as of writing."), M_PI},
-
-		{"timeperiod",			".float", TC|TC_CS, D("Time period of entity. If this does not match the server's time period, then it will be invisible and \"dead\", as in, left in its last position, frame, and angle until the time period from the server matches the value on this entity."), 0.0f},
+		{"TC_AMMO_NONE",		"const float",	TC|TC_CS,	NULL, 0},
+		{"TC_AMMO_9x18MM",		"const float",	TC|TC_CS,	NULL, 1},
+		{"TC_AMMO_9x19MM",		"const float",	TC|TC_CS,	NULL, 2},
+		{"TC_AMMO_357_MAGNUM",	"const float",	TC|TC_CS,	NULL, 3},
+		{"TC_AMMO_44_MAGNUM",	"const float",	TC|TC_CS,	NULL, 4},
+		{"TC_AMMO_45_ACP",		"const float",	TC|TC_CS,	NULL, 5},
+		{"TC_AMMO_45_70_GOVT",	"const float",	TC|TC_CS,	NULL, 6},
+		{"TC_AMMO_50_90_SHARPS","const float",	TC|TC_CS,	NULL, 7},
+		{"TC_AMMO_9x39MM",		"const float",	TC|TC_CS,	NULL, 8},
+		{"TC_AMMO_5_45x39MM",	"const float",	TC|TC_CS,	NULL, 9},
+		{"TC_AMMO_5_56x45MM",	"const float",	TC|TC_CS,	NULL, 10},
+		{"TC_AMMO_7_62x39MM",	"const float",	TC|TC_CS,	NULL, 11},
+		{"TC_AMMO_7_62x51MM",	"const float",	TC|TC_CS,	NULL, 12},
+		{"TC_AMMO_12_7x99MM",	"const float",	TC|TC_CS,	NULL, 13},
+		{"TC_AMMO_12_7x108MM",	"const float",	TC|TC_CS,	NULL, 14},
+		{"TC_AMMO_12_GAUGE",	"const float",	TC|TC_CS,	NULL, 15},
+		{"TC_AMMO_10_GAUGE",	"const float",	TC|TC_CS,	NULL, 16},
+		{"TC_AMMO_6_GAUGE",		"const float",	TC|TC_CS,	NULL, 17},
+		{"TC_AMMO_12_GAUGE_SLUG","const float",	TC|TC_CS,	NULL, 18},
+		{"TC_AMMO_10_GAUGE_SLUG","const float",	TC|TC_CS,	NULL, 19},
+		{"TC_AMMO_6_GAUGE_SLUG","const float",	TC|TC_CS,	NULL, 20},
+		{"TC_AMMO_12_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 21},
+		{"TC_AMMO_10_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 22},
+		{"TC_AMMO_6_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 23},
 #endif
 
 #ifdef HAVE_LEGACY
