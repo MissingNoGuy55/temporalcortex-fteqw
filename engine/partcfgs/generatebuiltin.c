@@ -17,6 +17,9 @@ struct
 	{"h2part.cfg", "#ifdef HEXEN2\n"},
 	{"q2part.cfg", "#ifdef Q2CLIENT\n"},
 	{"tsshaft.cfg"},
+#ifdef TEMPORALCORTEX
+	{"temporalcortex.cfg"},
+#endif
 	{""}
 };
 
