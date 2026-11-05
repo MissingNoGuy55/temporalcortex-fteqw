@@ -225,7 +225,7 @@ void() timehunter_fire =
 	traceline( self.origin, ( self.origin + dir ) * 200, FALSE, self );
 
 	if ( cvar( "tc_sv_hitscan" ) == 0 )
-		FireBullets_NoHitScan (damage, AMMO_5_56x45MM, cvar("tc_sv_ammo_556x45mm_speed"), 1, dir, spread);
+		FireBullets_NoHitScan (damage, TC_AMMO_5_56x45MM, cvar("tc_sv_ammo_556x45mm_speed"), 1, dir, spread);
 	else
 		FireBullets( 1, dir, spread );
 };
@@ -490,3 +490,4 @@ void() monster_timehunter =
 
 	walkmonster_start ();
 };
+

@@ -2,7 +2,7 @@
 	#define _CLASSES_QC_
 
 
-#define eclasses	eclass(CLASS_ROCKET, ParseRocketClass)	eclass(CLASS_GIB, ParseGibbing)	eclass(CLASS_PLAYER, ParsePlayer) eclass(CLASS_EXPLOSION, ParseExplosion) eclass(CLASS_NAIL, ParseNailClass) eclass(CLASS_BULLET, ParseBulletClass) eclass(CLASS_GRAPPLING_HOOK, ParseGrapplingHookClass) eclass(CLASS_PLAT, ParsePlatClass) eclass(CLASS_GRENADE, ParseGrenadeClass) eclass(CLASS_HELI, ParseHeliClass)
+#define eclasses	eclass(CLASS_ROCKET, ParseRocketClass)	eclass(CLASS_GIB, ParseGibbing)	eclass(CLASS_PLAYER, ParsePlayer) eclass(CLASS_EXPLOSION, ParseExplosion) eclass(CLASS_NAIL, ParseNailClass) eclass(CLASS_BULLET, ParseBulletClass) eclass(CLASS_GRAPPLING_HOOK, ParseGrapplingHookClass) eclass(CLASS_PLAT, ParsePlatClass) eclass(CLASS_GRENADE, ParseGrenadeClass) eclass(CLASS_HELI, ParseHeliClass) eclass(CLASS_WEAPON, ParseWeaponClass)
 
 #ifdef CSQC
 #define eclass(eid,func) void(float isnew) func;

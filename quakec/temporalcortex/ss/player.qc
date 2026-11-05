@@ -167,18 +167,6 @@ void()	player_axed2 =	[$axattd2, player_axed3	] {self.weaponframe=6;};
 void()	player_axed3 =	[$axattd3, player_axed4	] {self.weaponframe=7;W_FireAxe();};
 void()	player_axed4 =	[$axattd4, player_run	] {self.weaponframe=8;};
 
-#ifdef TEMPORALCORTEX
-
-void()	player_mac10_1 =	[$shotatt1, player_mac10_2	] {self.weaponframe=1;
-self.effects = self.effects | EF_MUZZLEFLASH;};
-void()	player_mac10_2 =	[$shotatt2, player_mac10_3	] {self.weaponframe=2;};
-void()	player_mac10_3 =	[$shotatt3, player_mac10_4	] {self.weaponframe=3;};
-void()	player_mac10_4 =	[$shotatt4, player_mac10_5	] {self.weaponframe=4;};
-void()	player_mac10_5 =	[$shotatt5, player_mac10_6	] {self.weaponframe=5;};
-void()	player_mac10_6 =	[$shotatt6, player_run	] {self.weaponframe=6;};
-
-#endif
-
 //============================================================================
 
 void() player_nail1   =[$nailatt1, player_nail2  ] 
@@ -340,13 +328,45 @@ void() player_uzi1   =[$light1, player_uzi2  ] {
 	if (!self.button0)
 		return;
 
+	self.effects = self.effects | EF_MUZZLEFLASH;
+
 	dir = aim(self, 10000);
 
-	FireBullets_NoHitScan(4, AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+	FireBullets_NoHitScan(cvar("tc_sv_uzi_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
 	self.attack_finished = time + 0.109;
 };
 
 void() player_uzi2   =[$light2, player_uzi1  ] {};
+
+void() player_mac10_1   =[$light1, player_mac10_2  ] {
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	self.effects = self.effects | EF_MUZZLEFLASH;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_mac10_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+	self.attack_finished = time + 0.04;
+};
+
+void() player_mac10_2   =[$light2, player_mac10_1  ] {};
+
+void() player_vector1   =[$light1, player_vector2  ] {
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+	self.attack_finished = time + 0.04;
+};
+
+void() player_vector2   =[$light2, player_vector1  ] {};
 #endif
 
 void()	player_pain1 =	[	$pain1,	player_pain2	] {PainSound();self.weaponframe=0;};
@@ -759,3 +779,5 @@ void()	player_die_ax6	=	[	$axdeth6,	player_die_ax7	] {};
 void()	player_die_ax7	=	[	$axdeth7,	player_die_ax8	] {};
 void()	player_die_ax8	=	[	$axdeth8,	player_die_ax9	] {};
 void()	player_die_ax9	=	[	$axdeth9,	player_die_ax9	] {PlayerDead();};
+
+

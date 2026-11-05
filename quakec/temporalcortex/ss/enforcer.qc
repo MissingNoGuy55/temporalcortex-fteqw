@@ -171,7 +171,7 @@ void() enforcer_shotgun_fire =
 	}
 
 	if (cvar("tc_sv_hitscan") == 0)
-		FireBullets_NoHitScan (damage, AMMO_10_GAUGE, cvar("tc_sv_ammo_10gauge_speed"), 8, dir, spread);
+		FireBullets_NoHitScan (damage, TC_AMMO_10_GAUGE, cvar("tc_sv_ammo_10gauge_speed"), 8, dir, spread);
 	else
 		FireBullets( 1, dir, spread );
 };
@@ -235,7 +235,7 @@ void() enforcer_heavygun_fire =
 	sound (self, CHAN_WEAPON, "weapons/grenade.wav", 1, ATTN_NORM);
 
 	if ( cvar( "tc_sv_hitscan" ) == 0 )
-		FireBullets_NoHitScan (damage, AMMO_10_GAUGE, cvar("tc_sv_ammo_10gauge_speed"), 1, dir, spread);
+		FireBullets_NoHitScan (damage, TC_AMMO_10_GAUGE, cvar("tc_sv_ammo_10gauge_speed"), 1, dir, spread);
 	else
 		FireBullets( 1, dir, spread );
 };
@@ -718,3 +718,4 @@ void() monster_army_heavygunner =
 
 	walkmonster_start ();
 };
+

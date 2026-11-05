@@ -1,5 +1,3 @@
-
-
 void() plat_center_touch;
 void() plat_outside_touch;
 void() plat_trigger_use;
@@ -409,12 +407,11 @@ void() tracktrain_adjust_angle =
 {
 	local float td;
 	local float dot;
-	local vector dir;
 
 	makevectors(self.angles);
 
-	dir = normalize(self.goalentity.origin - self.origin);
-	dot = dotproduct(dir, v_right);
+	vectorvectors(self.goalentity.origin - self.origin);
+	dot = dotproduct(v_forward, v_right);
 
 	if (!(self.spawnflags & SF_TRACKTRAIN_FIXED_ORIENTATION))
 	{
@@ -427,7 +424,7 @@ void() tracktrain_adjust_angle =
 		}
 		if (self.style == 1)	// Missi: Linear blend (2026.1.24)
 		{
-			self.angles += dir * dot;
+			self.angles += v_right * dot;
 		}
 
 		if (self.spawnflags & SF_TRACKTRAIN_NO_PITCH)
@@ -435,14 +432,14 @@ void() tracktrain_adjust_angle =
 		else
 			self.angles_x = self.angles_x * -1;
 
-		//dprint("dist(\"");
-		//dprint(self.targetname);
-		//dprint("\"): ");
-		//dprint(ftos(dot));
-		//dprint("\n");
-		//dprint("self.angles: ");
-		//dprint(vtos(self.angles));
-		//dprint("\n");
+		dprint("dist(\"");
+		dprint(self.targetname);
+		dprint("\"): ");
+		dprint(ftos(dot));
+		dprint("\n");
+		dprint("self.angles: ");
+		dprint(vtos(self.angles));
+		dprint("\n");
 	}
 
 	self.nextthink = self.ltime + frametime;
@@ -451,34 +448,18 @@ void() tracktrain_adjust_angle =
 void() tracktrain_next =
 {
 	local entity targ, targ2, killtarg, temp;
-	local float i = 0;
 
 	targ = find (world, targetname, self.target);
 
-	if (!targ.target)	// Missi: We are done if there are no more targets (2026.9.18)
-	{
-		if (targ.killtarget)
-		{
-			killtarg = find (world, targetname, targ.killtarget);
-
-			while (killtarg)
-			{
-				temp = killtarg;
-				remove (killtarg);
-				killtarg = find (temp, targetname, targ.killtarget);
-			}
-		}
-
+	if (!targ)
 		return;
-	}
 
-	self.target = targ.target;
+	targ2 = find (world, targetname, targ.target);
 
-	targ2 = find (world, targetname, self.target);
-	self.goalentity = targ2;
+	self.goalentity = targ;
 
-	//if (!self.target)
-	//	objerror ("train_next: no next target");
+	if (!self.target)
+		objerror ("train_next: no next target");
 
 	if (targ.wait)
 		self.wait = targ.wait;
@@ -488,13 +469,10 @@ void() tracktrain_next =
 	sound (self, CHAN_VOICE, self.noise1, 1, ATTN_NORM);
 
 	//dprint("Tracktrain target: ");
-	//dprint(targ.targetname);
+	//dprint(self.target);
 	//dprint("\n");
 
 	SUB_CalcMove (self.goalentity.origin, self.speed, tracktrain_wait);
-
-	self.think = tracktrain_adjust_angle;
-	self.nextthink = self.ltime + frametime;
 };
 
 void() tracktrain_find =
@@ -645,6 +623,9 @@ void() path_track =
 {
 	movetrack_f ();
 };
+
+
+
 
 
 

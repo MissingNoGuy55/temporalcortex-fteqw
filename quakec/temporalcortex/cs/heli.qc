@@ -1,10 +1,10 @@
 float() HeliProject =
 {
-	makevectors(self.angles);
+	//makevectors(self.angles);
 
-	drawline3d (2, self.origin, self.origin + v_forward * 256, '1 0 0', 1);
-	drawline3d (2, self.origin, self.origin + v_right * 256, '0 1 0', 1);
-	drawline3d (2, self.origin, self.origin + v_up * 256, '0 0 1', 1);
+	//drawline3d (2, self.origin, self.origin + v_forward * 256, '1 0 0', 1);
+	//drawline3d (2, self.origin, self.origin + v_right * 256, '0 1 0', 1);
+	//drawline3d (2, self.origin, self.origin + v_up * 256, '0 0 1', 1);
 
 	return PREDRAW_AUTOADD;
 };

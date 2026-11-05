@@ -289,6 +289,7 @@ void() worldspawn =
 #ifdef TEMPORALCORTEX
 	// Missi: Temporal Cortex bullets (2026.1.25)
 	precache_model ("progs/laser.mdl");
+	precache_model ("progs/weapons/g_mac10.mdl");
 
 	// Missi: Cvars that used to be part of the C code, but have been moved to QuakeC (2026.7.31)
 	autocvar (tc_sv_army_gunner_damage, "6");
@@ -361,6 +362,10 @@ void() worldspawn =
 	// Guns damage
 	autocvar (tc_sv_shotgun_damage, "6");
 	autocvar (tc_sv_super_shotgun_damage, "12");
+	autocvar (tc_sv_uzi_damage, "6");
+	autocvar (tc_sv_mp5_damage, "7");
+	autocvar (tc_sv_mac10_damage, "7");
+	autocvar (tc_sv_vector_damage, "7");
 	autocvar (tc_sv_army_helicopter_turret_damage, "4");
 
 	// Missi: Hashed strings for quicker lookups (2026.10.31)
@@ -375,7 +380,12 @@ void() worldspawn =
 	stringpool_add_string("weapon_lightning")
 
 	// Missi: Temporal Cortex extra weapons (2026.10.31)
+	stringpool_add_string("weapon_92fs")
+	stringpool_add_string("weapon_gp36")
+	stringpool_add_string("weapon_unica6")
+	stringpool_add_string("weapon_sw500")
 	stringpool_add_string("weapon_uzi")
+	stringpool_add_string("weapon_mp5")
 	stringpool_add_string("weapon_mac10")
 	stringpool_add_string("weapon_vector")
 #endif

@@ -761,3 +761,22 @@ void() trigger_monsterjump =
 	self.touch = trigger_monsterjump_touch;
 };
 
+#ifdef TEMPORALCORTEX
+void() SpawnRain =
+{
+	te_particlerain(self.mins, self.maxs, '0 0 -128', 255, 1);
+	self.nextthink = time;
+};
+
+/*QUAKED func_precipitation (.5 .5 .5) ?
+*/
+void() func_precipitation =
+{
+	InitTrigger ();
+
+	te_particlerain(self.mins, self.maxs, '0 0 -128', 255, 1);
+
+	self.think = SpawnRain;1
+	self.nextthink = time;
+};
+#endif

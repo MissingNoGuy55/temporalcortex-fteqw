@@ -508,31 +508,6 @@ float	AS_MISSILE		= 4;
 // Missi: Temporal Cortex gun misc (2026.1.11)
 //
 
-float		AMMO_NONE				= 0;
-float		AMMO_9x18MM				= 1;	// Missi: Warsaw Pact (2026.1.11)
-float		AMMO_9x19MM				= 2;	// Missi: Pre-NATO (2026.1.11)
-float		AMMO_357_MAGNUM			= 3;	// Missi: Pre-NATO (2026.2.1)
-float		AMMO_44_MAGNUM			= 4;	// Missi: Pre-NATO (2026.2.1)
-float		AMMO_45_ACP				= 5;	// Missi: Pre-NATO (2026.2.1)
-float		AMMO_45_70_GOVT			= 6;	// Missi: Pre-NATO (2026.2.1)
-float		AMMO_50_90_SHARPS		= 7;	// Missi: Pre-NATO (2026.2.1)
-float		AMMO_9x39MM				= 8;	// Missi: Warsaw Pact (2026.1.11)
-float		AMMO_5_45x39MM			= 9;	// Missi: Warsaw Pact (2026.1.11)
-float		AMMO_5_56x45MM			= 10;	// Missi: NATO (2026.1.11)
-float		AMMO_7_62x39MM			= 11;	// Missi: Warsaw Pact (2026.1.11)
-float		AMMO_7_62x51MM			= 12;	// Missi: NATO (2026.1.11)
-float		AMMO_12_7x99MM			= 13;	// Missi: NATO (.50 BMG) (2026.1.11)
-float		AMMO_12_7x108MM			= 14;	// Missi: Warsaw Pact (2026.1.11)
-float		AMMO_12_GAUGE			= 15;	// Missi: NATO (2026.2.1)
-float		AMMO_10_GAUGE			= 16;	// Missi: NATO (2026.2.1)
-float		AMMO_6_GAUGE			= 17;	// Missi: Warsaw Pact (2026.2.1)
-float		AMMO_12_GAUGE_SLUG		= 18;	// Missi: NATO (2026.2.1)
-float		AMMO_10_GAUGE_SLUG		= 19;	// Missi: NATO (2026.2.1)
-float		AMMO_6_GAUGE_SLUG		= 20;	// Missi: Warsaw Pact (2026.2.1)
-float		AMMO_12_GAUGE_FIRE		= 21;	// Missi: NATO (2026.2.1)
-float		AMMO_10_GAUGE_FIRE		= 22;	// Missi: NATO (2026.2.1)
-float		AMMO_6_GAUGE_FIRE		= 23;	// Missi: Warsaw Pact (2026.2.1)
-
 .float		bullet_drag;
 .float		bullet_weight;
 .float		bullet_type;
@@ -554,11 +529,6 @@ float		AMMO_6_GAUGE_FIRE		= 23;	// Missi: Warsaw Pact (2026.2.1)
 .float		mdma_time, mdma_sound;
 
 .float		mass;				// Missi: func_pushable and other QPhysics misc (2026.1.17)
-
-float		SOUNDFLAG_RELIABLE	= 1;
-float		SOUNDFLAG_FORCELOOP	= 2;
-float		SOUNDFLAG_ABSVOLUME	= 16;
-float		SOUNDFLAG_FOLLOW	= 64;
 #endif
 
 //============================================================================

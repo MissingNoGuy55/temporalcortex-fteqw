@@ -47,6 +47,9 @@ void()	heli_stand16	=[	$idle16,	heli_stand1		] {};
 .vector oldangles;
 .vector oldavelocity;
 .float mount_distance;
+.float death_explosion_time;
+.float death_explosion_stage;
+.float rotor_oldangle;
 
 const float SF_ROTOR_START_INACTIVE = 1;
 const float SF_ROTOR_TAIL_ROTOR = 2;
@@ -509,31 +512,68 @@ void() heli_crash =
 	if (other != world)
 		return;
 
+	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+	WriteCoord (MSG_BROADCAST, self.origin_x);
+	WriteCoord (MSG_BROADCAST, self.origin_y);
+	WriteCoord (MSG_BROADCAST, self.origin_z);
+
 	BecomeExplosion();
+
+	self.deadflag = DEAD_DEAD;
 
 	self.think = SUB_Remove;
 	self.nextthink = time + 1;
 };
 
+// Missi: GTA III style helicopter spinout (2026.11.4)
 void() heli_spinout =
 {
-	self.avelocity_y += 1;
-	self.velocity_z *= 0.995;
+	makevectors(self.angles);
 
-	if ((random()*2 - 1) < 0.05)
+	if (self.death_explosion_stage == 0)
+	{
+		// Missi: First stage.
+		self.velocity_z *= 0.85;
+		self.avelocity_x = 0;
+		self.avelocity_y += 1;
+		self.avelocity_z = 0;
+	}
+	else
+	{
+		self.velocity_z *= 0.995;
+		self.avelocity_x = 0;
+		self.avelocity_y += 2;
+		self.avelocity_z = 0;
+	}
+
+	if (time > self.death_explosion_time)
 	{
 		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
 		WriteByte (MSG_BROADCAST, TE_EXPLOSION);
 		WriteCoord (MSG_BROADCAST, self.origin_x);
 		WriteCoord (MSG_BROADCAST, self.origin_y);
 		WriteCoord (MSG_BROADCAST, self.origin_z);
+
+		makevectors(VEC_ORIGIN);
+		self.velocity += v_right * 500;
+
+		self.death_explosion_time = time + 999999;
+		self.death_explosion_stage++;
 	}
 
+	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY);
 	self.nextthink = time;
 };
 
 void() heli_killed =
 {
+	// Missi: Mostly for brevity, though there is some
+	// extra behavior that relies on that.
+	self.deadflag = DEAD_DYING;
+
+	self.death_explosion_time = time + 4;
+
 	self.think = heli_spinout;
 	self.touch = heli_crash;
 };
@@ -587,7 +627,7 @@ float(entity toplayer, float fl) SendHeli =
 	}
 	if (fl & SENDFLAG_ANGLES)
 	{
-		WriteShort (MSG_ENTITY, self.angles_x*(256/360));
+		WriteShort (MSG_ENTITY, self.angles_x*(256/360) * autocvar(r_meshpitch, -1));
 		WriteShort (MSG_ENTITY, self.angles_y*(256/360));
 		WriteShort (MSG_ENTITY, self.angles_z*(256/360));
 	}
@@ -669,6 +709,9 @@ void() func_helicopter =
 		self.maxspeed = 3000;
 
 	self.goalspeed = 0;
+	self.death_explosion_time = 0;
+	self.death_explosion_stage = 0;
+	self.rotor_oldangle = 0;
 
 	self.starttime = time + 1;
 	self.SendEntity = SendHeli;
@@ -678,6 +721,9 @@ void() func_helicopter =
 void() heli_rotor_update_angle =
 {
 	local float td;
+	local vector ad;
+
+	self.rotor_oldangle += frametime * 100;
 
 	//dprint ("self.goalentity.angles: ");
 	//dprint (vtos(self.goalentity.angles));
@@ -686,9 +732,11 @@ void() heli_rotor_update_angle =
 	td = time - self.starttime;
 	self.starttime = time;
 
-	self.angles = self.owner.angles;
+	makevectors(self.owner.angles);
+	ad = crossproduct(v_forward, v_right);
+	self.angles = rotateaxisangle(self.angles, self.owner.angles, self.origin, ad, self.rotor_oldangle);
 
-	//dprint("dir: ");
+	//dprint("self.angles: ");
 	//dprint(vtos(self.angles));
 	//dprint("\n");
 
@@ -883,8 +931,8 @@ void() turret_think =
 				if (self.attack_finished < time && !trace_startsolid)
 				{
 					self.effects = self.effects | EF_MUZZLEFLASH;
-					FireBullets_NoHitScan (cvar("tc_sv_army_helicopter_turret_damage"), AMMO_7_62x51MM, 6500, 1, dir, '0.04 0.04 0');
-					self.attack_finished = time + 0.1; // 0.000166666666667;	// ~6000 RPM
+					FireBullets_NoHitScan (cvar("tc_sv_army_helicopter_turret_damage"), TC_AMMO_7_62x51MM, 6500, 1, dir, '0.04 0.04 0');
+					self.attack_finished = time + 0.000166666666667;	// ~6000 RPM
 				}
 
 				if (self.burst_finished < time || en.deadflag == DEAD_DEAD || trace_startsolid)
@@ -1017,11 +1065,15 @@ void() monster_army_helicopter =
 		self.maxspeed = 3000;
 
 	self.goalspeed = 0;
+	self.death_explosion_time = 0;
+	self.death_explosion_stage = 0;
+	self.rotor_oldangle = 0;
 
 	self.starttime = time;
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
+
 
 
 

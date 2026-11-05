@@ -232,7 +232,7 @@ void() army_fire_gunner =
 	traceline( self.origin, ( self.origin + dir ) * 200, FALSE, self );
 
 	if ( cvar( "tc_sv_hitscan" ) == 0 )
-		FireBullets_NoHitScan (damage, AMMO_5_56x45MM, cvar("tc_sv_ammo_556x45mm_speed"), 1, dir, spread);
+		FireBullets_NoHitScan (damage, TC_AMMO_5_56x45MM, cvar("tc_sv_ammo_556x45mm_speed"), 1, dir, spread);
 	else
 		FireBullets( 1, dir, spread );
 };
@@ -587,7 +587,11 @@ void()	army_cdie3	=[	$deathc3,	army_cdie4	]
 {
 	self.solid = SOLID_NOT;
 	self.ammo_shells = 5;
+#ifdef TEMPORALCORTEX
+	DropWeapon();
+#else
 	DropBackpack();
+#endif
 	ai_back(4);
 };
 void()	army_cdie4	=[	$deathc4,	army_cdie5	] {ai_back(13);};
@@ -739,6 +743,8 @@ void() monster_army_gunner =
 		self.relationship_group_fear = RELATION_MILITARY_PRESENT_FEAR;
 		self.relationship_group_neutral = RELATION_MILITARY_PRESENT_NEUTRAL;
 	}
+
+	self.tc_currentweapon = W_AddWeaponToEntity(self, stringpool_get_string("weapon_uzi"));
 
 	walkmonster_start ();
 };
@@ -901,3 +907,4 @@ void() monster_army_rocketeer =
 
 	walkmonster_start ();
 };
+
