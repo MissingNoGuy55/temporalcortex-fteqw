@@ -5,7 +5,7 @@ WORKDIR /temporalcortex_fteqw
 RUN <<EOF
 apt update
 apt install build-essential libsdl2-2.0-0 libsdl2-dev libsdl3-0 libsdl3-dev alsa-utils libx11-6 x11-xserver-utils libx11-dev libgl-dev libxss-dev libxrandr-dev libxcursor-dev libasound2-dev libavcodec-dev libavformat-dev libswscale-dev libx11-6 libsdl3-0 libsdl3-dev libpng-dev mingw-w64 libz-mingw-w64-dev gdb zip wget git -y
-apt install libvkd3d1 libvkd3d-dev dxvk alsa-utils libpulse0 mingw-w64-tools pkg-config -y
+apt install libvkd3d1 libvkd3d-dev dxvk alsa-utils libpulse0 glslang-tools mingw-w64-tools pkg-config -y
 apt-get install -y --no-install-recommends bluez bluez-tools bluetooth && rm -rf /var/lib/apt/lists/*
 EOF
 COPY . .
