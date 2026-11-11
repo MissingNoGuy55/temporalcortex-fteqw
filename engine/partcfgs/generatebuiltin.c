@@ -18,7 +18,7 @@ struct
 	{"q2part.cfg", "#ifdef Q2CLIENT\n"},
 	{"tsshaft.cfg"},
 #ifdef TEMPORALCORTEX
-	{"temporalcortex.cfg"},
+	{"temporalcortex.cfg", "#ifdef TEMPORALCORTEX\n"},
 #endif
 	{""}
 };
