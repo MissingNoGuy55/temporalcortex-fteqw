@@ -765,7 +765,7 @@ void V_SetContentsColor (int contents)
 #ifdef TEMPORALCORTEX
 static double last_mdma_color_time;
 static short mdma_color_index;
-static qboolean mdma_time_color_running;
+static qboolean mdma_color_running;
 
 enum
 {
@@ -791,9 +791,9 @@ void V_CalcPowerupCshift (playerview_t *pv)
 	int im2 = (pv->stats[STAT_ITEMS] >> 23);	// Missi: self.items2 (2026.10.21)
 
 	// This whole loop is ass!!!!
-	if ((im2 & IT2_MDMA) == IT2_MDMA)
+	if (im2 & IT2_MDMA)
 	{
-		if (cl.time >= last_mdma_color_time)
+		if (cl.time >= last_mdma_color_time && mdma_color_running)
 		{
 			switch(mdma_color_index)
 			{
@@ -836,15 +836,24 @@ void V_CalcPowerupCshift (playerview_t *pv)
 
 			last_mdma_color_time = cl.time + 0.4;
 		}
+		else if (!mdma_color_running)
+		{
+			last_mdma_color_time = 0.0;
+			mdma_color_running = true;
+		}
+		else if (cl.time < last_mdma_color_time - 0.4)
+		{
+			mdma_color_running = false;
+		}
 	}
-	else if ((im2 & IT2_INCENDIARY_AMMO) == IT2_INCENDIARY_AMMO)
+	else if (im2 & IT2_INCENDIARY_AMMO)
 	{
 		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 128;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		pv->cshifts[CSHIFT_POWERUP].percent = 30*v_pentcshift.value;
 	}
-	else if ((im2 & IT2_SLOWMO) == IT2_SLOWMO)
+	else if (im2 & IT2_SLOWMO)
 	{
 		pv->cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
 		pv->cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
