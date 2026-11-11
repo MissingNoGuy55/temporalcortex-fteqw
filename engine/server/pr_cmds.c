@@ -11900,7 +11900,7 @@ static int current_sv_entity_count;
 // void(float timeperiod) timeperiod_change
 void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
 {
-	int bspnum = G_INT(OFS_PARM0);
+	int bspnum = G_FLOAT(OFS_PARM0);
 	int i;
 	edict_t* ent;
 
@@ -14407,8 +14407,9 @@ void PR_DumpPlatform_f(void)
 		{ "grappling",			".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
 		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
-		{ "tc_weapons[64]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
-		{ "tc_ammo[64]",		".float", TC|TC_CS,		D("Temporal Cortex: Entity ammo reserve") },
+		{ "tc_currentammotype",	".float", TC|TC_CS,		D("Temporal Cortex: Current ammo type in use") },
+		{ "tc_weapons[256]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
+		{ "tc_ammo[256]",		".float", TC|TC_CS,		D("Temporal Cortex: Entity ammo reserve") },
 		{ "timeperiod",			".float", TC|TC_CS, 	D("Time period of entity. If this does not match the server's time period, then it will be invisible and \"dead\", as in, left in its last position, frame, and angle until the time period from the server matches the value on this entity.") },
 
 		{"ServerShutdown",		"void()", TC, D("Called once the server shuts down.")},
@@ -14768,8 +14769,6 @@ void PR_DumpPlatform_f(void)
 		{"TE_TC_SUPERBULLET",	"const float", TC|TC_CS, D("Temporal Cortex QPhysics bullet (with quad damage)."), TE_TC_SUPERBULLET},
 		{"TE_TC_GRAPPLING_HOOK", "const float", TC|TC_CS, D("Temporal Cortex grappling hook."), TE_TC_GRAPPLING_HOOK},
 
-		{"MAX_TC_WEAPONS",		"const float",	TC|TC_CS, D("Temporal Cortex: Max nuumber of ownable weapons per entity"), 64},
-
 		{"SENDFLAG_ORIGIN",		"const float", TC|TC_CS, D("Center of entity."), 1},
 		{"SENDFLAG_ANGLES",		"const float", TC|TC_CS, D("Euler angles of entity."), 2},
 		{"SENDFLAG_VELOCITY",	"const float", TC|TC_CS, D("Velocity in relative space."), 3},
@@ -14805,6 +14804,14 @@ void PR_DumpPlatform_f(void)
 		{"TC_AMMO_12_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 21},
 		{"TC_AMMO_10_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 22},
 		{"TC_AMMO_6_GAUGE_FIRE","const float",	TC|TC_CS,	NULL, 23},
+
+		{"TC_AMMO_Q1_SHELLS","const float",		TC|TC_CS,	NULL, 252},
+		{"TC_AMMO_Q1_NAILS","const float",		TC|TC_CS,	NULL, 253},
+		{"TC_AMMO_Q1_ROCKETS","const float",	TC|TC_CS,	NULL, 254},
+		{"TC_AMMO_Q1_CELLS","const float",		TC|TC_CS,	NULL, 255},
+
+		{"TC_MAX_WEAPONS","const float",		TC|TC_CS,	NULL, 256},
+		{"TC_MAX_AMMO","const float",			TC|TC_CS,	NULL, 256},
 #endif
 
 #ifdef HAVE_LEGACY
