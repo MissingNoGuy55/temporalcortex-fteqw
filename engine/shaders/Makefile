@@ -23,6 +23,7 @@ VKNAMES+=postproc_fisheye
 VKNAMES+=rq_rtlight
 ifeq ($(TEMPORALCORTEX),1)
 	VKNAMES+=temporalcortex_timetravelwarp
+	CFLAGS+=-DTEMPORALCORTEX
 endif
 VKNAMES:=$(foreach v,$(VKNAMES),vulkanblobs/$(notdir $(basename $v)).fvb)
 ALLNAMES+=$(VKNAMES)
@@ -32,6 +33,7 @@ generatebuiltinsl: generatebuiltinsl.c
 
 makevulkanblob: makevulkanblob.c
 	$(CC) $(CFLAGS) $< -o $@
+	mkdir vulkanblobs
 
 vulkanblobs/rq_%.fvb: vulkan/%.glsl makevulkanblob vulkan/sys/defs.h vulkan/sys/fog.h vulkan/sys/offsetmapping.h vulkan/sys/skeletal.h
 	@echo Making $@ from $<
@@ -51,3 +53,4 @@ clean:
 	-rm -f -r vulkanblobs/*.fvb
 	-rm -f -r generatebuiltinsl
 	-rm -f -r makevulkanblob
+	-rm -f -r vulkanblobs/
