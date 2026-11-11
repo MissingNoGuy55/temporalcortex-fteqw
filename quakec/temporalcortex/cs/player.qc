@@ -451,8 +451,15 @@ float(float isnew) RefreshPlayer =
 nonstatic void(float isnew) ParsePlayer =
 {
 	local float f;
+#ifdef TEMPORALCORTEX
+	local float i;
+	local float fl;
+#endif
 
 	f = readbyte();
+#ifdef TEMPORALCORTEX
+	fl = readlong();
+#endif
 
 	if (f != self.frame || isnew)
 	{
@@ -462,9 +469,40 @@ nonstatic void(float isnew) ParsePlayer =
 	}
 
 #ifdef TEMPORALCORTEX
-	self.modelindex = readbyte();
-#endif
+	if (fl & SENDFLAG_MODELINDEX)
+	{
+		self.modelindex = readbyte();
+	}
 
+	//note: this could/should be compressed. this original code predated SendFlags.
+	if (fl & SENDFLAG_ANGLES)
+	{
+		self.angles_x = readshort()*(360/256);	//not really needed for ourselves, but useful when its showing a different player.
+		self.angles_y = readshort()*(360/256);
+		self.angles_z = readshort()*(360/256);
+	}
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		self.origin_x = readcoord();
+		self.origin_y = readcoord();
+		self.origin_z = readcoord();
+	}
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		self.velocity_x = readshort()/8;
+		self.velocity_y = readshort()/8;
+		self.velocity_z = readshort()/8;
+	}
+	self.colormap = self.entnum;
+
+	self.sveffects = readbyte();
+	if (self.sveffects & SVE_MOVETYPE)
+		self.movetype = readbyte();
+	else
+		self.movetype = MOVETYPE_WALK;
+	self.pmove_flags = (self.movetype&~63)>>6;
+	self.movetype &= 63;
+#else
 	//note: this could/should be compressed. this original code predated SendFlags.
 	self.angles_x = readshort()*(360/256);	//not really needed for ourselves, but useful when its showing a different player.
 	self.angles_y = readshort()*(360/256);
@@ -484,6 +522,7 @@ nonstatic void(float isnew) ParsePlayer =
 		self.movetype = MOVETYPE_WALK;
 	self.pmove_flags = (self.movetype&~63)>>6;
 	self.movetype &= 63;
+#endif
 
 #ifdef TEMPORALCORTEX
 	self.pain_finished = readcoord();
@@ -498,6 +537,13 @@ nonstatic void(float isnew) ParsePlayer =
 		intermission_angle_x = readcoord();
 		intermission_angle_y = readcoord();
 		intermission_angle_z = readcoord();
+	}
+
+	self.tc_currentammotype = readbyte();
+
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
+	{
+		self.tc_ammo[i] = readbyte()*(100/256);
 	}
 #endif
 

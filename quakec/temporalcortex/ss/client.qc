@@ -65,6 +65,15 @@ void() SetChangeParms =
 	parm1 = self.items;
 	parm2 = self.health;
 	parm3 = self.armorvalue;
+#ifdef TEMPORALCORTEX
+	if (self.tc_ammo[TC_AMMO_Q1_SHELLS] < 25)
+		parm4 = 25;
+	else
+		parm4 = self.tc_ammo[TC_AMMO_Q1_SHELLS];
+	parm5 = self.tc_ammo[TC_AMMO_Q1_NAILS];
+	parm6 = self.tc_ammo[TC_AMMO_Q1_ROCKETS];
+	parm7 = self.tc_ammo[TC_AMMO_Q1_CELLS];
+#else
 	if (self.ammo_shells < 25)
 		parm4 = 25;
 	else
@@ -72,6 +81,7 @@ void() SetChangeParms =
 	parm5 = self.ammo_nails;
 	parm6 = self.ammo_rockets;
 	parm7 = self.ammo_cells;
+#endif
 	parm8 = self.weapon;
 	parm9 = self.armortype * 100;
 #ifdef TEMPORALCORTEX
@@ -93,7 +103,10 @@ void() SetNewParms =
 	parm8 = 1;
 	parm9 = 0;
 #ifdef TEMPORALCORTEX
-	parm10 = IT2_GRAPPLING_HOOK;
+	if (substring(world.model, 0, 20) == "maps/skyscraperclimb")
+		parm10 = 0;
+	else
+		parm10 = IT2_GRAPPLING_HOOK;
 #endif
 };
 
@@ -101,17 +114,24 @@ void() DecodeLevelParms =
 {
 	if (serverflags)
 	{
+#ifdef TEMPORALCORTEX
+		if (substring(world.model, 0, 10) == "maps/start")
+			SetNewParms ();		// take away all stuff on starting new episode
+#else
 		if (world.model == "maps/start.bsp")
 			SetNewParms ();		// take away all stuff on starting new episode
+#endif
 	}
-	
+
 	self.items = parm1;
 	self.health = parm2;
 	self.armorvalue = parm3;
-	self.ammo_shells = parm4;
-	self.ammo_nails = parm5;
-	self.ammo_rockets = parm6;
-	self.ammo_cells = parm7;
+#ifdef TEMPORALCORTEX
+	self.tc_ammo[TC_AMMO_Q1_SHELLS] = parm4;
+	self.tc_ammo[TC_AMMO_Q1_NAILS] = parm5;
+	self.tc_ammo[TC_AMMO_Q1_ROCKETS] = parm6;
+	self.tc_ammo[TC_AMMO_Q1_CELLS] = parm7;
+#endif
 	self.weapon = parm8;
 	self.armortype = parm9 * 0.01;
 #ifdef TEMPORALCORTEX
@@ -507,6 +527,9 @@ float(entity to, float fl) SendPlayer =
 	float ef;
 	float f;
 	float mt;
+#ifdef TEMPORALCORTEX
+	float i;
+#endif
 
 //encode the current weapon in the lower 4 bits.
 	for (f = 1, ef = 0; ef < 16; ef=ef+1,f*=2)
@@ -529,8 +552,31 @@ float(entity to, float fl) SendPlayer =
 	WriteByte(MSG_ENTITY, CLASS_PLAYER);
 	WriteByte(MSG_ENTITY, self.frame);	//for clientside animation selection, in a way compatable with not having csqc.
 #ifdef TEMPORALCORTEX
-	WriteByte(MSG_ENTITY, self.modelindex);
-#endif
+	WriteLong(MSG_ENTITY, fl);
+
+	if (fl & SENDFLAG_MODELINDEX)
+		WriteByte(MSG_ENTITY, self.modelindex);
+
+	if (fl & SENDFLAG_ANGLES)
+	{
+		WriteShort(MSG_ENTITY, self.angles_x*(256/360));
+		WriteShort(MSG_ENTITY, self.angles_y*(256/360));
+		WriteShort(MSG_ENTITY, self.angles_z*(256/360));
+	}
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		WriteCoord(MSG_ENTITY, self.origin_x);
+		WriteCoord(MSG_ENTITY, self.origin_y);
+		WriteCoord(MSG_ENTITY, self.origin_z);
+	}
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		WriteShort(MSG_ENTITY, self.velocity_x*8);
+		WriteShort(MSG_ENTITY, self.velocity_y*8);
+		WriteShort(MSG_ENTITY, self.velocity_z*8);
+	}
+	WriteByte(MSG_ENTITY, ef);
+#else
 	WriteShort(MSG_ENTITY, self.angles_x*(256/360));
 	WriteShort(MSG_ENTITY, self.angles_y*(256/360));
 	WriteShort(MSG_ENTITY, self.angles_z*(256/360));
@@ -541,6 +587,7 @@ float(entity to, float fl) SendPlayer =
 	WriteShort(MSG_ENTITY, self.velocity_y*8);
 	WriteShort(MSG_ENTITY, self.velocity_z*8);
 	WriteByte(MSG_ENTITY, ef);
+#endif
 
 	if (ef & 16)
 		WriteByte(MSG_ENTITY, mt);
@@ -557,6 +604,13 @@ float(entity to, float fl) SendPlayer =
 		WriteCoord(MSG_ENTITY, intermission_angle_x);
 		WriteCoord(MSG_ENTITY, intermission_angle_y);
 		WriteCoord(MSG_ENTITY, intermission_angle_z);
+	}
+
+	WriteByte(MSG_ENTITY, self.tc_currentammotype);
+
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
+	{
+		WriteByte(MSG_ENTITY, self.tc_ammo[i]*(256/100));
 	}
 #endif
 
@@ -640,6 +694,10 @@ void() PutClientInServer =
 		makevectors(self.angles);
 		spawn_tfog (self.origin + v_forward*20);
 	}
+
+#ifdef TEMPORALCORTEX
+	curplayers++;
+#endif
 
 	spawn_tdeath (self.origin, self);
 };
@@ -1625,6 +1683,10 @@ void() ClientDisconnect =
 	bprint (" frags\n");
 	sound (self, CHAN_BODY, "player/tornoff2.wav", 1, ATTN_NONE);
 	set_suicide_frame ();
+
+#ifdef TEMPORALCORTEX
+	curplayers--;
+#endif
 
 	self.SendEntity = __NULL__;
 };

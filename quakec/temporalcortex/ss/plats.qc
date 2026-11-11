@@ -447,11 +447,14 @@ void() tracktrain_adjust_angle =
 
 void() tracktrain_next =
 {
-	local entity targ, targ2, killtarg, temp;
+	local entity targ, targ2;
 
 	targ = find (world, targetname, self.target);
 
 	if (!targ)
+		return;
+
+	if (!targ.target)
 		return;
 
 	targ2 = find (world, targetname, targ.target);
@@ -623,6 +626,8 @@ void() path_track =
 {
 	movetrack_f ();
 };
+
+
 
 
 

@@ -467,9 +467,11 @@ void() trigger_teleport =
 };
 
 #ifdef TEMPORALCORTEX
-float total_transport_players;
+entity total_transport_ents[255];
+float transport_idx;
 float transport_time;
 float do_transport;
+.float entities_in_volume;
 
 void() trigger_timetravel_touch;
 
@@ -477,17 +479,68 @@ void() trigger_timetravel_think =
 {
 	if (time > transport_time)
 	{
-		self.think = SUB_Null;
-
 		do_transport = true;
 
-		force_retouch = 1;
+		transport_time = 0;
 		self.touch = trigger_timetravel_touch;
+		force_retouch = 1;
 	}
 	else
 	{
-		self.nextthink = time;
+		for (transport_idx = 0; total_transport_ents[transport_idx]; transport_idx++)
+		{
+			local entity e, foundent;
+			local vector org = self.absmin + ((self.absmax - self.absmin) * 0.5);
+
+			foundent = world;
+			e = findradius(org, vlen(self.absmax - self.absmin));
+
+			while (e)
+			{
+				if (e == total_transport_ents[transport_idx])
+				{
+					//dprint("found entity: ");
+					//dprint(e.classname);
+					//dprint("\n");
+
+					//dprint("self.entities_in_volume: ");
+					//dprint(ftos(self.entities_in_volume));
+					//dprint("\n");
+
+					foundent = e;
+					break;
+				}
+
+				e = e.chain;
+			}
+
+			if (foundent)
+			{
+				//dprint(ftos(vlen(foundent.origin - org)));
+				//dprint("\n");
+				//dprint(ftos(vlen(self.absmax - self.absmin) * 0.5));
+				//dprint("\n");
+
+				WriteByte (MSG_MULTICAST, SVC_CGAMEPACKET);
+				WriteShort (MSG_MULTICAST, 17);
+				WriteString (MSG_MULTICAST, "timetravel_spinup");
+
+				multicast(org, MULTICAST_PVS);
+
+				if (vlen(foundent.origin - org) > vlen(self.absmax - self.absmin) * 0.5)
+				{
+					total_transport_ents[transport_idx] = world;
+
+					bprint(foundent.netname);
+					bprint(" left the time travel volume.\n");
+				}
+			}
+		}
+
+		self.entities_in_volume = transport_idx;
 	}
+
+	self.nextthink = time;
 };
 
 void() trigger_timetravel_touch =
@@ -498,15 +551,42 @@ void() trigger_timetravel_touch =
 	{
 		if (do_transport)
 		{
-			dprint ("cvar(sv_playerslots): ");
-			dprint (ftos(cvar("sv_playerslots")));
-			dprint ("\n");
+			local vector org = self.absmin + ((self.absmax - self.absmin) * 0.5);
 
-			if (cvar("sv_playerslots") == total_transport_players)
+			//dprint ("cvar(sv_playerslots): ");
+			//dprint (ftos(cvar("sv_playerslots")));
+			//dprint ("\n");
+			//dprint ("total entities to transport: ");
+			//dprint (ftos(self.entities_in_volume));
+			//dprint ("\n");
+			//dprint ("other: ");
+			//dprint (other.classname);
+			//dprint ("\n");
+
+			//dprint ("attempting to transport ");
+			//dprint (ftos(self.entities_in_volume));
+			//dprint (" entities to another time period...\n");
+
+			if (self.entities_in_volume != curplayers)
 			{
-				timeperiod_change(self.delay);
+				dprint("FAILURE\n");
 				do_transport = false;
+				self.entities_in_volume = 0;
+				return;		// Missi: Someone left the volume (2026.11.5)
 			}
+
+			dprint("SUCCESS\n");
+
+			timeperiod_change(self.delay);
+
+			WriteByte (MSG_MULTICAST, SVC_CGAMEPACKET);
+			WriteShort (MSG_MULTICAST, 19);
+			WriteString (MSG_MULTICAST, "timetravel_cooldown");
+
+			multicast(org, MULTICAST_PVS);
+
+			do_transport = false;
+			self.entities_in_volume = 0;
 		}
 		else
 		{
@@ -515,9 +595,24 @@ void() trigger_timetravel_touch =
 
 			self.touch = SUB_Null;
 
-			dprint ("transport time: ");
-			dprint (ftos(transport_time));
-			dprint ("\n");
+			switch(other.classname)
+			{
+				case "player":
+				case "bodyque":
+				case "grenade":
+				case "hook":
+				{
+					for (transport_idx = 0; total_transport_ents[transport_idx]; transport_idx++)
+						;
+
+					total_transport_ents[transport_idx] = other;
+					self.entities_in_volume = transport_idx;
+				}
+			}
+
+			//dprint ("transport time: ");
+			//dprint (ftos(transport_time));
+			//dprint ("\n");
 		}
 	}
 };
@@ -530,6 +625,7 @@ void() trigger_timetravel =
 	InitTrigger ();
 
 	do_transport = false;
+	self.entities_in_volume = FALSE;
 
 	self.touch = trigger_timetravel_touch;
 	self.think = trigger_timetravel_think;
@@ -764,7 +860,7 @@ void() trigger_monsterjump =
 #ifdef TEMPORALCORTEX
 void() SpawnRain =
 {
-	te_particlerain(self.mins, self.maxs, '0 0 -128', 255, 1);
+	te_particlerain(self.absmin, self.absmax, '0 0 -64', vlen(self.size) / 50, 40);
 	self.nextthink = time;
 };
 
@@ -774,9 +870,12 @@ void() func_precipitation =
 {
 	InitTrigger ();
 
-	te_particlerain(self.mins, self.maxs, '0 0 -128', 255, 1);
+	te_particlerain(self.absmin, self.absmax, '0 0 -64', vlen(self.size) / 50, 40);
 
-	self.think = SpawnRain;1
+	self.think = SpawnRain;
 	self.nextthink = time;
 };
 #endif
+
+
+

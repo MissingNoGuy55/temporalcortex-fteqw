@@ -7,7 +7,7 @@ enum {
 	ME_DRAW = 200
 };
 
-nonstatic void(void(float, float, float, float) fnc) Menu_Activate =
+void(void(float, float, float, float) fnc) Menu_Activate =
 {
 	inmenu = TRUE;
 	MenuEventFunc = fnc;

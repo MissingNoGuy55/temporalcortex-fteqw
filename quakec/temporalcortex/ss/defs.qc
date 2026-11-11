@@ -645,4 +645,6 @@ float RELATION_CIVILIAN_FUTURE_NEUTRAL	= ( RELATION_FAUNA );
 		dprint("^2[TEMPORAL CORTEX] [SSQC] Adding new hash to stringpool: ", s, "\n"); \
 		hash_add(gamestate, s, s, HASH_REPLACE); \
 	}
+
+float curplayers;
 #endif

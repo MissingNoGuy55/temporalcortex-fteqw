@@ -103,8 +103,13 @@ float() WeaponProject =
 	oldorg = self.origin;
 	self.origin = self.source + self.velocity * (time - self.starttime);
 
-	makevectors(self.angles);
-	drawrotpic(self.origin + v_up * 128, '-12 -12 -12', '12 12 12', "flag_us", '1 1 1', 255, 0);
+	makevectors(VEC_ORIGIN);
+
+	dprint("project: ");
+	dprint(vtos(project(self.origin + v_up * 32)));
+	dprint("\n");
+
+	drawpic(project(self.origin + v_up * 32), "face_inv", '32 32 32', '1 1 1', 1, 0);
 
 	return PREDRAW_AUTOADD;
 };
@@ -120,40 +125,58 @@ nonstatic void(float isnew) ParseBulletClass =
 	fl = readlong();
 
 	self.starttime = time;
-	self.source_x = readcoord();
-	self.source_y = readcoord();
-	self.source_z = readcoord();
 
-	if (self.source == VEC_ORIGIN)
-		self.source = self.origin;
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		self.source_x = readcoord();
+		self.source_y = readcoord();
+		self.source_z = readcoord();
 
-	self.angles_x = (readshort()*360)/256;
-	self.angles_y = (readshort()*360)/256;
-	self.angles_z = 0;
+		self.origin = self.source;
+	}
 
-	self.velocity_x = readcoord();
-	self.velocity_y = readcoord();
-	self.velocity_z = readcoord();
+	if (fl & SENDFLAG_ANGLES)
+	{
+		self.angles_x = (readshort()*360)/256;
+		self.angles_y = (readshort()*360)/256;
+		self.angles_z = 0;
+	}
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		self.velocity_x = readcoord();
+		self.velocity_y = readcoord();
+		self.velocity_z = readcoord();
+	}
+	if (fl & SENDFLAG_AVELOCITY)
+	{
+		self.avelocity_x = readcoord();
+		self.avelocity_y = readcoord();
+		self.avelocity_z = readcoord();
+	}
+	if (fl & SENDFLAG_MODELINDEX)
+	{
+		setmodelindex(self, readlong());
+	}
+	if (fl & SENDFLAG_MINS)
+	{
+		lastmin_x = readcoord();
+		lastmin_y = readcoord();
+		lastmin_z = readcoord();
+	}
+	if (fl & SENDFLAG_MAXS)
+	{
+		lastmax_x = readcoord();
+		lastmax_y = readcoord();
+		lastmax_z = readcoord();
+	}
 
-	self.avelocity_x = readcoord();
-	self.avelocity_y = readcoord();
-	self.avelocity_z = readcoord();
-
-	setmodelindex(self, readlong());
-
-	lastmin_x = readcoord();
-	lastmin_y = readcoord();
-	lastmin_z = readcoord();
-
-	lastmax_x = readcoord();
-	lastmax_y = readcoord();
-	lastmax_z = readcoord();
-
-	setsize (self, lastmin, lastmax);
+	if ((fl & SENDFLAG_MINS) && (fl & SENDFLAG_MAXS))
+		setsize (self, lastmin, lastmax);
 
 	ent = readentitynum ();
 
-	self.owner = findentity (world, entnum, ent);
+	if (!self.owner)
+		self.owner = findentity (world, entnum, ent);
 
 	self.drawmask = MASK_NORMAL;	//general view.
 	self.predraw = BulletProject;
@@ -167,40 +190,60 @@ nonstatic void(float isnew) ParseWeaponClass =
 	fl = readlong();
 
 	self.starttime = time;
-	self.source_x = readcoord();
-	self.source_y = readcoord();
-	self.source_z = readcoord();
 
-	if (self.source == VEC_ORIGIN)
-		self.source = self.origin;
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		self.source_x = readcoord();
+		self.source_y = readcoord();
+		self.source_z = readcoord();
+	}
 
-	self.angles_x = (readshort()*360)/256;
-	self.angles_y = (readshort()*360)/256;
-	self.angles_z = 0;
+	if (fl & SENDFLAG_ANGLES)
+	{
+		self.angles_x = (readshort()*360)/256;
+		self.angles_y = (readshort()*360)/256;
+		self.angles_z = 0;
+	}
 
-	self.velocity_x = readcoord();
-	self.velocity_y = readcoord();
-	self.velocity_z = readcoord();
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		self.velocity_x = readcoord();
+		self.velocity_y = readcoord();
+		self.velocity_z = readcoord();
+	}
 
-	self.avelocity_x = readcoord();
-	self.avelocity_y = readcoord();
-	self.avelocity_z = readcoord();
+	if (fl & SENDFLAG_AVELOCITY)
+	{
+		self.avelocity_x = readcoord();
+		self.avelocity_y = readcoord();
+		self.avelocity_z = readcoord();
+	}
 
-	setmodelindex(self, readlong());
+	if (fl & SENDFLAG_MODEL)
+	{
+		setmodel(self, readstring());
+	}
 
-	lastmin_x = readcoord();
-	lastmin_y = readcoord();
-	lastmin_z = readcoord();
+	if (fl & SENDFLAG_MINS)
+	{
+		lastmin_x = readcoord();
+		lastmin_y = readcoord();
+		lastmin_z = readcoord();
+	}
+	if (fl & SENDFLAG_MAXS)
+	{
+		lastmax_x = readcoord();
+		lastmax_y = readcoord();
+		lastmax_z = readcoord();
+	}
 
-	lastmax_x = readcoord();
-	lastmax_y = readcoord();
-	lastmax_z = readcoord();
-
-	setsize (self, lastmin, lastmax);
+	if ((fl & SENDFLAG_MINS) && (fl & SENDFLAG_MAXS))
+		setsize (self, lastmin, lastmax);
 
 	ent = readentitynum ();
 
-	self.owner = findentity (world, entnum, ent);
+	if (!self.owner)
+		self.owner = findentity (world, entnum, ent);
 
 	self.drawmask = MASK_NORMAL;	//general view.
 	self.predraw = WeaponProject;
@@ -217,8 +260,6 @@ float() GrapplingHookProject =
 	drawline3d (2, hook_owner_pos, self.origin, '0.25 0.25 0.25', 1.0);
 
 	makevectors (self.angles);
-
-	//drawline3d(4, self.source, self.source + v_forward * 200, '1.0 0.0 0.0', 1.0);
 
 	return PREDRAW_AUTOADD;
 };

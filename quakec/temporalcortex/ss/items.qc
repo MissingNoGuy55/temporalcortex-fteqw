@@ -366,14 +366,25 @@ WEAPONS
 
 void() bound_other_ammo =
 {
+#ifdef TEMPORALCORTEX
+	if (other.tc_ammo[TC_AMMO_Q1_SHELLS] > 100)
+		other.tc_ammo[TC_AMMO_Q1_SHELLS] = 100;
+	if (other.tc_ammo[TC_AMMO_Q1_NAILS] > 200)
+		other.tc_ammo[TC_AMMO_Q1_NAILS] = 200;
+	if (other.tc_ammo[TC_AMMO_Q1_ROCKETS] > 100)
+		other.tc_ammo[TC_AMMO_Q1_ROCKETS] = 100;
+	if (other.tc_ammo[TC_AMMO_Q1_CELLS] > 100)
+		other.tc_ammo[TC_AMMO_Q1_CELLS] = 100;
+#else
 	if (other.ammo_shells > 100)
 		other.ammo_shells = 100;
 	if (other.ammo_nails > 200)
 		other.ammo_nails = 200;
 	if (other.ammo_rockets > 100)
-		other.ammo_rockets = 100;		
+		other.ammo_rockets = 100;
 	if (other.ammo_cells > 100)
-		other.ammo_cells = 100;		
+		other.ammo_cells = 100;
+#endif
 };
 
 
@@ -474,7 +485,7 @@ void() weapon_touch =
 	if (!(other.flags & FL_CLIENT))
 		return;
 
-	invweapon = W_FindWeaponInInventory(other, stringpool_get_string(self.classname));
+	invweapon = W_FindWeaponInInventory(other, self.classname);
 	if (invweapon)
 	{
 		self.model = string_null;
@@ -486,26 +497,33 @@ void() weapon_touch =
 		{
 			case "weapon_shotgun":
 			case "weapon_supershotgun":
-				self.ammo_shells += 10;
+				other.tc_ammo[TC_AMMO_Q1_SHELLS] += 10;
 				break;
 			case "weapon_nailgun":
 			case "weapon_supernailgun":
-				self.ammo_nails += 10;
+				other.tc_ammo[TC_AMMO_Q1_NAILS] += 10;
 				break;
 			case "weapon_grenadelauncher":
 			case "weapon_rocketlauncher":
-				self.ammo_rockets += 10;
+				other.tc_ammo[TC_AMMO_Q1_ROCKETS] += 10;
 				break;
 			case "weapon_lightning":
-				self.ammo_cells += 10;
+				other.tc_ammo[TC_AMMO_Q1_CELLS] += 10;
+				break;
+			case "weapon_uzi":
+			case "weapon_mp5":
+			case "weapon_mac10":
+				other.tc_ammo[TC_AMMO_9x19MM] += 15;
+				break;
+			case "weapon_vector":
+				other.tc_ammo[TC_AMMO_45_ACP] += 15;
 				break;
 		}
 
 		// Missi: This will become annoying quick (2026.11.1)
 		//stuffcmd (other, "bf\n");
 
-		self.think = SUB_Remove;
-		self.nextthink = time + 0.1;
+		remove(self);
 		return;
 	}
 
@@ -521,70 +539,90 @@ void() weapon_touch =
 		leave = 0;
 
 	touched = stringpool_get_string(self.classname);
+
+	new = world;
 	
 	switch(touched)
 	{
 		case "weapon_nailgun":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_nails;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_nails = other.ammo_nails + 30;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_NAILS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_NAILS] += 30;
 			break;
 		case "weapon_supernailgun":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_nails;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_nails = other.ammo_nails + 30;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_NAILS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_NAILS] += 30;
 			break;
 		case "weapon_supershotgun":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_rockets;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_shells = other.ammo_shells + 5;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_SHELLS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_SHELLS] += 5;
 			break;
 		case "weapon_grenadelauncher":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_rockets;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_rockets = other.ammo_rockets + 5;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_ROCKETS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_ROCKETS] += 5;
 			break;
 		case "weapon_rocketlauncher":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_rockets;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_rockets = other.ammo_rockets + 5;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_ROCKETS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_ROCKETS] += 5;
 			break;
 		case "weapon_lightning":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 				return;
-			hadammo = other.ammo_rockets;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_cells = other.ammo_cells + 15;
+			hadammo = other.tc_ammo[TC_AMMO_Q1_CELLS];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_Q1_CELLS] += 15;
 			break;
 		case "weapon_uzi":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
+			{
+				other.tc_ammo[TC_AMMO_9x19MM] += 15;
 				return;
-			hadammo = other.ammo_shells;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_shells = other.ammo_shells + 15;
+			}
+			hadammo = other.tc_ammo[TC_AMMO_9x19MM];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_9x19MM] += 15;
 			break;
 		case "weapon_mac10":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
+			{
+				other.tc_ammo[TC_AMMO_9x19MM] += 15;
 				return;
-			hadammo = other.ammo_shells;
-			new = W_AddWeaponToEntity(other, self.classname);
-			other.ammo_shells = other.ammo_shells + 15;
+			}
+			hadammo = other.tc_ammo[TC_AMMO_9x19MM];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_9x19MM] += 15;
+			break;
+		case "weapon_vector":
+			if (leave && (W_FindWeaponInInventory(other, touched)))
+			{
+				other.tc_ammo[TC_AMMO_45_ACP] += 15;
+				return;
+			}
+			hadammo = other.tc_ammo[TC_AMMO_45_ACP];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_45_ACP] += 15;
 			break;
 		default:
 			objerror ("weapon_touch: unknown classname");
-			new = world;
 			break;
 	}
+
+	if (!new)
+		return;
 
 	sprint (other, "You got the ");
 	sprint (other, self.netname);
@@ -1996,31 +2034,59 @@ void(entity e) DetermineWeaponModel =
 	switch(class)
 	{
 		case "weapon_shotgun":
+			precache_model("progs/g_shot.mdl");
 			setmodel(e, "progs/g_shot.mdl");
+			e.netname = "Shotgun";
 			break;
 		case "weapon_supershotgun":
+			precache_model("progs/g_shot1.mdl");
 			setmodel(e, "progs/g_shot1.mdl");
+			e.netname = "Double-barrelled Shotgun";
 			break;
 		case "weapon_nailgun":
+			precache_model("progs/g_nail1.mdl");
 			setmodel(e, "progs/g_nail1.mdl");
+			e.netname = "Nailgun";
 			break;
 		case "weapon_supernailgun":
+			precache_model("progs/g_nail2.mdl");
 			setmodel(e, "progs/g_nail2.mdl");
+			e.netname = "Super Nailgun";
 			break;
 		case "weapon_grenadelauncher":
+			precache_model("progs/g_rock1.mdl");
 			setmodel(e, "progs/g_rock1.mdl");
+			e.netname = "Grenade Launcher";
 			break;
 		case "weapon_rocketlauncher":
+			precache_model("progs/g_rock2.mdl");
 			setmodel(e, "progs/g_rock2.mdl");
+			e.netname = "Rocket Launcher";
 			break;
 		case "weapon_lightning":
-			setmodel(e, "progs/g_lightning.mdl");
+			precache_model("progs/g_light.mdl");
+			setmodel(e, "progs/g_light.mdl");
+			e.netname = "Thunderbolt";
 			break;
 		case "weapon_uzi":
-		case "weapon_mp5":
-		case "weapon_mac10":
-		case "weapon_vector":
+			precache_model("progs/weapons/g_mac10.mdl");
 			setmodel(e, "progs/weapons/g_mac10.mdl");
+			e.netname = "Uzi";
+			break;
+		case "weapon_mp5":
+			precache_model("progs/weapons/g_mac10.mdl");
+			setmodel(e, "progs/weapons/g_mac10.mdl");
+			e.netname = "MP5";
+			break;
+		case "weapon_mac10":
+			precache_model("progs/weapons/g_mac10.mdl");
+			setmodel(e, "progs/weapons/g_mac10.mdl");
+			e.netname = "MAC-10";
+			break;
+		case "weapon_vector":
+			precache_model("progs/weapons/g_mac10.mdl");
+			setmodel(e, "progs/weapons/g_mac10.mdl");
+			e.netname = "Vector";
 			break;
 	}
 };
@@ -2030,60 +2096,16 @@ void(entity e) DetermineWeaponModel =
 DropBackpack
 ===============
 */
-void() DropWeapon =
+void(float ammotype) DropWeapon =
 {
 	local entity	item;
 
-	if (!(self.ammo_shells + self.ammo_nails + self.ammo_rockets + self.ammo_cells))
+	if (!self.tc_ammo[ammotype])
 		return;	// nothing in it
 
-	item = spawn();
-	item.origin = self.origin - '0 0 24';
-
-	item.tc_currentweapon = self.tc_currentweapon;
-	if (item.tc_currentweapon.classname == stringpool_get_string("weapon_axe"))
-		item.netname = "Axe";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_shotgun"))
-		item.netname = "Shotgun";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_supershotgun"))
-		item.netname = "Double-barrelled Shotgun";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_nailgun"))
-		item.netname = "Nailgun";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_supernailgun"))
-		item.netname = "Super Nailgun";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_grenadelauncher"))
-		item.netname = "Grenade Launcher";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_rocketlauncher"))
-		item.netname = "Rocket Launcher";
-	else if (item.tc_currentweapon.classname == stringpool_get_string("weapon_lightning"))
-		item.netname = "Thunderbolt";
-	else
-		item.netname = "";
-
-	item.classname = stringpool_get_string(item.tc_currentweapon.classname);
-
-	item.ammo_shells = self.ammo_shells;
-	item.ammo_nails = self.ammo_nails;
-	item.ammo_rockets = self.ammo_rockets;
-	item.ammo_cells = self.ammo_cells;
-
-	item.velocity_z = 300;
-	item.velocity_x = -100 + (random() * 200);
-	item.velocity_y = -100 + (random() * 200);
-
-	item.flags = FL_ITEM;
-	item.solid = SOLID_TRIGGER;
-	item.movetype = MOVETYPE_TOSS;
-
-	item.avelocity = '300 400 400';
-
-	makevectors(self.angles);
-	item.velocity = self.velocity + v_forward * -250;
-
-	DetermineWeaponModel(item);
-
-	setsize (item, '-16 -16 0', '16 16 56');
-	item.touch = weapon_touch;
+	item = W_SpawnWeapon(self.origin + '0 0 24', stringpool_get_string(self.tc_currentweapon.classname));
+	item.avelocity = '300 500 1000';
+	item.velocity = normalize(self.origin) * 500;
 
 	item.nextthink = time + 120;	// remove after 2 minutes
 	item.think = SUB_Remove;

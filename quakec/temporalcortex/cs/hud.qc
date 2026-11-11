@@ -132,6 +132,30 @@ void(float type, vector pos, float drawback) Hud_DrawAmmoCount =
 	}
 };
 #ifdef TEMPORALCORTEX
+void(float type, vector pos, float drawback) Hud_DrawAmmoCount_NonItems =
+{
+	string s;
+	float value;
+	float len;
+	float c;
+	value = self.tc_ammo[type];
+	if (value < 0)
+		value = 0;	//hrm
+	if (value>999)
+		value = 999;
+
+	s = ftos(floor(value));
+	len = strlen(s);
+
+	pos_x += 8 * (3-len);
+	while(len>0)
+	{
+		len--;
+		c = str2chr(s, len);
+		drawcharacter(pos+len * '8 0 0', (18-'0') + c, '8 8 0', '1 1 1', 1, 0);
+	}
+};
+
 void(float type, vector pos) Hud_DrawFace =
 {
 	string s;
@@ -265,6 +289,9 @@ void Hud_DrawSBar(vector pos)
 
 	Hud_DrawLargeValue(pos+'136 0 0', getstatf(STAT_HEALTH), 25);
 
+#ifdef TEMPORALCORTEX
+	Hud_DrawLargeValue(pos+'248 0 0', self.tc_ammo[self.tc_currentammotype], 10);
+#else
 	if (stat_items & IT_SHELLS)
 		drawpic(pos+'224 0 0', "sb_shells", '24 24 0', '1 1 1', 1, 0);
 	else if (stat_items & IT_NAILS)
@@ -274,6 +301,7 @@ void Hud_DrawSBar(vector pos)
 	else if (stat_items & IT_CELLS)
 		drawpic(pos+'224 0 0', "sb_cells", '24 24 0', '1 1 1', 1, 0);
 	Hud_DrawLargeValue(pos+'248 0 0', getstatf(STAT_AMMO), 10);
+#endif
 };
 
 void Hud_DrawIBar(vector pos)
@@ -295,10 +323,10 @@ void Hud_DrawIBar(vector pos)
 	if (stat_items & IT_LIGHTNING)
 		Hud_DrawWeaponWide(6, pos+'144 8 0');
 
-	Hud_DrawAmmoCount(0, pos + '10 0 0', false);
-	Hud_DrawAmmoCount(1, pos + '58 0 0', false);
-	Hud_DrawAmmoCount(2, pos + '106 0 0', false);
-	Hud_DrawAmmoCount(3, pos + '154 0 0', false);
+	Hud_DrawAmmoCount_NonItems(0, pos + '10 0 0', false);
+	Hud_DrawAmmoCount_NonItems(1, pos + '58 0 0', false);
+	Hud_DrawAmmoCount_NonItems(2, pos + '106 0 0', false);
+	Hud_DrawAmmoCount_NonItems(3, pos + '154 0 0', false);
 
 	if (stat_items & IT_KEY1)
 		drawpic(pos+'192 8 0', "sb_key1", '16 16 0', '1 1 1', 1, 0);

@@ -19,6 +19,11 @@ DEFCVAR_STRING(tc_cl_accessibility_noviewroll, "0")
 float intermission_running;
 vector intermission_pos;
 vector intermission_angle;
+
+float warp_cooldown;
+float warp_spinup;
+float last_warp_update_time;
+float last_warp_update;
 #endif
 
 //check engine extensions, and give suitable warning
@@ -204,6 +209,14 @@ void() CSQC_Parse_Event =
 	{
 		case "testevent":
 			print ("Test event\n");
+			break;
+		case "timetravel_spinup":
+			warp_spinup = true;
+			last_warp_update_time = time;
+			break;
+		case "timetravel_cooldown":
+			warp_cooldown = true;
+			last_warp_update_time = time;
 			break;
 		default:
 			objerror ("CSQC_Parse_Event: Unknown event\n");
@@ -411,6 +424,7 @@ float (float event, float parama, float paramb, float paramc) CSQC_InputEvent =
 {
 	if (event == IE_KEYDOWN)
 	{
+#if 0
 		switch(CVARF(cg_editor))
 		{
 		case 1:
@@ -422,6 +436,7 @@ float (float event, float parama, float paramb, float paramc) CSQC_InputEvent =
 				return true;
 			break;
 		}
+#endif
 	}
 	else if (event == IE_MOUSEABS)
 		mousepos = [parama, paramb];
@@ -541,7 +556,7 @@ void(float width, float height, float do2d) CSQC_UpdateView =
 		//engine didn't tell us about our player entity. that's not right...
 		addentities(MASK_ENGINEVIEWMODEL);
 	}
-
+#if 0
 	switch(CVARF(cg_editor))
 	{
 	case 1:
@@ -552,13 +567,14 @@ void(float width, float height, float do2d) CSQC_UpdateView =
 	case 2:
 		break;
 	}
-
+#endif
 	renderscene();
 
 	if (do2d)
 	{
 		switch(CVARF(cg_editor))
 		{
+#if 0
 		case 1:
 			/*add light ents*/
 			editor_lights_overlay();
@@ -566,6 +582,7 @@ void(float width, float height, float do2d) CSQC_UpdateView =
 			break;
 		case 2:
 			break;
+#endif
 		default:
 			if (autocvar(cg_imageview, "") != "")	//eg: set cg_imageview "https://www.quaddicted.com/reviews/screenshots/dmd.jpg"
 				drawpic([0,0,0], autocvar(cg_imageview, ""), [width,height], [1,1,1],1, 0);
@@ -609,6 +626,35 @@ void(float width, float height, float do2d) CSQC_UpdateView =
 //		drawrawstring('16 64 0', dbgstr, '16 16 16', '1 1 1', 0.5);
 //		drawstring('16 80 0', dbgstr, '16 16 16', 0.5);
 	}
+
+#ifdef TEMPORALCORTEX
+	if (warp_spinup)
+	{
+		cvar_set("tc_r_timetravel_warp_intensity", ftos(last_warp_update));
+		last_warp_update += frametime;
+		last_warp_update_time = time;
+
+		if (last_warp_update >= 1)
+		{
+			last_warp_update = 1;
+			cvar_set("tc_r_timetravel_warp_intensity", "1");
+			warp_spinup = false;
+		}
+	}
+	if (warp_cooldown)
+	{
+		cvar_set("tc_r_timetravel_warp_intensity", ftos(last_warp_update));
+		last_warp_update -= frametime;
+		last_warp_update_time = time;
+
+		if (last_warp_update <= 0)
+		{
+			last_warp_update = 0;
+			cvar_set("tc_r_timetravel_warp_intensity", "0");
+			warp_cooldown = false;
+		}
+	}
+#endif
 };
 
 void(float vwidth, float vheight, float notmenu) CSQC_UpdateViewLoading =
@@ -620,6 +666,9 @@ void(float vwidth, float vheight, float notmenu) CSQC_UpdateViewLoading =
 	vector pos = ([vwidth,vheight]-[8,stringwidth(text,TRUE,tsize)])*0.5;
 	drawstring(pos, text, tsize, '1 1 1',1,0);
 };
+
+
+
 
 
 

@@ -300,8 +300,8 @@ void()	timehunter_die2	=[	$death2,	timehunter_die3	] {};
 void()	timehunter_die3	=[	$death3,	timehunter_die4	]
 {
 	self.solid = SOLID_NOT;
-	self.ammo_shells = 5;
-	DropBackpack();
+	self.tc_ammo[TC_AMMO_9x19MM] = 12;
+	DropWeapon(TC_AMMO_9x19MM);
 };
 void()	timehunter_die4	=[	$death4,	timehunter_die5	] {};
 void()	timehunter_die5	=[	$death5,	timehunter_die6	] {};
@@ -316,8 +316,8 @@ void()	timehunter_cdie2	=[	$deathc2,	timehunter_cdie3	] {ai_back(5);};
 void()	timehunter_cdie3	=[	$deathc3,	timehunter_cdie4	]
 {
 	self.solid = SOLID_NOT;
-	self.ammo_shells = 5;
-	DropBackpack();
+	self.tc_ammo[TC_AMMO_9x19MM] = 12;
+	DropWeapon(TC_AMMO_9x19MM);
 	ai_back(4);
 };
 void()	timehunter_cdie4	=[	$deathc4,	timehunter_cdie5	] {ai_back(13);};

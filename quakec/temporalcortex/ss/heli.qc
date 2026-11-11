@@ -148,6 +148,45 @@ float(vector point) heli_closest_point_to_current_path =
 	return t;
 };
 
+void() HelicopterExplosion =
+{
+	__using dimension_seen, dimension_send;	//okay for this purpose...
+
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
+	self.touch = SUB_Null;
+	self.solid = SOLID_NOT;
+
+	self.origin_z += 8;
+
+	self.dimension_seen = DIMENSION_NOCSQC;
+	dimension_send = DIMENSION_NOCSQC;
+
+	if (checkbuiltin(te_explosion))
+		te_explosion(self.origin);
+	else
+	{
+		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+		WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+		WriteCoord (MSG_BROADCAST, self.origin_x);
+		WriteCoord (MSG_BROADCAST, self.origin_y);
+		WriteCoord (MSG_BROADCAST, self.origin_z);
+	}
+
+	sound (self, CHAN_WEAPON, "weapons/r_exp3.wav", 1, 0.4);
+	self.dimension_seen = DIMENSION_DEFAULT;
+	dimension_send = DIMENSION_DEFAULT;
+
+	setmodel (self, "progs/s_explod.spr");
+	s_explode1 ();
+
+	//set up the fields required for transmitting the event.
+	self.source = self.origin;
+	self.SendEntity = SendExplosion;
+	self.starttime = time;
+	self.SendFlags = FULLSEND;
+};
+
 // HACK: FIXME: This is ripped straight from HL2, with some changes.
 // This needs to be rewritten before release as it is totally non-GPL'd.
 void() heli_flight =
@@ -452,10 +491,16 @@ void() heli_find_target =
 
 void() heli_update_enemy =
 {
-	if (self.enemy)
-		return;
-
 	local entity targ;
+
+	if (self.enemy)
+	{
+		if (vlen(self.enemy.origin - self.origin) > 4096)
+		{
+			self.enemy = world;
+			return;		// Missi: Let it run on the next frame (2026.11.6)
+		}
+	}
 
 	targ = findradius (self.origin, 4096);
 
@@ -463,6 +508,12 @@ void() heli_update_enemy =
 	{
 		if (targ.flags & FL_CLIENT)
 		{
+			if (targ.flags & FL_NOTARGET)
+			{
+				targ = targ.chain;
+				continue;
+			}
+
 			if (targ.health > 0)
 			{
 				self.enemy = targ;
@@ -512,13 +563,7 @@ void() heli_crash =
 	if (other != world)
 		return;
 
-	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
-	WriteCoord (MSG_BROADCAST, self.origin_x);
-	WriteCoord (MSG_BROADCAST, self.origin_y);
-	WriteCoord (MSG_BROADCAST, self.origin_z);
-
-	BecomeExplosion();
+	HelicopterExplosion();
 
 	self.deadflag = DEAD_DEAD;
 
@@ -533,29 +578,38 @@ void() heli_spinout =
 
 	if (self.death_explosion_stage == 0)
 	{
-		// Missi: First stage.
+		// Missi: First stage. Slowly accumulate lateral velocity
 		self.velocity_z *= 0.85;
-		self.avelocity_x = 0;
-		self.avelocity_y += 1;
-		self.avelocity_z = 0;
+		self.avelocity_x *= 0.25;
+		self.avelocity_y += (75 * frametime);
+		self.avelocity_z *= 0.25;
 	}
 	else
 	{
+		// Missi: Second stage. Helicopter engine exploded and is
+		// now going into a full spinout. Dramatically increase
+		// lateral velocity (2026.11.5)
 		self.velocity_z *= 0.995;
-		self.avelocity_x = 0;
-		self.avelocity_y += 2;
-		self.avelocity_z = 0;
+		self.avelocity_x *= 0.25;
+		self.avelocity_y += (500 * frametime);
+		self.avelocity_z *= 0.25;
 	}
 
 	if (time > self.death_explosion_time)
 	{
-		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
-		WriteByte (MSG_BROADCAST, TE_EXPLOSION);
-		WriteCoord (MSG_BROADCAST, self.origin_x);
-		WriteCoord (MSG_BROADCAST, self.origin_y);
-		WriteCoord (MSG_BROADCAST, self.origin_z);
+		if (checkbuiltin(te_explosion))
+			te_explosion(self.origin);
+		else
+		{
+			WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+			WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+			WriteCoord (MSG_BROADCAST, self.origin_x);
+			WriteCoord (MSG_BROADCAST, self.origin_y);
+			WriteCoord (MSG_BROADCAST, self.origin_z);
+		}
 
-		makevectors(VEC_ORIGIN);
+		sound (self, CHAN_WEAPON, "weapons/r_exp3.wav", 1, 0.4);
+
 		self.velocity += v_right * 500;
 
 		self.death_explosion_time = time + 999999;
@@ -627,9 +681,18 @@ float(entity toplayer, float fl) SendHeli =
 	}
 	if (fl & SENDFLAG_ANGLES)
 	{
-		WriteShort (MSG_ENTITY, self.angles_x*(256/360) * autocvar(r_meshpitch, -1));
-		WriteShort (MSG_ENTITY, self.angles_y*(256/360));
-		WriteShort (MSG_ENTITY, self.angles_z*(256/360));
+		if (substring(self.model, strlen(self.model)-4, 4) == ".mdl")
+		{
+			WriteShort (MSG_ENTITY, self.angles_x*(256/360) * autocvar(r_meshpitch, -1));
+			WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+			WriteShort (MSG_ENTITY, self.angles_z*(256/360) * autocvar(r_meshroll, -1));
+		}
+		else
+		{
+			WriteShort (MSG_ENTITY, self.angles_x*(256/360));
+			WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+			WriteShort (MSG_ENTITY, self.angles_z*(256/360));
+		}
 	}
 	if (fl & SENDFLAG_VELOCITY)
 	{
@@ -706,12 +769,13 @@ void() func_helicopter =
 	self.source = self.origin;
 
 	if (!self.maxspeed)
-		self.maxspeed = 3000;
+		self.maxspeed = 1500;
 
 	self.goalspeed = 0;
 	self.death_explosion_time = 0;
 	self.death_explosion_stage = 0;
 	self.rotor_oldangle = 0;
+	self.lastangleupdate = self.angles;
 
 	self.starttime = time + 1;
 	self.SendEntity = SendHeli;
@@ -721,7 +785,7 @@ void() func_helicopter =
 void() heli_rotor_update_angle =
 {
 	local float td;
-	local vector ad;
+	local vector ad, newang;
 
 	self.rotor_oldangle += frametime * 100;
 
@@ -734,7 +798,13 @@ void() heli_rotor_update_angle =
 
 	makevectors(self.owner.angles);
 	ad = crossproduct(v_forward, v_right);
-	self.angles = rotateaxisangle(self.angles, self.owner.angles, self.origin, ad, self.rotor_oldangle);
+
+	newang = vectoangles(self.owner.origin - self.origin) + '90 0 0';
+	newang_x *= autocvar (r_meshpitch, -1);
+	self.angles = newang - (self.angles - self.lastangleupdate);
+	self.angles += v_right * 5;
+
+	self.lastangleupdate = self.angles;
 
 	//dprint("self.angles: ");
 	//dprint(vtos(self.angles));
@@ -846,6 +916,7 @@ void() rotor_mountpoint_find =
 	if (!self.target)
 	{
 		objerror ("func_helicopter_rotormount without a target");
+		return;
 	}
 
 	targ = find (world, targetname, self.target);
@@ -865,6 +936,7 @@ void() rotor_mountpoint_find =
 	else
 	{
 		objerror ("func_helicopter_rotormount couldn't find its target");
+		return;
 	}
 
 	//dprint("rotor offset: ");
@@ -957,12 +1029,18 @@ void() turret_find_heli =
 	local entity targ;
 
 	if (!self.target)
+	{
 		objerror ("func_helicopter_turret without a target");
+		return;
+	}
 
 	targ = find (world, targetname, self.target);
 
 	if (!targ)
+	{
 		objerror ("func_helicopter_turret couldn't find target");
+		return;
+	}
 
 	self.owner = targ;
 	self.mount_offset = self.origin - self.owner.origin;
@@ -1014,13 +1092,13 @@ void() monster_army_helicopter_turret =
 	self.burst_next = time;
 }
 
-/*QUAKED monster_army_helicopter (1 0 0) (-256 -256 -32) (256 256 32)
+/*QUAKED monster_army_helicopter (1 0 0) (-32 -144 0) (32 144 96)
 model="progs/heli.mdl"
 Point entity version of helicopter that does not have as many restrictions as func_helicopter.
 */
 
-const vector HELI_BBOX_MINS = '-256 -256 -32';
-const vector HELI_BBOX_MAXS = '256 256 32';
+const vector HELI_BBOX_MINS = '-32 -144 0';
+const vector HELI_BBOX_MAXS = '32 144 96';
 
 void() monster_army_helicopter =
 {
@@ -1062,7 +1140,7 @@ void() monster_army_helicopter =
 	self.source = self.origin;
 
 	if (!self.maxspeed)
-		self.maxspeed = 3000;
+		self.maxspeed = 1500;
 
 	self.goalspeed = 0;
 	self.death_explosion_time = 0;
@@ -1073,6 +1151,7 @@ void() monster_army_helicopter =
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
+
 
 
 

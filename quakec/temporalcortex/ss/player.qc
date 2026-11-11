@@ -333,6 +333,10 @@ void() player_uzi1   =[$light1, player_uzi2  ] {
 	dir = aim(self, 10000);
 
 	FireBullets_NoHitScan(cvar("tc_sv_uzi_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
+
 	self.attack_finished = time + 0.109;
 };
 
@@ -349,6 +353,10 @@ void() player_mac10_1   =[$light1, player_mac10_2  ] {
 	dir = aim(self, 10000);
 
 	FireBullets_NoHitScan(cvar("tc_sv_mac10_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
+
 	self.attack_finished = time + 0.04;
 };
 
@@ -363,6 +371,10 @@ void() player_vector1   =[$light1, player_vector2  ] {
 	dir = aim(self, 10000);
 
 	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_45_ACP] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_45_ACP] = self.tc_ammo[TC_AMMO_45_ACP] - 1;
+
 	self.attack_finished = time + 0.04;
 };
 

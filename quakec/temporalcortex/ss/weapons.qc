@@ -735,10 +735,10 @@ void() W_FireShotgun =
 
 	self.punchangle_x = -2;
 
-	self.currentammo = self.ammo_shells = self.ammo_shells - 1;
+#ifdef TEMPORALCORTEX
+	self.currentammo = self.tc_ammo[TC_AMMO_Q1_SHELLS] = self.tc_ammo[TC_AMMO_Q1_SHELLS] - 1;
 	dir = aim (self, 100000);
 
-#ifdef TEMPORALCORTEX
 	if (self.items2 & IT2_INCENDIARY_AMMO)
 	{
 		self.incendiary_ammo_count = self.incendiary_ammo_count - 1;
@@ -763,6 +763,9 @@ void() W_FireShotgun =
 	else
 		FireBullets (cvar("tc_sv_shotgun_damage"), dir, '0.04 0.04 0');
 #else
+	self.currentammo = self.ammo_shells = self.ammo_shells - 1;
+	dir = aim (self, 100000);
+
 	FireBullets (6, dir, '0.04 0.04 0');
 #endif
 };
@@ -787,10 +790,10 @@ void() W_FireSuperShotgun =
 
 	self.punchangle_x = -4;
 
-	self.currentammo = self.ammo_shells = self.ammo_shells - 2;
+#ifdef TEMPORALCORTEX
+	self.currentammo = self.tc_ammo[TC_AMMO_Q1_SHELLS] = self.tc_ammo[TC_AMMO_Q1_SHELLS] - 2;
 	dir = aim (self, 100000);
 
-#ifdef TEMPORALCORTEX
 	if (self.items2 & IT2_INCENDIARY_AMMO)
 	{
 		self.incendiary_ammo_count = self.incendiary_ammo_count - 2;
@@ -815,6 +818,9 @@ void() W_FireSuperShotgun =
 	else
 		FireBullets (cvar("tc_sv_super_shotgun_damage"), dir, '0.14 0.08 0');
 #else
+	self.currentammo = self.ammo_shells = self.ammo_shells - 2;
+	dir = aim (self, 100000);
+
 	FireBullets (14, dir, '0.14 0.08 0');
 #endif
 };
@@ -876,30 +882,47 @@ float(entity toplayer, float fl) SendWeapon =
 	WriteByte(MSG_ENTITY, CLASS_WEAPON);
 	WriteLong(MSG_ENTITY, fl);
 
-	WriteCoord (MSG_ENTITY, v_x);
-	WriteCoord (MSG_ENTITY, v_y);
-	WriteCoord (MSG_ENTITY, v_z);
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		WriteCoord (MSG_ENTITY, v_x);
+		WriteCoord (MSG_ENTITY, v_y);
+		WriteCoord (MSG_ENTITY, v_z);
+	}
+	if (fl & SENDFLAG_ANGLES)
+	{
+		WriteShort (MSG_ENTITY, self.angles_x*(256/360));
+		WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+	}
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		WriteCoord (MSG_ENTITY, self.velocity_x);
+		WriteCoord (MSG_ENTITY, self.velocity_y);
+		WriteCoord (MSG_ENTITY, self.velocity_z);
+	}
+	if (fl & SENDFLAG_AVELOCITY)
+	{
+		WriteCoord (MSG_ENTITY, self.avelocity_x);
+		WriteCoord (MSG_ENTITY, self.avelocity_y);
+		WriteCoord (MSG_ENTITY, self.avelocity_z);
+	}
 
-	WriteShort (MSG_ENTITY, self.angles_x*(256/360));
-	WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+	if (fl & SENDFLAG_MODEL)
+	{
+		WriteString (MSG_ENTITY, self.model);
+	}
 
-	WriteCoord (MSG_ENTITY, self.velocity_x);
-	WriteCoord (MSG_ENTITY, self.velocity_y);
-	WriteCoord (MSG_ENTITY, self.velocity_z);
-
-	WriteCoord (MSG_ENTITY, self.avelocity_x);
-	WriteCoord (MSG_ENTITY, self.avelocity_y);
-	WriteCoord (MSG_ENTITY, self.avelocity_z);
-
-	WriteLong (MSG_ENTITY, self.modelindex);
-
-	WriteCoord (MSG_ENTITY, self.mins_x);
-	WriteCoord (MSG_ENTITY, self.mins_y);
-	WriteCoord (MSG_ENTITY, self.mins_z);
-
-	WriteCoord (MSG_ENTITY, self.maxs_x);
-	WriteCoord (MSG_ENTITY, self.maxs_y);
-	WriteCoord (MSG_ENTITY, self.maxs_z);
+	if (fl & SENDFLAG_MINS)
+	{
+		WriteCoord (MSG_ENTITY, self.mins_x);
+		WriteCoord (MSG_ENTITY, self.mins_y);
+		WriteCoord (MSG_ENTITY, self.mins_z);
+	}
+	if (fl & SENDFLAG_MAXS)
+	{
+		WriteCoord (MSG_ENTITY, self.maxs_x);
+		WriteCoord (MSG_ENTITY, self.maxs_y);
+		WriteCoord (MSG_ENTITY, self.maxs_z);
+	}
 
 	WriteEntity(MSG_ENTITY, o);
 
@@ -918,30 +941,45 @@ float(entity toplayer, float fl) SendBullet =
 	WriteByte(MSG_ENTITY, CLASS_BULLET);
 	WriteLong(MSG_ENTITY, fl);
 
-	WriteCoord (MSG_ENTITY, v_x);
-	WriteCoord (MSG_ENTITY, v_y);
-	WriteCoord (MSG_ENTITY, v_z);
-
-	WriteShort (MSG_ENTITY, self.angles_x*(256/360));
-	WriteShort (MSG_ENTITY, self.angles_y*(256/360));
-
-	WriteCoord (MSG_ENTITY, self.velocity_x);
-	WriteCoord (MSG_ENTITY, self.velocity_y);
-	WriteCoord (MSG_ENTITY, self.velocity_z);
-
-	WriteCoord (MSG_ENTITY, self.avelocity_x);
-	WriteCoord (MSG_ENTITY, self.avelocity_y);
-	WriteCoord (MSG_ENTITY, self.avelocity_z);
-
-	WriteLong (MSG_ENTITY, self.modelindex);
-
-	WriteCoord (MSG_ENTITY, self.mins_x);
-	WriteCoord (MSG_ENTITY, self.mins_y);
-	WriteCoord (MSG_ENTITY, self.mins_z);
-
-	WriteCoord (MSG_ENTITY, self.maxs_x);
-	WriteCoord (MSG_ENTITY, self.maxs_y);
-	WriteCoord (MSG_ENTITY, self.maxs_z);
+	if (fl & SENDFLAG_ORIGIN)
+	{
+		WriteCoord (MSG_ENTITY, v_x);
+		WriteCoord (MSG_ENTITY, v_y);
+		WriteCoord (MSG_ENTITY, v_z);
+	}
+	if (fl & SENDFLAG_ANGLES)
+	{
+		WriteShort (MSG_ENTITY, self.angles_x*(256/360));
+		WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+	}
+	if (fl & SENDFLAG_VELOCITY)
+	{
+		WriteCoord (MSG_ENTITY, self.velocity_x);
+		WriteCoord (MSG_ENTITY, self.velocity_y);
+		WriteCoord (MSG_ENTITY, self.velocity_z);
+	}
+	if (fl & SENDFLAG_AVELOCITY)
+	{
+		WriteCoord (MSG_ENTITY, self.avelocity_x);
+		WriteCoord (MSG_ENTITY, self.avelocity_y);
+		WriteCoord (MSG_ENTITY, self.avelocity_z);
+	}
+	if (fl & SENDFLAG_MODELINDEX)
+	{
+		WriteLong (MSG_ENTITY, self.modelindex);
+	}
+	if (fl & SENDFLAG_MINS)
+	{
+		WriteCoord (MSG_ENTITY, self.mins_x);
+		WriteCoord (MSG_ENTITY, self.mins_y);
+		WriteCoord (MSG_ENTITY, self.mins_z);
+	}
+	if (fl & SENDFLAG_MAXS)
+	{
+		WriteCoord (MSG_ENTITY, self.maxs_x);
+		WriteCoord (MSG_ENTITY, self.maxs_y);
+		WriteCoord (MSG_ENTITY, self.maxs_z);
+	}
 
 	WriteEntity(MSG_ENTITY, o);
 
@@ -1678,7 +1716,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_shotgun":
 		{
-			self.currentammo = self.ammo_shells;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_SHELLS];
+			self.tc_currentammotype = TC_AMMO_Q1_SHELLS;
 			self.weaponmodel = "progs/v_shot.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_SHELLS;
@@ -1686,7 +1725,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_supershotgun":
 		{
-			self.currentammo = self.ammo_shells;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_SHELLS];
+			self.tc_currentammotype = TC_AMMO_Q1_SHELLS;
 			self.weaponmodel = "progs/v_shot2.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_SHELLS;
@@ -1694,7 +1734,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_nailgun":
 		{
-			self.currentammo = self.ammo_nails;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_NAILS];
+			self.tc_currentammotype = TC_AMMO_Q1_NAILS;
 			self.weaponmodel = "progs/v_nail.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_NAILS;
@@ -1702,7 +1743,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_supernailgun":
 		{
-			self.currentammo = self.ammo_nails;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_NAILS];
+			self.tc_currentammotype = TC_AMMO_Q1_NAILS;
 			self.weaponmodel = "progs/v_nail2.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_NAILS;
@@ -1710,7 +1752,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_grenadelauncher":
 		{
-			self.currentammo = self.ammo_rockets;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_ROCKETS];
+			self.tc_currentammotype = TC_AMMO_Q1_ROCKETS;
 			self.weaponmodel = "progs/v_rock.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_ROCKETS;
@@ -1718,7 +1761,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_rocketlauncher":
 		{
-			self.currentammo = self.ammo_rockets;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_ROCKETS];
+			self.tc_currentammotype = TC_AMMO_Q1_ROCKETS;
 			self.weaponmodel = "progs/v_rock2.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_ROCKETS;
@@ -1726,7 +1770,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_lightning":
 		{
-			self.currentammo = self.ammo_cells;
+			self.currentammo = self.tc_ammo[TC_AMMO_Q1_CELLS];
+			self.tc_currentammotype = TC_AMMO_Q1_CELLS;
 			self.weaponmodel = "progs/v_light.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_CELLS;
@@ -1734,7 +1779,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_uzi":
 		{
-			self.currentammo = self.ammo_shells;
+			self.currentammo = self.tc_ammo[TC_AMMO_9x19MM];
+			self.tc_currentammotype = TC_AMMO_9x19MM;
 			self.weaponmodel = "progs/v_light.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_SHELLS;
@@ -1742,7 +1788,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_mac10":
 		{
-			self.currentammo = self.ammo_shells;
+			self.currentammo = self.tc_ammo[TC_AMMO_9x19MM];
+			self.tc_currentammotype = TC_AMMO_9x19MM;
 			self.weaponmodel = "progs/v_light.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_SHELLS;
@@ -1750,7 +1797,8 @@ void() W_SetCurrentAmmo =
 		}
 		case "weapon_vector":
 		{
-			self.currentammo = self.ammo_shells;
+			self.currentammo = self.tc_ammo[TC_AMMO_45_ACP];
+			self.tc_currentammotype = TC_AMMO_45_ACP;
 			self.weaponmodel = "progs/v_light.mdl";
 			self.weaponframe = 0;
 			self.items = self.items | IT_SHELLS;
@@ -1837,7 +1885,7 @@ entity(entity player, string w) W_AddWeaponToEntity =
 	local entity pw;
 	local float i;
 
-	for (i = 0; i < MAX_TC_WEAPONS; i++)
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
 		pw = player.tc_weapons[i];
 		if (pw)
@@ -1875,30 +1923,19 @@ entity(vector org, string w) W_SpawnWeapon =
 	pw = spawn();
 	pw.classname = w;
 
-	switch(w)
-	{
-		case "weapon_shotgun":
-			precache_model("progs/g_shot.mdl");
-			setmodel(pw, "progs/g_shot.mdl");
-			break;
-		case "weapon_supershotgun":
-			precache_model("progs/g_shot.mdl");
-			setmodel(pw, "progs/g_shot.mdl");
-			break;
-		case "weapon_grenadelauncher":
-			precache_model("progs/g_rock1.mdl");
-			setmodel(pw, "progs/g_rock1.mdl");
-			break;
-		case "weapon_rocketlauncher":
-			precache_model("progs/g_rock2.mdl");
-			setmodel(pw, "progs/g_rock2.mdl");
-			break;
-	}
-
 	pw.touch = weapon_touch;
 	setorigin(pw, org);
-	setsize (pw, '-16 -16 0', '16 16 56');
-	StartItemExplicit(pw);
+	setsize (pw, '-16 -4 0', '16 4 4');
+
+	DetermineWeaponModel(pw);
+
+	pw.movetype = MOVETYPE_BOUNCE;
+	pw.solid = SOLID_TRIGGER;
+
+	pw.source = pw.origin;
+	pw.starttime = time;
+	pw.SendEntity = SendWeapon;
+	pw.SendFlags = FULLSEND;
 
 	dprint ("new weapon spawn at ");
 	dprint (vtos(org));
@@ -1912,7 +1949,7 @@ void(entity player) W_ClearWeaponsFromPlayer =
 	local entity pw;
 	local float i;
 
-	for (i = 0; i < MAX_TC_WEAPONS; i++)
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
 		pw = player.tc_weapons[i];
 		if (!pw)
@@ -1932,14 +1969,14 @@ entity(entity ent, string name) W_FindWeaponInInventory =
 	local float i;
 	local entity e;
 
-	for (i = 0; i < MAX_TC_WEAPONS; i++)
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
 		e = ent.tc_weapons[i];
 
 		if (!e)
 			continue;	// Missi: Empty slots are reclaimed (2026.10.27)
 
-		if (e.classname == name)
+		if (e.classname == stringpool_get_string(name))
 			return e;
 	}
 
@@ -1951,21 +1988,29 @@ entity() W_BestWeapon =
 	local entity it;
 	local float i;
 
-	for (i = 0; i < MAX_TC_WEAPONS; i++)
+	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
 		it = self.tc_weapons[i];
 
-		if (self.waterlevel <= 1 && self.ammo_cells >= 1 && it.classname == stringpool_get_string("weapon_lightning"))
+		if (self.waterlevel <= 1 && self.tc_ammo[TC_AMMO_Q1_CELLS] >= 1 && it.classname == stringpool_get_string("weapon_lightning"))
 			return it;
-		if(self.ammo_nails >= 2 && it.classname == stringpool_get_string("weapon_supernailgun"))
+		if(self.tc_ammo[TC_AMMO_Q1_NAILS] >= 2 && it.classname == stringpool_get_string("weapon_supernailgun"))
 			return it;
-		if(self.ammo_shells >= 2 && it.classname == stringpool_get_string("weapon_supershotgun"))
+		if(self.tc_ammo[TC_AMMO_Q1_SHELLS] >= 2 && it.classname == stringpool_get_string("weapon_supershotgun"))
 			return it;
-		if(self.ammo_nails >= 1 && it.classname == stringpool_get_string("weapon_nailgun"))
+		if(self.tc_ammo[TC_AMMO_Q1_NAILS] >= 1 && it.classname == stringpool_get_string("weapon_nailgun"))
 			return it;
-		if(self.ammo_shells >= 1 && it.classname == stringpool_get_string("weapon_shotgun"))
+		if(self.tc_ammo[TC_AMMO_Q1_SHELLS] >= 1 && it.classname == stringpool_get_string("weapon_shotgun"))
 			return it;
-		if(self.ammo_shells >= 1 && it.classname == stringpool_get_string("weapon_uzi"))
+		if(self.tc_ammo[TC_AMMO_9x19MM] >= 1 && it.classname == stringpool_get_string("weapon_uzi"))
+			return it;
+		if(self.tc_ammo[TC_AMMO_9x19MM] >= 1 && it.classname == stringpool_get_string("weapon_mp5"))
+			return it;
+		if(self.tc_ammo[TC_AMMO_9x19MM] >= 1 && it.classname == stringpool_get_string("weapon_mac10"))
+			return it;
+		if(self.tc_ammo[TC_AMMO_45_ACP] >= 1 && it.classname == stringpool_get_string("weapon_vector"))
+			return it;
+		if(it.classname == stringpool_get_string("weapon_axe"))
 			return it;
 	}
 	return world;
@@ -2217,48 +2262,48 @@ void() W_ChangeWeapon =
 
 	if (self.impulse == 1)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_axe"));
+		st = W_FindWeaponInInventory(self, "weapon_axe");
 	}
 	else if (self.impulse == 2)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_shotgun"));
-		if (self.ammo_shells < 1)
+		st = W_FindWeaponInInventory(self, "weapon_shotgun");
+		if (self.tc_ammo[TC_AMMO_Q1_SHELLS] < 1)
 			am = 1;
 	}
 	else if (self.impulse == 3)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_supershotgun"));
-		if (self.ammo_shells < 2)
+		st = W_FindWeaponInInventory(self, "weapon_supershotgun");
+		if (self.tc_ammo[TC_AMMO_Q1_SHELLS] < 2)
 			am = 1;
 	}
 	else if (self.impulse == 4)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_nailgun"));
-		if (self.ammo_nails < 1)
+		st = W_FindWeaponInInventory(self, "weapon_nailgun");
+		if (self.tc_ammo[TC_AMMO_Q1_NAILS] < 1)
 			am = 1;
 	}
 	else if (self.impulse == 5)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_supernailgun"));
-		if (self.ammo_nails < 2)
+		st = W_FindWeaponInInventory(self, "weapon_supernailgun");
+		if (self.tc_ammo[TC_AMMO_Q1_NAILS] < 2)
 			am = 1;
 	}
 	else if (self.impulse == 6)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_grenadelauncher"));
-		if (self.ammo_rockets < 1)
+		st = W_FindWeaponInInventory(self, "weapon_grenadelauncher");
+		if (self.tc_ammo[TC_AMMO_Q1_ROCKETS] < 1)
 			am = 1;
 	}
 	else if (self.impulse == 7)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_rocketlauncher"));
-		if (self.ammo_rockets < 1)
+		st = W_FindWeaponInInventory(self, "weapon_rocketlauncher");
+		if (self.tc_ammo[TC_AMMO_Q1_ROCKETS] < 1)
 			am = 1;
 	}
 	else if (self.impulse == 8)
 	{
-		st = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_mac10"));
-		if (self.ammo_shells < 1)
+		st = W_FindWeaponInInventory(self, "weapon_uzi");
+		if (self.tc_ammo[TC_AMMO_9x19MM] < 1)
 			am = 1;
 	}
 	else
@@ -2495,12 +2540,20 @@ void() GiveCommand_f =
 	case "weapon_uzi":
 	case "weapon_mp5":
 	case "weapon_mac10":
+	{
+		new = W_SpawnWeapon(self.origin, argv(1));
+
+		if (self.tc_ammo[TC_AMMO_9x19MM] < 250)
+			self.tc_ammo[TC_AMMO_9x19MM] += 10;
+
+		break;
+	}
 	case "weapon_vector":
 	{
 		new = W_SpawnWeapon(self.origin, argv(1));
 
-		if (self.ammo_shells < 250)
-			self.ammo_shells += 10;
+		if (self.tc_ammo[TC_AMMO_45_ACP] < 250)
+			self.tc_ammo[TC_AMMO_45_ACP] += 10;
 
 		break;
 	}
@@ -2531,54 +2584,54 @@ void() CycleWeaponCommand =
 		am = 0;
 
 #ifdef TEMPORALCORTEX
-		if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_lightning"))
+		if (self.tc_currentweapon.classname == "weapon_lightning")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_axe"));
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_axe");
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_axe"))
+		else if (self.tc_currentweapon.classname == "weapon_axe")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_shotgun"));
-			if (self.ammo_shells < 1)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_shotgun");
+			if (self.tc_ammo[TC_AMMO_Q1_SHELLS] < 1)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_shotgun"))
+		else if (self.tc_currentweapon.classname == "weapon_shotgun")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_supershotgun"));
-			if (self.ammo_shells < 2)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_supershotgun");
+			if (self.tc_ammo[TC_AMMO_Q1_SHELLS] < 2)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_supershotgun"))
+		else if (self.tc_currentweapon.classname == "weapon_supershotgun")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_nailgun"));
-			if (self.ammo_nails < 1)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_nailgun");
+			if (self.tc_ammo[TC_AMMO_Q1_NAILS] < 1)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_nailgun"))
+		else if (self.tc_currentweapon.classname == "weapon_nailgun")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_supernailgun"));
-			if (self.ammo_nails < 2)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_supernailgun");
+			if (self.tc_ammo[TC_AMMO_Q1_NAILS] < 2)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_supernailgun"))
+		else if (self.tc_currentweapon.classname == "weapon_supernailgun")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_grenadelauncher"));
-			if (self.ammo_rockets < 1)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_grenadelauncher");
+			if (self.tc_ammo[TC_AMMO_Q1_ROCKETS] < 1)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_grenadelauncher"))
+		else if (self.tc_currentweapon.classname == "weapon_grenadelauncher")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_rocketlauncher"));
-			if (self.ammo_rockets < 1)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_rocketlauncher");
+			if (self.tc_ammo[TC_AMMO_Q1_ROCKETS] < 1)
 				am = 1;
 		}
-		else if (self.tc_currentweapon.classname == stringpool_get_string( "weapon_rocketlauncher"))
+		else if (self.tc_currentweapon.classname == "weapon_rocketlauncher")
 		{
-			self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string( "weapon_lightning"));
-			if (self.ammo_cells < 1)
+			self.tc_currentweapon = W_FindWeaponInInventory(self, "weapon_lightning");
+			if (self.tc_ammo[TC_AMMO_Q1_CELLS] < 1)
 				am = 1;
 		}
 
-		if ( (it & self.weapon) && am == 0)
+		if (am == 0)
 		{
 			W_SetCurrentAmmo ();
 			return;
@@ -2659,6 +2712,68 @@ void() CycleWeaponReverseCommand =
 	{
 		am = 0;
 
+#ifdef TEMPORALCORTEX
+		local string wep = stringpool_get_string(self.tc_currentweapon.classname);
+
+		switch(wep)
+		{
+			case "weapon_vector":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_mac10"));
+				break;
+			}
+			case "weapon_mac10":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_mp5"));
+				break;
+			}
+			case "weapon_mp5":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_uzi"));
+				break;
+			}
+			case "weapon_uzi":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_lightning"));
+				break;
+			}
+			case "weapon_lightning":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_rocketlauncher"));
+				break;
+			}
+			case "weapon_rocketlauncher":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_supernailgun"));
+				break;
+			}
+			case "weapon_supernailgun":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_nailgun"));
+				break;
+			}
+			case "weapon_nailgun":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_supershotgun"));
+				break;
+			}
+			case "weapon_supershotgun":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_shotgun"));
+				break;
+			}
+			case "weapon_shotgun":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_axe"));
+				break;
+			}
+			case "weapon_axe":
+			{
+				self.tc_currentweapon = W_FindWeaponInInventory(self, stringpool_get_string("weapon_vector"));
+				break;
+			}
+		}
+#else
 		if (self.weapon == IT_LIGHTNING)
 		{
 			self.weapon = IT_ROCKET_LAUNCHER;
@@ -2705,6 +2820,7 @@ void() CycleWeaponReverseCommand =
 			if (self.ammo_cells < 1)
 				am = 1;
 		}
+#endif
 
 		if ( (it & self.weapon) && am == 0)
 		{
@@ -2787,26 +2903,33 @@ void() ImpulseCommands =
 #ifdef TEMPORALCORTEX
 	if (self.impulse == 51)
 	{
-		if (self.items2 & IT2_GRAPPLING_HOOK)
+		if (substring(world.model, 0, 20) == "maps/skyscraperclimb")
 		{
-			if (!self.grappling)
+			centerprint(self, "The Agency took away your grappling hook...");
+		}
+		else
+		{
+			if (self.items2 & IT2_GRAPPLING_HOOK)
 			{
-				dir = aim (self, 100000);
+				if (!self.grappling)
+				{
+					dir = aim (self, 100000);
 
-				self.grappling = 1;
+					self.grappling = 1;
 
-				W_FireGrappleHook (5000, dir);
+					W_FireGrappleHook (5000, dir);
+				}
+				else
+				{
+					self.grappling = 0;
+					self.hooked = 0;
+				}
 			}
 			else
 			{
 				self.grappling = 0;
 				self.hooked = 0;
 			}
-		}
-		else
-		{
-			self.grappling = 0;
-			self.hooked = 0;
 		}
 	}
 
@@ -3105,7 +3228,9 @@ void() weapon_uzi =
 	self.touch = weapon_touch;
 	setsize (self, '-16 -4 0', '16 4 4');
 
+	self.source = self.origin;
 	self.SendEntity = SendWeapon;
+	self.starttime = time;
 	self.SendFlags = FULLSEND;
 
 	self.solid = SOLID_BBOX;
@@ -3123,7 +3248,9 @@ void() weapon_mp5 =
 	self.touch = weapon_touch;
 	setsize (self, '-16 -4 0', '16 4 4');
 
+	self.source = self.origin;
 	self.SendEntity = SendWeapon;
+	self.starttime = time;
 	self.SendFlags = FULLSEND;
 
 	self.solid = SOLID_BBOX;
@@ -3141,7 +3268,29 @@ void() weapon_mac10 =
 	self.touch = weapon_touch;
 	setsize (self, '-16 -4 0', '16 4 4');
 
+	self.source = self.origin;
 	self.SendEntity = SendWeapon;
+	self.starttime = time;
+	self.SendFlags = FULLSEND;
+
+	self.solid = SOLID_BBOX;
+	self.movetype = MOVETYPE_TOSS;
+};
+
+/*QUAKED weapon_vector (0 .5 .8) (-16 -4 0) (16 4 4)
+ m o*del="progs/weapons/g_vector.mdl"
+ */
+void() weapon_vector =
+{
+	precache_model ("progs/weapons/g_vector.mdl");
+	setmodel (self, "progs/weapons/g_vector.mdl");
+	self.netname = "Vector";
+	self.touch = weapon_touch;
+	setsize (self, '-16 -4 0', '16 4 4');
+
+	self.source = self.origin;
+	self.SendEntity = SendWeapon;
+	self.starttime = time;
 	self.SendFlags = FULLSEND;
 
 	self.solid = SOLID_BBOX;

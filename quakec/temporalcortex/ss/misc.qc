@@ -679,13 +679,13 @@ void() pushable_think =
 	if (touched_entity)
 	{
 		if (touched_entity.classname == "worldspawn")
-			makevectors(vectoangles(normalize(self.origin - touched_entity.origin)));
+			makevectors(vectoangles(self.origin - touched_entity.origin));
 		else
 			makevectors(self.angles);
 
-		//dprint("pushable_think Angles: ");
-		//dprint(vtos(vectoangles( self.origin - touched_entity.origin )));
-		//dprint("\n");
+		dprint("pushable_think angles: ");
+		dprint(vtos(vectoangles( self.origin - touched_entity.origin )));
+		dprint("\n");
 
 		// Missi: Unfortunately this is kind of outside the scope of QC. Might as well do an entire physics engine if you're trying to do this.
 		// Also, changing angles of inline models tends to mess up collision. (2026.1.21)
@@ -710,7 +710,7 @@ void() pushable_touch =
 	//dprint("pushable_touch Speed: ");
 	//dprint(ftos(vlen(other.velocity) * frametime * 100));
 	//dprint("\n");
-	self.velocity = other.velocity + (v_forward * (cvar("sv_maxspeed")) + (v_up * -1) * (cvar("sv_maxspeed") / self.mass));
+	self.velocity = other.velocity + (v_forward * (cvar("sv_maxspeed")) + (v_up * -1) * (cvar("sv_maxspeed") * self.mass));
 
 	sound (self, CHAN_VOICE, self.noise, 1, ATTN_NORM);
 

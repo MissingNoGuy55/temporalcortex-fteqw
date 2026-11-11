@@ -566,10 +566,11 @@ void()	army_die2	=[	$death2,	army_die3	] {};
 void()	army_die3	=[	$death3,	army_die4	]
 {
 	self.solid = SOLID_NOT;
-	self.ammo_shells = 5;
 #ifdef TEMPORALCORTEX
-	DropWeapon();
+	self.tc_ammo[TC_AMMO_9x19MM] = 15;
+	DropWeapon(TC_AMMO_9x19MM);
 #else
+	self.ammo_shells = 5;
 	DropBackpack();
 #endif
 };
@@ -586,10 +587,11 @@ void()	army_cdie2	=[	$deathc2,	army_cdie3	] {ai_back(5);};
 void()	army_cdie3	=[	$deathc3,	army_cdie4	]
 {
 	self.solid = SOLID_NOT;
-	self.ammo_shells = 5;
 #ifdef TEMPORALCORTEX
-	DropWeapon();
+	self.tc_ammo[TC_AMMO_9x19MM] = 15;
+	DropWeapon(TC_AMMO_9x19MM);
 #else
+	self.ammo_shells = 5;
 	DropBackpack();
 #endif
 	ai_back(4);
