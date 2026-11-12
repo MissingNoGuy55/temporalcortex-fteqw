@@ -1026,6 +1026,36 @@ void CL_ClearPrecaches()
 	}
 }
 
+void CL_ClearModelPrecaches()
+{
+	precache_t *next;
+
+	while (cl.model_precache)
+	{
+		next = cl.model_precache->next;
+		BZ_Free(cl.model_precache);
+		cl.model_precache = next;
+	}
+	while (cl.model_csqcprecache)
+	{
+		next = cl.model_csqcprecache->next;
+		BZ_Free(cl.model_csqcprecache);
+		cl.model_csqcprecache = next;
+	}
+}
+
+void CL_ClearSoundPrecaches()
+{
+	precache_t *next;
+
+	while (cl.sound_precache)
+	{
+		next = cl.sound_precache->next;
+		BZ_Free(cl.sound_precache);
+		cl.sound_precache = next;
+	}
+}
+
 void CL_ClearCSQCPrecaches()
 {
 	precache_t *next;
