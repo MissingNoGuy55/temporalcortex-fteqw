@@ -543,7 +543,7 @@ nonstatic void(float isnew) ParsePlayer =
 
 	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
-		self.tc_ammo[i] = readbyte()*(100/256);
+		self.tc_ammo[i] = readshort();
 	}
 #endif
 

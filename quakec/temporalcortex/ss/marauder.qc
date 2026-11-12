@@ -488,6 +488,8 @@ void() monster_timehunter =
 	self.timehunter_uncloak = 0;
 	self.timehunter_oldmodel = self.model;
 
+	self.tc_currentweapon = W_AddWeaponToEntity(self, stringpool_get_string("weapon_uzi"));
+
 	walkmonster_start ();
 };
 

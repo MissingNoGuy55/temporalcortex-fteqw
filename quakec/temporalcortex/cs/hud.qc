@@ -323,10 +323,7 @@ void Hud_DrawIBar(vector pos)
 	if (stat_items & IT_LIGHTNING)
 		Hud_DrawWeaponWide(6, pos+'144 8 0');
 
-	Hud_DrawAmmoCount_NonItems(0, pos + '10 0 0', false);
-	Hud_DrawAmmoCount_NonItems(1, pos + '58 0 0', false);
-	Hud_DrawAmmoCount_NonItems(2, pos + '106 0 0', false);
-	Hud_DrawAmmoCount_NonItems(3, pos + '154 0 0', false);
+	Hud_DrawAmmoCount_NonItems(self.tc_currentammotype, pos + '10 0 0', false);
 
 	if (stat_items & IT_KEY1)
 		drawpic(pos+'192 8 0', "sb_key1", '16 16 0', '1 1 1', 1, 0);

@@ -1,6 +1,6 @@
 # [Temporal Cortex FTEQW](https://steamcommunity.com/id/missingnoguy55)
 
-![Temporal Cortex FTEQW Logo](engine/client/fte_eukara.ico)
+![Temporal Cortex FTEQW Logo](engine/client/fte_temporalcortex.ico)
 
 # What is Temporal Cortex FTEQW?
 

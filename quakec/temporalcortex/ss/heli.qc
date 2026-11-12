@@ -209,7 +209,7 @@ void() heli_flight =
 	dt = time-self.starttime;
 	self.starttime = time;
 
-	makevectors(self.angles + avel /* * 2 */ + adjust);
+	makevectors(self.angles + avel * 2 + adjust);
 
 	side = dotproduct(self.desiredfacedir, v_right);
 	if (side < 0)
@@ -225,8 +225,8 @@ void() heli_flight =
 
 	avel_y *= 0.98;
 
-	makevectors(self.angles + avel /* * 1 */ + adjust);
-	estimate = self.origin + self.velocity /* * 2 */ + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
+	makevectors(self.angles + avel * 1 + adjust);
+	estimate = self.origin + self.velocity * 2 + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
 
 	makevectors(self.angles + adjust);
 
@@ -344,7 +344,7 @@ void() heli_flight_mesh =
 	dt = time-self.starttime;
 	self.starttime = time;
 
-	makevectors(ang + avel /* * 2 */ + adjust);
+	makevectors(ang + avel * 2 + adjust);
 
 	side = dotproduct(self.desiredfacedir, v_right);
 	if (side < 0)
@@ -360,8 +360,8 @@ void() heli_flight_mesh =
 
 	avel_y *= 0.98;
 
-	makevectors(ang + avel /* * 1 */ + adjust);
-	estimate = self.origin + vel /* * 2 */ + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
+	makevectors(ang + avel * 1 + adjust);
+	estimate = self.origin + vel * 2 + v_up * self.force * HELI_FLIGHT_STATIC_POWER - HELI_FLIGHT_ADJUST;
 
 	makevectors(ang + adjust);
 

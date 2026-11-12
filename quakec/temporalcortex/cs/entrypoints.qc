@@ -218,6 +218,9 @@ void() CSQC_Parse_Event =
 			warp_cooldown = true;
 			last_warp_update_time = time;
 			break;
+		case "timetravel_transfer":
+
+			break;
 		default:
 			objerror ("CSQC_Parse_Event: Unknown event\n");
 			return;

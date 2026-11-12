@@ -370,7 +370,7 @@ void() player_vector1   =[$light1, player_vector2  ] {
 
 	dir = aim(self, 10000);
 
-	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_45_ACP, cvar("tc_sv_ammo_45acp_speed"), 1, dir, VEC_ORIGIN);
 
 	if (self.tc_ammo[TC_AMMO_45_ACP] > 0)
 		self.currentammo = self.tc_ammo[TC_AMMO_45_ACP] = self.tc_ammo[TC_AMMO_45_ACP] - 1;

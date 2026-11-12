@@ -911,7 +911,7 @@ void() ammo_touch =
 {
 #ifdef TEMPORALCORTEX
 	local entity	stemp;
-	local entity		best;
+	local entity	best;
 
 	if (other.classname != "player")
 		return;
@@ -924,37 +924,36 @@ void() ammo_touch =
 	best = W_BestWeapon();
 	self = stemp;
 
-
 // shotgun
 	if (self.weapon == 1)
 	{
-		if (other.ammo_shells >= 100)
+		if (other.tc_ammo[TC_AMMO_Q1_SHELLS] >= 100)
 			return;
-		other.ammo_shells = other.ammo_shells + self.aflag;
+		other.tc_ammo[TC_AMMO_Q1_SHELLS] = other.tc_ammo[TC_AMMO_Q1_SHELLS] + self.aflag;
 	}
 
 // spikes
 	if (self.weapon == 2)
 	{
-		if (other.ammo_nails >= 200)
+		if (other.tc_ammo[TC_AMMO_Q1_NAILS] >= 200)
 			return;
-		other.ammo_nails = other.ammo_nails + self.aflag;
+		other.tc_ammo[TC_AMMO_Q1_NAILS] = other.tc_ammo[TC_AMMO_Q1_NAILS] + self.aflag;
 	}
 
 //	rockets
 	if (self.weapon == 3)
 	{
-		if (other.ammo_rockets >= 100)
+		if (other.tc_ammo[TC_AMMO_Q1_ROCKETS] >= 100)
 			return;
-		other.ammo_rockets = other.ammo_rockets + self.aflag;
+		other.tc_ammo[TC_AMMO_Q1_ROCKETS] = other.tc_ammo[TC_AMMO_Q1_ROCKETS] + self.aflag;
 	}
 
 //	cells
 	if (self.weapon == 4)
 	{
-		if (other.ammo_cells >= 100)
+		if (other.tc_ammo[TC_AMMO_Q1_CELLS] >= 100)
 			return;
-		other.ammo_cells = other.ammo_cells + self.aflag;
+		other.tc_ammo[TC_AMMO_Q1_CELLS] = other.tc_ammo[TC_AMMO_Q1_CELLS] + self.aflag;
 	}
 
 	bound_other_ammo ();
@@ -2027,51 +2026,55 @@ void(entity e) DetermineWeaponModel =
 {
 	local string class = stringpool_get_string(e.classname);
 
-	dprint("test string: ");
-	dprint(class);
-	dprint("\n");
-
 	switch(class)
 	{
 		case "weapon_shotgun":
 			precache_model("progs/g_shot.mdl");
 			setmodel(e, "progs/g_shot.mdl");
 			e.netname = "Shotgun";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_supershotgun":
 			precache_model("progs/g_shot1.mdl");
 			setmodel(e, "progs/g_shot1.mdl");
 			e.netname = "Double-barrelled Shotgun";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_nailgun":
 			precache_model("progs/g_nail1.mdl");
 			setmodel(e, "progs/g_nail1.mdl");
 			e.netname = "Nailgun";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_supernailgun":
 			precache_model("progs/g_nail2.mdl");
 			setmodel(e, "progs/g_nail2.mdl");
 			e.netname = "Super Nailgun";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_grenadelauncher":
 			precache_model("progs/g_rock1.mdl");
 			setmodel(e, "progs/g_rock1.mdl");
 			e.netname = "Grenade Launcher";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_rocketlauncher":
 			precache_model("progs/g_rock2.mdl");
 			setmodel(e, "progs/g_rock2.mdl");
 			e.netname = "Rocket Launcher";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_lightning":
 			precache_model("progs/g_light.mdl");
 			setmodel(e, "progs/g_light.mdl");
 			e.netname = "Thunderbolt";
+			setsize (e, '-16 -4 0', '16 4 4');
 			break;
 		case "weapon_uzi":
 			precache_model("progs/weapons/g_mac10.mdl");
 			setmodel(e, "progs/weapons/g_mac10.mdl");
 			e.netname = "Uzi";
+			setsize (e, '-4 -15 -1', '4 15 1');
 			break;
 		case "weapon_mp5":
 			precache_model("progs/weapons/g_mac10.mdl");
@@ -2103,7 +2106,7 @@ void(float ammotype) DropWeapon =
 	if (!self.tc_ammo[ammotype])
 		return;	// nothing in it
 
-	item = W_SpawnWeapon(self.origin + '0 0 24', stringpool_get_string(self.tc_currentweapon.classname));
+	item = W_SpawnWeapon(self.origin + '0 0 24', self.tc_currentweapon.classname);
 	item.avelocity = '300 500 1000';
 	item.velocity = normalize(self.origin) * 500;
 

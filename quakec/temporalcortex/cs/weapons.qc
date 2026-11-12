@@ -98,16 +98,9 @@ float() BulletProject =
 
 float() WeaponProject =
 {
-	local vector oldorg;
-
-	oldorg = self.origin;
 	self.origin = self.source + self.velocity * (time - self.starttime);
 
 	makevectors(VEC_ORIGIN);
-
-	dprint("project: ");
-	dprint(vtos(project(self.origin + v_up * 32)));
-	dprint("\n");
 
 	drawpic(project(self.origin + v_up * 32), "face_inv", '32 32 32', '1 1 1', 1, 0);
 

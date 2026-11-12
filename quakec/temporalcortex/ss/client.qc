@@ -610,7 +610,7 @@ float(entity to, float fl) SendPlayer =
 
 	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
-		WriteByte(MSG_ENTITY, self.tc_ammo[i]*(256/100));
+		WriteShort(MSG_ENTITY, self.tc_ammo[i]);
 	}
 #endif
 
