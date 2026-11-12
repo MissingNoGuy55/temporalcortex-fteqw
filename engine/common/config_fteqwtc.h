@@ -5,21 +5,21 @@
 // Later code will disable any features if they're not supported on the current platform, so don't worry about win/lin/mac/android/web/etc here - any such issues should be fixed elsewhere.
 
 //general rebranding
-//#define DISTRIBUTION			"FTE"							//should be kept short. 8 or less letters is good, with no spaces.
-//#define DISTRIBUTIONLONG		"Forethought Entertainment"		//think of this as your company name. It isn't shown too often, so can be quite long.
-//#define FULLENGINENAME		"FTEQW Temporal Cortex"		//nominally user-visible name.
-//#define ENGINEWEBSITE			"https://steamcommunity.com/id/missingnoguy55"	//for shameless self-promotion purposes.
-//#define BRANDING_ICON			"fte_eukara.ico"				//The file to use in windows' resource files - for linux your game should include an icon.[png|ico] file in the game's data.
+#define DISTRIBUTION			"FTE"							//should be kept short. 8 or less letters is good, with no spaces.
+#define DISTRIBUTIONLONG		"Forethought Entertainment"		//think of this as your company name. It isn't shown too often, so can be quite long.
+#define FULLENGINENAME			"FTEQW Temporal Cortex"		//nominally user-visible name.
+#define ENGINEWEBSITE			"https://steamcommunity.com/id/missingnoguy55"	//for shameless self-promotion purposes.
+#define BRANDING_ICON			"fte_temporalcortex.ico"				//The file to use in windows' resource files - for linux your game should include an icon.[png|ico] file in the game's data.
 
 //filesystem rebranding
-//#define GAME_SHORTNAME			"temporalcortex"			//short alphanumeric description
-//#define GAME_FULLNAME			FULLENGINENAME 	//full name of the game we're playing
-//#define GAME_BASEGAMES			"lq1","temporalcortex"	//comma-separate list of basegame strings to use
-//#define GAME_PROTOCOL			"FTE-Quake"		//so other games won't show up in the server browser
-//#define GAME_DEFAULTPORT		27500			//slightly reduces the chance of people connecting to the wrong type of server
-//#define GAME_IDENTIFYINGFILES	NULL			//with multiple games, this string-list gives verification that the basedir is actually valid. if null, will just be assumed correct.
-//#define GAME_DOWNLOADSURL		NULL			//url for the package manger to update from
-//#define GAME_DEFAULTCMDS		NULL			//a string containing the things you want to exec in order to override default.cfg
+#define GAME_SHORTNAME			"temporalcortex"			//short alphanumeric description
+#define GAME_FULLNAME			FULLENGINENAME 	//full name of the game we're playing
+#define GAME_BASEGAMES			"lq1","temporalcortex"	//comma-separate list of basegame strings to use
+#define GAME_PROTOCOL			"FTE-TemporalCortex"		//so other games won't show up in the server browser
+#define GAME_DEFAULTPORT		27500			//slightly reduces the chance of people connecting to the wrong type of server
+#define GAME_IDENTIFYINGFILES	NULL			//with multiple games, this string-list gives verification that the basedir is actually valid. if null, will just be assumed correct.
+#define GAME_DOWNLOADSURL		NULL			//url for the package manger to update from
+#define GAME_DEFAULTCMDS		NULL			//a string containing the things you want to exec in order to override default.cfg
 
 //#define ENGINE_HAS_ZIP	//when defined, the engine is effectively a self-extrating zip with the gamedata zipped onto the end (if it in turn contains nested packages then they should probably be STOREd pk3s)
 
