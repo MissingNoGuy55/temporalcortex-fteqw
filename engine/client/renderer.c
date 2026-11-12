@@ -1737,22 +1737,26 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 			SV_UnspawnServer();
 		else if (svs.gametype == GT_PROGS || svs.gametype == GT_Q1QVM)
 		{
-			for (i = 0; i < MAX_PRECACHE_MODELS; i++)
+			for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 			{
-				model_precache = SV_FindPrecacheByIndex(i, cl.model_precache);
+				model_precache = SV_FindPrecacheByIndex(i, sv.strings.model_precache);
 
-				if (model_precache && (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || i-1 < sv.world.worldmodel[i]->numsubmodels))
+				if (!model_precache)
 				{
-					worldmodel_precache = SV_FindPrecacheByIndex(cl.worldmodel_indices[tc_cl_current_bsp_index], cl.model_precache);
+					sv.models[i] = NULL;
+					break;
+				}
+
+				if (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || strchr(model_precache->name, '*'))
+				{
+					worldmodel_precache = SV_FindPrecacheByIndex(sv.world.worldmodel_indices[model_precache->timeperiod], sv.strings.model_precache);
 					sv.models[i] = Mod_FindName(Mod_FixName(model_precache->name, worldmodel_precache->name));
 				}
-				else
-					sv.models[i] = NULL;
-
-				World_ClearWorld (&sv.world, true);
 //			ent = sv.world.edicts;
 //			ent->v->model = PR_NewString(svprogfuncs, sv.worldmodel->name);	//FIXME: is this a problem for normal ents?
 			}
+
+			World_ClearWorld (&sv.world, true);
 		}
 #ifdef Q2SERVER
 		else if (svs.gametype == GT_QUAKE2)
@@ -1964,7 +1968,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #ifdef TEMPORALCORTEX
 				model_precache = CL_FindPrecacheByIndex(i, cl.model_precache);
 
-				if (oldwm == model_precache->data)
+				if (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp"))
 #else
 				if (oldwm == cl.model_precache[i])
 #endif
@@ -1973,8 +1977,11 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 				if (i == wmidx)
 					CL_AddModelPrecache(cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
 				else
+				{
+					Con_DPrintf("%s\n", Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[cl.model_time_periods[i]]]));
 					// Missi: Come back to this later. Probably not correct (2026.6.17)
-					CL_AddModelPrecache(Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[cl.model_time_periods[i]]]), cl.model_precache, cl.model_time_periods[i], false);
+					CL_AddModelPrecache(cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
+				}
 #else
 #ifdef Q2CLIENT	//skip vweps
 				if (cls.protocol == CP_QUAKE2 && *cl.model_name[i] == '#')
