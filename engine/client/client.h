@@ -1931,5 +1931,7 @@ void CLTC_ClearDLights();
 
 void CL_InitPrecaches();
 void CL_ClearPrecaches();
+void CL_ClearModelPrecaches();
+void CL_ClearSoundPrecaches();
 void CL_ClearCSQCPrecaches();
 #endif
