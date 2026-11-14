@@ -490,12 +490,6 @@ float	AS_MISSILE		= 4;
 //===========================================================================
 
 //
-// Missi: Temporal Cortex grappling hook (2026.1.11)
-//
-.float		grappling;
-.float		hooked;
-
-//
 // Missi: Temporal Cortex relationship groups (2026.1.11)
 //
 .float		relationship_group;

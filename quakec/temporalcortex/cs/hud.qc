@@ -262,7 +262,7 @@ void Hud_DrawSBar(vector pos)
 		drawpic(pos + '112 0 0', "face_psych", '24 24 24', '1 1 1', 1, 0);
 	else
 	{
-		if (self.pain_finished > time)
+		if (getstatf(STAT_PAIN) > time)
 		{
 			if (health > 75)
 				drawpic(pos + '112 0 0', "face_p1", '24 24 24', '1 1 1', 1, 0);
@@ -290,7 +290,15 @@ void Hud_DrawSBar(vector pos)
 	Hud_DrawLargeValue(pos+'136 0 0', getstatf(STAT_HEALTH), 25);
 
 #ifdef TEMPORALCORTEX
-	Hud_DrawLargeValue(pos+'248 0 0', self.tc_ammo[self.tc_currentammotype], 10);
+	if (stat_items & IT_SHELLS)
+		drawpic(pos+'224 0 0', "sb_shells", '24 24 0', '1 1 1', 1, 0);
+	else if (stat_items & IT_NAILS)
+		drawpic(pos+'224 0 0', "sb_nails", '24 24 0', '1 1 1', 1, 0);
+	else if (stat_items & IT_ROCKETS)
+		drawpic(pos+'224 0 0', "sb_rocket", '24 24 0', '1 1 1', 1, 0);
+	else if (stat_items & IT_CELLS)
+		drawpic(pos+'224 0 0', "sb_cells", '24 24 0', '1 1 1', 1, 0);
+	Hud_DrawLargeValue(pos+'248 0 0', getstatf(STAT_AMMO), 10);
 #else
 	if (stat_items & IT_SHELLS)
 		drawpic(pos+'224 0 0', "sb_shells", '24 24 0', '1 1 1', 1, 0);

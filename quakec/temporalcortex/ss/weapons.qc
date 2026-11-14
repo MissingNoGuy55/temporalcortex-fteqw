@@ -680,7 +680,7 @@ void(entity bullet, float ammotype) determine_bullet_type =
 			bullet.bullet_drag = 1.0;
 			bullet.bullet_weight = 1.0;
 			bullet.bullet_penetration_mult = 1.0;
-			dprint("TEMPORAL CORTEX: Attempted to set bullet drag and weight on a non-existent ammo type!\n");
+			dprint("^3[TEMPORAL CORTEX] [SSQC] Attempted to set bullet drag and weight on a non-existent ammo type!\n");
 			break;
 	}
 };
@@ -1120,8 +1120,8 @@ void(float damage, float ammotype, float speed, vector org, vector dir) shoot_bu
 
 	newbullet.source = newbullet.origin;
 	newbullet.starttime = time;
-	newbullet.SendEntity = SendBullet;
-	newbullet.SendFlags = FULLSEND;
+	//newbullet.SendEntity = SendBullet;
+	//newbullet.SendFlags = FULLSEND;
 
 	makevectors(self.angles);
 };
@@ -1923,11 +1923,11 @@ entity(entity player, string w) W_AddWeaponToEntity =
 
 	setorigin(self, player.origin);
 
-	dprint ("new player weapon at index ");
-	dprint (ftos(i));
-	dprint (": ");
-	dprint (pw.classname);
-	dprint ("\n");
+	//dprint ("new player weapon at index ");
+	//dprint (ftos(i));
+	//dprint (": ");
+	//dprint (pw.classname);
+	//dprint ("\n");
 
 	player.tc_weapons[i] = pw;
 
@@ -1972,9 +1972,9 @@ void(entity player) W_ClearWeaponsFromPlayer =
 		if (!pw)
 			continue;
 
-		dprint ("destroying weapon on player: ");
-		dprint (pw.classname);
-		dprint ("\n");
+		//dprint ("destroying weapon on player: ");
+		//dprint (pw.classname);
+		//dprint ("\n");
 
 		remove(pw);
 		player.tc_weapons[i] = world;

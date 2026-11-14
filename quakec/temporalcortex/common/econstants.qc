@@ -111,3 +111,5 @@ float IT2_GRAPPLING_HOOK		= 1;		// Missi (2026.1.16)
 float IT2_MDMA					= 2;		// Missi (2026.1.16)
 float IT2_INCENDIARY_AMMO		= 4;		// Missi (2026.1.25)
 float IT2_SLOWMO				= 8;		// Missi (2026.8.12)
+
+float STAT_PAIN         = 33;

@@ -432,14 +432,14 @@ void() tracktrain_adjust_angle =
 		else
 			self.angles_x = self.angles_x * -1;
 
-		dprint("dist(\"");
-		dprint(self.targetname);
-		dprint("\"): ");
-		dprint(ftos(dot));
-		dprint("\n");
-		dprint("self.angles: ");
-		dprint(vtos(self.angles));
-		dprint("\n");
+		//dprint("dist(\"");
+		//dprint(self.targetname);
+		//dprint("\"): ");
+		//dprint(ftos(dot));
+		//dprint("\n");
+		//dprint("self.angles: ");
+		//dprint(vtos(self.angles));
+		//dprint("\n");
 	}
 
 	self.nextthink = self.ltime + frametime;
@@ -489,11 +489,11 @@ void() tracktrain_find =
 
 	self.goalentity = targ2;
 
-	dprint("tracktrain_find: found target named ");
-	dprint(targ.targetname);
-	dprint(" at ");
-	dprint(vtos(targ.origin));
-	dprint("\n");
+	//dprint("tracktrain_find: found target named ");
+	//dprint(targ.targetname);
+	//dprint(" at ");
+	//dprint(vtos(targ.origin));
+	//dprint("\n");
 
 	if (!self.targetname)
 	{	// not triggered, so start immediately

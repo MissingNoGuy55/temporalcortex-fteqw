@@ -331,7 +331,7 @@ void() heli_flight_mesh =
 	local float side;
 	local float speed;
 	local float dt;
-	local vector adjust = '5 0 0';
+	local vector adjust = '-5 0 0';
 	local vector temp;
 
 	if (self.goalspeed < self.maxspeed)
@@ -340,6 +340,9 @@ void() heli_flight_mesh =
 	avel = self.avelocity;
 	ang = self.angles;
 	vel = self.velocity;
+
+	avel_x *= -1;
+	ang_x *= -1;
 
 	dt = time-self.starttime;
 	self.starttime = time;
@@ -446,14 +449,17 @@ void() heli_flight_mesh =
 	{
 		avel_x -= 12;
 	}
-	else if (self.angles_x + avel_x < 0)
+	else if (-self.angles_x + avel_x < 0)
 	{
 		avel_x += 4;
 	}
-	else if (self.angles_x + avel_x > 0)
+	else if (-self.angles_x + avel_x > 0)
 	{
 		avel_x -= 4;
 	}
+
+	avel_x *= autocvar(r_meshpitch, -1);
+	ang_x *= autocvar(r_meshpitch, -1);
 
 	self.avelocity = avel;
 	self.nextthink = time;
@@ -639,7 +645,9 @@ void() heli_think =
 	heli_facedir();
 
 	if (substring(self.model, strlen(self.model)-4, 4) == ".mdl")
+	{
 		heli_flight_mesh();
+	}
 	else
 		heli_flight();
 
@@ -681,18 +689,9 @@ float(entity toplayer, float fl) SendHeli =
 	}
 	if (fl & SENDFLAG_ANGLES)
 	{
-		if (substring(self.model, strlen(self.model)-4, 4) == ".mdl")
-		{
-			WriteShort (MSG_ENTITY, self.angles_x*(256/360) * autocvar(r_meshpitch, -1));
-			WriteShort (MSG_ENTITY, self.angles_y*(256/360));
-			WriteShort (MSG_ENTITY, self.angles_z*(256/360) * autocvar(r_meshroll, -1));
-		}
-		else
-		{
-			WriteShort (MSG_ENTITY, self.angles_x*(256/360));
-			WriteShort (MSG_ENTITY, self.angles_y*(256/360));
-			WriteShort (MSG_ENTITY, self.angles_z*(256/360));
-		}
+		WriteShort (MSG_ENTITY, self.angles_x*(256/360));
+		WriteShort (MSG_ENTITY, self.angles_y*(256/360));
+		WriteShort (MSG_ENTITY, self.angles_z*(256/360));
 	}
 	if (fl & SENDFLAG_VELOCITY)
 	{
@@ -1092,13 +1091,13 @@ void() monster_army_helicopter_turret =
 	self.burst_next = time;
 }
 
-/*QUAKED monster_army_helicopter (1 0 0) (-32 -144 0) (32 144 96)
+/*QUAKED monster_army_helicopter (1 0 0) (-144 -144 0) (144 144 96)
 model="progs/heli.mdl"
 Point entity version of helicopter that does not have as many restrictions as func_helicopter.
 */
 
-const vector HELI_BBOX_MINS = '-32 -144 0';
-const vector HELI_BBOX_MAXS = '32 144 96';
+const vector HELI_BBOX_MINS = '-144 -144 0';
+const vector HELI_BBOX_MAXS = '144 144 96';
 
 void() monster_army_helicopter =
 {

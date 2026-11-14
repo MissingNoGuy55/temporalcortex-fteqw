@@ -1576,16 +1576,6 @@ void() powerup_touch =
 		other.slowmo_finished = time + 20;
 
 		slowmo_users += 1;
-#if 0
-		bprint(other.netname, " found the ");
-		bprint(self.netname);
-		bprint(" and is now slowing time.\nKill all slowmo users or wait to restore the speed of time.\n");
-		bprint("Number of ");
-		bprint(self.netname);
-		bprint(" users remaining: ");
-		bprint(ftos(slowmo_users));
-		bprint("\n");
-#endif
 	}
 	if (self.classname == "item_artifact_mdma")
 	{

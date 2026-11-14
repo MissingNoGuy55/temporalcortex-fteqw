@@ -198,12 +198,12 @@ void() CSQC_Parse_Event =
 	float len = readshort();
 	string type = readstring();
 
-	dprint ("CSQC_Parse_Event (length: ");
-	dprint (ftos(len));
-	dprint (")\n");
-	dprint (" (type: ");
-	dprint (type);
-	dprint (")\n");
+	//dprint ("CSQC_Parse_Event (length: ");
+	//dprint (ftos(len));
+	//dprint (")\n");
+	//dprint (" (type: ");
+	//dprint (type);
+	//dprint (")\n");
 
 	switch (type)
 	{

@@ -499,16 +499,6 @@ void() PlayerDead =
 
 		self.items2 &= ~IT2_SLOWMO;
 		slowmo_users -= 1;
-#if 0
-		bprint("Number of slowmo users remaining: ");
-		bprint(ftos(slowmo_users));
-		bprint("\n");
-
-		if (slowmo_users == 0)
-		{
-			bprint("All slowmo users dead or expired. Restoring speed of time.\n");
-		}
-#endif
 	}
 #endif
 };
@@ -625,16 +615,6 @@ void() GibPlayer =
 
 		self.items2 &= ~IT2_SLOWMO;
 		slowmo_users -= 1;
-#if 0
-		bprint("Number of slowmo users remaining: ");
-		bprint(ftos(slowmo_users));
-		bprint("\n");
-
-		if (slowmo_users == 0)
-		{
-			bprint("All slowmo users dead or expired. Restoring speed of time.\n");
-		}
-#endif
 	}
 #endif
 

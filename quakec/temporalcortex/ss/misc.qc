@@ -683,9 +683,9 @@ void() pushable_think =
 		else
 			makevectors(self.angles);
 
-		dprint("pushable_think angles: ");
-		dprint(vtos(vectoangles( self.origin - touched_entity.origin )));
-		dprint("\n");
+		//dprint("pushable_think angles: ");
+		//dprint(vtos(vectoangles( self.origin - touched_entity.origin )));
+		//dprint("\n");
 
 		// Missi: Unfortunately this is kind of outside the scope of QC. Might as well do an entire physics engine if you're trying to do this.
 		// Also, changing angles of inline models tends to mess up collision. (2026.1.21)

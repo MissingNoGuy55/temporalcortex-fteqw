@@ -73,6 +73,9 @@ float INPUT_MOUSEMOVE = 2;
 #define STAT_VIEWZOOM 21	//DP extension
 //stats 32 onwards are filled by the csqc.
 
+#ifdef TEMPORALCORTEX
+#define STAT_PAIN 33
+#endif
 
 #define FL_ONGROUND 1
 

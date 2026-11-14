@@ -388,6 +388,8 @@ void() worldspawn =
 	stringpool_add_string("weapon_mp5")
 	stringpool_add_string("weapon_mac10")
 	stringpool_add_string("weapon_vector")
+
+	self.timeperiod = getworldtimeperiod();
 #endif
 
 //

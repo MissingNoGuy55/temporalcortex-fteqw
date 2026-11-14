@@ -7,10 +7,6 @@ ParsePlayer: Called from CSQC_Ent_Parse for csqc protocol ents
 
 static void() RemovePlayer;
 
-#ifdef TEMPORALCORTEX
-.float pain_finished;
-#endif
-
 enum
 {
 	MF_BAD,
@@ -525,7 +521,6 @@ nonstatic void(float isnew) ParsePlayer =
 #endif
 
 #ifdef TEMPORALCORTEX
-	self.pain_finished = readcoord();
 	intermission_running = readbyte();
 
 	if (intermission_running)
@@ -541,9 +536,12 @@ nonstatic void(float isnew) ParsePlayer =
 
 	self.tc_currentammotype = readbyte();
 
+	self.pain_finished = getstatf(STAT_PAIN);
+	self.timeperiod = readbyte();
+
 	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
-		self.tc_ammo[i] = readshort();
+		self.tc_ammo[i] = readshort()*(999/256);
 	}
 #endif
 

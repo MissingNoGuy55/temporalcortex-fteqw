@@ -82,3 +82,7 @@ DEFCVAR_FLOAT(cg_noselfsounds, 0)
 DEFCVAR_FLOAT(cg_noselfjumpsound, 0)
 DEFCVAR_FLOAT(v_viewheight, 0)
 DEFCVAR_STRING(cg_forceskin, "")
+
+#ifdef TEMPORALCORTEX
+.float	pain_finished;
+#endif

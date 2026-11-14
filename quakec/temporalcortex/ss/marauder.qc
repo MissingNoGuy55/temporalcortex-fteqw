@@ -355,8 +355,6 @@ void() timehunter_cloak_check =
 {
 	local vector dist;
 	local float distnorm;
-	local float timeperiod;
-	local float worldtimeperiod;
 	local float targettimeperiod;
 
 	if (self.enemy)
@@ -379,15 +377,12 @@ void() timehunter_cloak_check =
 	}
 	else
 	{
-		timeperiod = getentitytimeperiod(self);
-		worldtimeperiod = getworldtimeperiod();
-
-		if (timeperiod == worldtimeperiod)
+		if (self.timeperiod == world.timeperiod)
 		{
-			if (worldtimeperiod > 1)
-				targettimeperiod = worldtimeperiod - 1;
+			if (world.timeperiod > 1)
+				targettimeperiod = world.timeperiod - 1;
 			else
-				targettimeperiod = worldtimeperiod + 1;
+				targettimeperiod = world.timeperiod + 1;
 
 			//dprint("Marauder changing to time period ");
 			//dprint(ftos(targettimeperiod));

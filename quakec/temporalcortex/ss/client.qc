@@ -136,6 +136,7 @@ void() DecodeLevelParms =
 	self.armortype = parm9 * 0.01;
 #ifdef TEMPORALCORTEX
 	self.items2 = parm10;
+	self.timeperiod = 0;
 
 	W_AddWeaponToEntity(self, stringpool_get_string("weapon_axe"));
 	W_AddWeaponToEntity(self, stringpool_get_string("weapon_shotgun"));
@@ -593,7 +594,6 @@ float(entity to, float fl) SendPlayer =
 		WriteByte(MSG_ENTITY, mt);
 
 #ifdef TEMPORALCORTEX
-	WriteCoord(MSG_ENTITY, self.pain_finished);
 	WriteByte(MSG_ENTITY, intermission_running);
 
 	if (intermission_running)
@@ -608,9 +608,13 @@ float(entity to, float fl) SendPlayer =
 
 	WriteByte(MSG_ENTITY, self.tc_currentammotype);
 
+	clientstat(STAT_PAIN, EV_FLOAT, pain_finished);
+
+	WriteByte(MSG_ENTITY, self.timeperiod);
+
 	for (i = 0; i < TC_MAX_WEAPONS; i++)
 	{
-		WriteShort(MSG_ENTITY, self.tc_ammo[i]);
+		WriteShort(MSG_ENTITY, self.tc_ammo[i]*(256/999));
 	}
 #endif
 
@@ -653,6 +657,7 @@ void() PutClientInServer =
 
 #ifdef TEMPORALCORTEX
 	self.items2 = self.items2 | IT2_GRAPPLING_HOOK;
+	self.timeperiod = getworldtimeperiod();
 #endif
 
 	self.SendEntity = SendPlayer;
@@ -1230,6 +1235,12 @@ void() PlayerPreThink =
 	if (self.view_ofs == '0 0 0')
 		return;		// intermission or finale
 
+#ifdef TEMPORALCORTEX
+	self.timeperiod = getworldtimeperiod();
+	dprint(ftos(self.timeperiod));
+	dprint("\n");
+#endif
+
 	self.SendFlags = FULLSEND;
 
 	makevectors (self.v_angle);		// is this still used
@@ -1444,17 +1455,6 @@ void() CheckPowerups =
 				sprint (self, "Slowmo is wearing off\n");
 				stuffcmd (self, "bf\n");
 				sound (self, CHAN_AUTO, "items/damage2.wav", 1, ATTN_NORM);
-#if 0
-				local string substr1 = substring(self.netname, strlen(self.netname)-1, 1);
-
-				bprint(self.netname);
-
-				// Missi: FIXME: Check other languages' declensions in the future.
-				if (substr1 == "s")
-					bprint("' slowmo is wearing off\n");
-				else
-					bprint("'s slowmo is wearing off\n");
-#endif
 				self.slowmo_time = time + 1;
 			}
 
@@ -1472,22 +1472,6 @@ void() CheckPowerups =
 			self.slowmo_time = 0;
 
 			slowmo_users -= 1;
-#if 0
-			local string substr2 = substring(self.netname, strlen(self.netname)-1, 1);
-
-			bprint(self.netname);
-
-			// Missi: FIXME: Check other languages' declensions in the future.
-			if (substr2 == "s")
-				bprint("' slowmo has worn off\n");
-			else
-				bprint("'s slowmo has worn off\n");
-
-			if (slowmo_users == 0)
-			{
-				bprint("All slowmo users dead or expired. Restoring speed of time.\n");
-			}
-#endif
 		}
 		if (self.slowmo_finished > time)
 		{
@@ -2067,6 +2051,8 @@ void() ServerShutdown =
 {
 };
 #endif
+
+
 
 
 
