@@ -178,6 +178,7 @@ static void SV_SetTimePeriodForEnt_f()
 	struct edict_s *ent = EDICT_NUM_PB(svprogfuncs, entnum);
 
 	ent->bspnum = timeperiod;
+	ent->xv->timeperiod = timeperiod;
 	model_precache->timeperiod = timeperiod;
 }
 #endif
@@ -1261,7 +1262,11 @@ void SV_Map_f (void)
 			size_t bufsize = 0;
 			if (svs.clients[i].state>cs_connected)
 			{
+#ifdef TEMPORALCORTEX
+				buf = svprogfuncs->saveent(svprogfuncs, buffer, &bufsize, sizeof(buffer), svs.clients[i].edict, svs.clients[i].edict->bspnum);
+#else
 				buf = svprogfuncs->saveent(svprogfuncs, buffer, &bufsize, sizeof(buffer), svs.clients[i].edict);
+#endif
 				if (svs.clients[i].spawninfo)
 					Z_Free(svs.clients[i].spawninfo);
 				svs.clients[i].spawninfo = Z_Malloc(bufsize+1);
@@ -1360,7 +1365,11 @@ void SV_Map_f (void)
 		if (preserveplayers && svprogfuncs && host_client->state == cs_spawned && host_client->spawninfo)
 		{
 			size_t j = 0;
+#ifdef TEMPORALCORTEX
+			svprogfuncs->restoreent(svprogfuncs, host_client->spawninfo, &j, host_client->edict, host_client->edict->bspnum);
+#else
 			svprogfuncs->restoreent(svprogfuncs, host_client->spawninfo, &j, host_client->edict);
+#endif
 			host_client->istobeloaded = true;
 			host_client->state=cs_connected;
 			if (host_client->spectator)
@@ -3756,7 +3765,12 @@ void SV_ChangeTimePeriod( int bspindex )
 		for ( i = 0; i < sv.allocated_client_slots; i++ )
 		{
 			ed = svs.clients[i].edict;
+
+			if (!ed)
+				break;
+
 			ed->bspnum = bspindex;
+			ed->xv->timeperiod = bspindex;
 		}
 
 		// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
@@ -3764,13 +3778,6 @@ void SV_ChangeTimePeriod( int bspindex )
 		for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps; i < sv.world.num_edicts; i++ )
 		{
 			ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
-
-			// Missi: Should never happen, but just in case (2026.6.1)
-			if (!ed)
-			{
-				Con_Printf(CON_WARNING "TEMPORAL CORTEX WARNING: SV_ChangeTimePeriod found a NULL edict when changing time periods!\n");
-				continue;
-			}
 
 			// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
 			if ((int)ed->v->flags & FL_MONSTER)
@@ -3821,45 +3828,44 @@ void SV_ChangeTimePeriod( int bspindex )
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
 {
-	sizebuf_t buf;
 	qbyte bufmem[1024];
-	edict_t* pEdict, *pWorldEdict;
+	edict_t* ed, *wed;
 	int i, track;
 
 	memset( &bufmem, 0, sizeof( bufmem ) );
 
-	pWorldEdict = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
+	wed = (edict_t *)EDICT_NUM_PB( svprogfuncs, bspindex );
 
-	if ( !pWorldEdict )
+	if ( !wed )
 		return;
 
-	track = pWorldEdict->v->sounds;
+	track = wed->v->sounds;
 
 	for ( i = 0; i < sv.allocated_client_slots; i++ )
 	{
-		pEdict = svs.clients[i].edict;
-		pEdict->bspnum = bspindex;
+		ed = svs.clients[i].edict;
+
+		if (!ed)
+			break;
+
+		ed->bspnum = bspindex;
+		ed->xv->timeperiod = bspindex;
 	}
 
 	// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
 	// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
 	for ( i = tc_sv_loaded_bsps+sv.allocated_client_slots; i < sv.world.num_edicts; i++ )
 	{
-		pEdict = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
-		pEdict->v->enemy = pr_global_struct->world;
+		ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
+		ed->v->enemy = pr_global_struct->world;
 	}
 
-	SZ_Clear (&buf);
-	buf.data = bufmem;
-	buf.maxsize = sizeof(bufmem);
-	buf.cursize = 6 + sizeof(sv.modelname[0]);
-	buf.packing = SZ_RAWBYTES;
-	MSG_WriteByte (&buf, svctc_timeperiod);
-	MSG_WriteShort (&buf, bspindex);
-	MSG_WriteShort (&buf, track);
-	MSG_WriteString (&buf, sv.modelname[bspindex]);
-
 	tc_sv_current_bsp_index = bspindex;
+
+	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+	MSG_WriteShort (&sv.reliable_datagram, bspindex);
+	MSG_WriteShort (&sv.reliable_datagram, track);
+	MSG_WriteString (&sv.reliable_datagram, sv.modelname[bspindex]);
 }
 
 void SV_ChangeTimePeriod_f()
@@ -3988,7 +3994,7 @@ void SV_ChangeTimePeriod_f()
 			else
 				snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, suffix);
 
-			Con_Printf("%s\n", printstring);
+			//Con_Printf("%s\n", printstring);
 
 			stuck = true;
 		}

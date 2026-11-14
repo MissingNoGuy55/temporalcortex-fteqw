@@ -572,7 +572,11 @@ char *PR_ValueString (progfuncs_t *progfuncs, etype_t type, eval_t *val, pbool v
 			struct edict_s *ed = EDICT_NUM(progfuncs, val->edict);
 			size_t size = strlen(line);
 			if (ed)
+#ifdef TEMPORALCORTEX_QCC
+				PR_SaveEnt(&progfuncs->funcs, line, &size, sizeof(line), ed, ((edictrun_t*)ed)->bspnum);
+#else
 				PR_SaveEnt(&progfuncs->funcs, line, &size, sizeof(line), ed);
+#endif
 		}
 		break;
 	case ev_function:
@@ -1472,7 +1476,11 @@ Used for initial level load and for savegames.
 ====================
 */
 #if 1
+#ifdef TEMPORALCORTEX_QCC
+static const char *ED_ParseEdict (progfuncs_t *progfuncs, const char *data, edictrun_t *ent, pbool *out_maphack, int bspnum)
+#else
 static const char *ED_ParseEdict (progfuncs_t *progfuncs, const char *data, edictrun_t *ent, pbool *out_maphack)
+#endif
 {
 	fdef_t		*key;
 	pbool	init;
@@ -1544,6 +1552,11 @@ static const char *ED_ParseEdict (progfuncs_t *progfuncs, const char *data, edic
 				externs->badfield(&progfuncs->funcs, (struct edict_s*)ent, keyname, qcc_token);
 			continue;
 		}
+
+#ifdef TEMPORALCORTEX_QCC
+		if (!strcmp(keyname, "timeperiod"))
+			ent->bspnum = atoi(qcc_token);
+#endif
 
 		if (!strcmp(keyname, "angle"))	//Quake anglehack - we've got to leave it in cos it doesn't work for quake otherwise, and this is a QuakeC lib!
 		{
@@ -2181,7 +2194,11 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 #endif
 			if (externs->entspawn)
 				externs->entspawn((struct edict_s *) ed, true);
+#ifdef TEMPORALCORTEX_QCC
+			file = ED_ParseEdict(progfuncs, file, ed, &maphacks, bspnum);
+#else
 			file = ED_ParseEdict(progfuncs, file, ed, &maphacks);
+#endif
 
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
@@ -2431,9 +2448,10 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 
 					ed->ereftype = ER_ENTITY;
 #ifdef TEMPORALCORTEX_QCC
-					ed->bspnum = bspnum;
-#endif
+					file = ED_ParseEdict (progfuncs, file, ed, &maphacks, bspnum);
+#else
 					file = ED_ParseEdict (progfuncs, file, ed, &maphacks);
+#endif
 				}
 				sv_num_edicts = ++numents;
 				continue;
@@ -2475,8 +2493,11 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 #endif
 			if (externs->entspawn)
 				externs->entspawn((struct edict_s *) ed, true);
+#ifdef TEMPORALCORTEX_QCC
+			file = ED_ParseEdict(progfuncs, file, ed, &maphacks, bspnum);
+#else
 			file = ED_ParseEdict(progfuncs, file, ed, &maphacks);
-
+#endif
 			if (entspawned)
 				entspawned(ppf, (struct edict_s *)ed, ctx, datastart, file);
 		}
@@ -2506,7 +2527,11 @@ int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PD
 }
 
 //FIXME: maxsize is ignored.
+#ifdef TEMPORALCORTEX_QCC
+char *PDECL PR_SaveEnt (pubprogfuncs_t *ppf, char *buf, size_t *size, size_t maxsize, struct edict_s *ed, int bspnum)
+#else
 char *PDECL PR_SaveEnt (pubprogfuncs_t *ppf, char *buf, size_t *size, size_t maxsize, struct edict_s *ed)
+#endif
 {
 #define AddS(str) PR_Cat(buf, str, size, maxsize)
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
@@ -2586,7 +2611,11 @@ char *PDECL PR_SaveEnt (pubprogfuncs_t *ppf, char *buf, size_t *size, size_t max
 
 	return buf;
 }
+#ifdef TEMPORALCORTEX_QCC
+struct edict_s *PDECL PR_RestoreEnt (pubprogfuncs_t *ppf, const char *buf, size_t *size, struct edict_s *ed, int bspnum)
+#else
 struct edict_s *PDECL PR_RestoreEnt (pubprogfuncs_t *ppf, const char *buf, size_t *size, struct edict_s *ed)
+#endif
 {
 	progfuncs_t *progfuncs = (progfuncs_t*)ppf;
 	edictrun_t *ent;
@@ -2616,8 +2645,11 @@ struct edict_s *PDECL PR_RestoreEnt (pubprogfuncs_t *ppf, const char *buf, size_
 	}
 	if (ent->ereftype != ER_ENTITY)
 		return NULL;	//not allowed to spawn it into that ent.
-
+#ifdef TEMPORALCORTEX_QCC
+	buf = ED_ParseEdict(progfuncs, buf, ent, &maphacks, bspnum);
+#else
 	buf = ED_ParseEdict(progfuncs, buf, ent, &maphacks);
+#endif
 
 	*size = buf - start;
 

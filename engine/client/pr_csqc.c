@@ -10127,6 +10127,9 @@ qboolean CSQC_TC_ChangeLevelName(const char* newname)
 {
 	eval_t* eval;
 
+	if (!csqcprogs)
+		return false;
+
 	eval = PR_FindGlobal(csqcprogs, "levelname", 0, NULL);
 
 	if (!eval)

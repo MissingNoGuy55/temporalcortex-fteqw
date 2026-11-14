@@ -445,7 +445,11 @@ void SV_SaveSpawnparmsClient(client_t *client, float *transferparms)
 //		for (j=0 ; j<NUM_SPAWN_PARMS ; j++)
 //			client->spawn_parms[j] = 0;
 
+#ifdef TEMPORALCORTEX
+		buf = svprogfuncs->saveent(svprogfuncs, buffer, &bufsize, sizeof(buffer), client->edict, client->edict->bspnum);
+#else
 		buf = svprogfuncs->saveent(svprogfuncs, buffer, &bufsize, sizeof(buffer), client->edict);
+#endif
 
 		if (client->spawninfo)
 			Z_Free(client->spawninfo);
@@ -983,7 +987,9 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;
 	tc_sv_unloaded_bsps = 0;
-	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
+
+	if (!playerslots)
+		tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 
 	for (i = 0; i < MAX_TIME_PERIODS; i++)
 		tc_snd_positions[i] = 0;
@@ -991,7 +997,9 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
 	tc_sv_unloaded_bsps = 0;
-	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
+
+	if (!playerslots)
+		tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
 
@@ -1885,6 +1893,7 @@ MSV_OpenUserDatabase();
 			ent = svprogfuncs->EntAllocIndex( svprogfuncs, i-j, false, 0 );
 			ent->ereftype = ER_ENTITY;
 			ent->bspnum = i;
+			ent->xv->timeperiod = i;
 			sv.world.world_indices[i] = i-j;
 		}
 #else
@@ -1929,6 +1938,7 @@ MSV_OpenUserDatabase();
 			ent->ereftype = ER_ENTITY;
 #ifdef TEMPORALCORTEX
 			ent->bspnum = TIME_PERIOD_PRESENT;
+			ent->xv->timeperiod = TIME_PERIOD_PRESENT;
 #endif
 	//ZOID - make sure we update frags right
 			svs.clients[i].old_frags = 0;
@@ -2037,6 +2047,7 @@ MSV_OpenUserDatabase();
 			ent = EDICT_NUM_PB(svprogfuncs, t-l);
 			ent->ereftype = ER_ENTITY;
 			ent->bspnum = t;
+			ent->xv->timeperiod = t;
 #ifdef VM_Q1
 			if (svs.gametype != GT_Q1QVM)	//we cannot do this with qvm
 #endif

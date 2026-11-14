@@ -858,9 +858,6 @@ void Mod_ParseInfoFromEntityLump(model_t *wmodel)	//actually, this should be in 
 	char token[4096];
 	char key[128];
 	char skyname[128];
-#ifdef TEMPORALCORTEX
-	char timeperiod_string[16];
-#endif
 	const char *data = Mod_GetEntitiesString(wmodel);
 #ifdef PACKAGE_TEXWAD
 	mapskys_t *msky;
@@ -911,31 +908,39 @@ void Mod_ParseInfoFromEntityLump(model_t *wmodel)	//actually, this should be in 
 			Cvar_LockFromServer(&r_skyfog, token);
 		else if (!strcmp("fog", key) || !strcmp("airfog", key))	//q1 extension. FIXME: should be made temporary.
 		{
+#ifdef TEMPORALCORTEX
+			sscanf(token, "%f %f %f %f %f %f", &cl.fog[timeperiod][FOGTYPE_AIR].density, &cl.fog[timeperiod][FOGTYPE_AIR].colour[0], &cl.fog[timeperiod][FOGTYPE_AIR].colour[1], &cl.fog[timeperiod][FOGTYPE_AIR].colour[2], &cl.fog[timeperiod][FOGTYPE_AIR].alpha, &cl.fog[timeperiod][FOGTYPE_AIR].depthbias);
+#else
 			key[0] = 'f';
 			key[1] = 'o';
 			key[2] = 'g';
 			key[3] = ' ';
 			Q_strncpyz(key+4, token, sizeof(key)-4);
-#ifdef TEMPORALCORTEX
-			snprintf(timeperiod_string, sizeof(timeperiod_string), " %d", timeperiod);
-			Q_strncpyz(key+Q_strlen(key), timeperiod_string, Q_strlen(timeperiod_string)+1);
-#endif
 			Cbuf_AddText(key, RESTRICT_INSECURE);
 			Cbuf_AddText("\n", RESTRICT_INSECURE);
+#endif
 		}
 		else if (!strcmp("waterfog", key))	//q1 extension. FIXME: should be made temporary.
 		{
+#ifdef TEMPORALCORTEX
+			sscanf(token, "%f %f %f %f %f %f", &cl.fog[timeperiod][FOGTYPE_WATER].density, &cl.fog[timeperiod][FOGTYPE_WATER].colour[0], &cl.fog[timeperiod][FOGTYPE_WATER].colour[1], &cl.fog[timeperiod][FOGTYPE_WATER].colour[2], &cl.fog[timeperiod][FOGTYPE_WATER].alpha, &cl.fog[timeperiod][FOGTYPE_WATER].depthbias);
+#else
 			memcpy(key, "waterfog ", 9);
 			Q_strncpyz(key+9, token, sizeof(key)-9);
 			Cbuf_AddText(key, RESTRICT_INSECURE);
 			Cbuf_AddText("\n", RESTRICT_INSECURE);
+#endif
 		}
 		else if (!strcmp("skyroomfog", key))	//q1 extension. FIXME: should be made temporary.
 		{
+#ifdef TEMPORALCORTEX
+			sscanf(token, "%f %f %f %f %f %f", &cl.fog[timeperiod][FOGTYPE_SKYROOM].density, &cl.fog[timeperiod][FOGTYPE_SKYROOM].colour[0], &cl.fog[timeperiod][FOGTYPE_SKYROOM].colour[1], &cl.fog[timeperiod][FOGTYPE_SKYROOM].colour[2], &cl.fog[timeperiod][FOGTYPE_SKYROOM].alpha, &cl.fog[timeperiod][FOGTYPE_SKYROOM].depthbias);
+#else
 			memcpy(key, "skyroomfog ", 11);
 			Q_strncpyz(key+11, token, sizeof(key)-11);
 			Cbuf_AddText(key, RESTRICT_INSECURE);
 			Cbuf_AddText("\n", RESTRICT_INSECURE);
+#endif
 		}
 		else if (!strncmp("cvar_", key, 5)) //override cvars so mappers don't end up hacking cvars and fucking over configs (at least in other engines).
 		{

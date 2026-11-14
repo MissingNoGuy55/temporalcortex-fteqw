@@ -3933,7 +3933,15 @@ void QCBUILTIN PF_loadfromfile (pubprogfuncs_t *prinst, struct globalvars_s *pr_
 		return;
 	}
 
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	while(prinst->restoreent(prinst, file, &size, NULL, tc_sv_current_bsp_index))
+#elif defined(HAVE_CLIENT)
+	while(prinst->restoreent(prinst, file, &size, NULL, tc_cl_current_bsp_index))
+#endif
+#else
 	while(prinst->restoreent(prinst, file, &size, NULL))
+#endif
 	{
 		file += size;
 	}
@@ -3951,7 +3959,11 @@ void QCBUILTIN PF_writetofile(pubprogfuncs_t *prinst, struct globalvars_s *pr_gl
 	size_t buflen;
 
 	buflen = 0;
+#ifdef TEMPORALCORTEX
+	entstr = prinst->saveent(prinst, buffer, &buflen, sizeof(buffer), ed, ((edict_t*)ed)->bspnum);	//will save just one entities vars
+#else
 	entstr = prinst->saveent(prinst, buffer, &buflen, sizeof(buffer), ed);	//will save just one entities vars
+#endif
 	if (entstr)
 	{
 		PF_fwrite_internal (prinst, fnum, entstr, buflen);
@@ -3971,7 +3983,15 @@ void QCBUILTIN PF_loadfromdata (pubprogfuncs_t *prinst, struct globalvars_s *pr_
 		return;
 	}
 
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	while(prinst->restoreent(prinst, file, &size, NULL, tc_sv_current_bsp_index))
+#elif defined(HAVE_CLIENT)
+	while(prinst->restoreent(prinst, file, &size, NULL, tc_cl_current_bsp_index))
+#endif
+#else
 	while(prinst->restoreent(prinst, file, &size, NULL))
+#endif
 	{
 		file += size;
 	}
@@ -3988,7 +4008,11 @@ void QCBUILTIN PF_generateentitydata(pubprogfuncs_t *prinst, struct globalvars_s
 	size_t buflen;
 
 	buflen = 0;
+#ifdef TEMPORALCORTEX
+	entstr = prinst->saveent(prinst, buffer, &buflen, sizeof(buffer), ed, ((struct edict_s*)ed)->bspnum);
+#else
 	entstr = prinst->saveent(prinst, buffer, &buflen, sizeof(buffer), ed);
+#endif
 
 	if (entstr)
 		RETURN_TSTRING(entstr);
@@ -4026,7 +4050,11 @@ void QCBUILTIN PF_parseentitydata(pubprogfuncs_t *prinst, struct globalvars_s *p
 		return;
 	}
 
+#ifdef TEMPORALCORTEX
+	if (!prinst->restoreent(prinst, file, &size, ed, ((edict_t*)ed)->bspnum))
+#else
 	if (!prinst->restoreent(prinst, file, &size, ed))
+#endif
 	{
 		if (prinst->callargc<3)
 			PF_Warningf(prinst, "parseentitydata: missing opening data\n");
@@ -4278,10 +4306,13 @@ void QCBUILTIN PF_Spawn (pubprogfuncs_t *prinst, struct globalvars_s *pr_globals
 	ed = ED_Alloc(prinst, false, 0);
 	pr_globals = PR_globals(prinst, PR_CURRENT);
 #ifdef TEMPORALCORTEX
+
 #ifdef HAVE_SERVER
 	ed->bspnum = tc_sv_current_bsp_index;
+	ed->xv->timeperiod = tc_sv_current_bsp_index;
 #elif defined(HAVE_CLIENT)
 	ed->bspnum = tc_cl_current_bsp_index;
+	ed->xv->timeperiod = tc_cl_current_bsp_index;
 #endif
 #endif
 	RETURN_EDICT(prinst, ed);
@@ -4304,8 +4335,10 @@ void QCBUILTIN PF_spawn_object (pubprogfuncs_t *prinst, struct globalvars_s *pr_
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
 	ed->bspnum = tc_sv_current_bsp_index;
+	ed->xv->timeperiod = tc_sv_current_bsp_index;
 #elif defined(HAVE_CLIENT)
 	ed->bspnum = tc_cl_current_bsp_index;
+	ed->xv->timeperiod = tc_cl_current_bsp_index;
 #endif
 #endif
 	RETURN_EDICT(prinst, ed);
@@ -7478,7 +7511,11 @@ void QCBUILTIN PF_eprint (pubprogfuncs_t *prinst, struct globalvars_s *pr_global
 	size_t size = 0;
 	char *buffer = BZ_Malloc(max);
 	char *buf;
+#ifdef TEMPORALCORTEX
+	buf = prinst->saveent(prinst, buffer, &size, max, (struct edict_s*)G_WEDICT(prinst, OFS_PARM0), ((struct edict_s*)G_WEDICT(prinst, OFS_PARM0))->bspnum);
+#else
 	buf = prinst->saveent(prinst, buffer, &size, max, (struct edict_s*)G_WEDICT(prinst, OFS_PARM0));
+#endif
 	Con_Printf("Entity %i:\n%s\n", G_EDICTNUM(prinst, OFS_PARM0), buf);
 	BZ_Free(buffer);
 }

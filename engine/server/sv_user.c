@@ -2753,8 +2753,11 @@ void SV_Begin_Core(client_t *split)
 					ent = split->edict;
 					j = strlen(split->spawninfo);
 					World_UnlinkEdict((wedict_t*)ent);
+#ifdef TEMPORALCORTEX
+					svprogfuncs->restoreent(svprogfuncs, split->spawninfo, &j, ent, ent->bspnum);
+#else
 					svprogfuncs->restoreent(svprogfuncs, split->spawninfo, &j, ent);
-
+#endif
 					eval2 = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "stats_restored", ev_float, NULL);
 					if (eval2)
 						eval2->_float = 1;
@@ -5973,6 +5976,7 @@ void SV_SetUpClientEdict (client_t *cl, edict_t *ent)
 	ent->ereftype = ER_ENTITY;
 #ifdef TEMPORALCORTEX
 	ent->bspnum = tc_sv_current_bsp_index;
+	ent->xv->timeperiod = tc_sv_current_bsp_index;
 #endif
 
 	ent->v->colormap = NUM_FOR_EDICT(svprogfuncs, ent);

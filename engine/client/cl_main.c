@@ -52,7 +52,6 @@ short tc_cl_loaded_bsps;
 short tc_cl_unloaded_bsps;
 short tc_cl_current_bsp_index;
 short tc_cl_current_mus_index;
-fogstate_t tc_cl_world_fog[MAX_TIME_PERIODS];
 #endif
 #endif
 
@@ -1026,7 +1025,7 @@ void CL_ClearPrecaches()
 	}
 }
 
-void CL_ClearModelPrecaches()
+void CL_ClearModelPrecaches(qboolean csqc)
 {
 	precache_t *next;
 
@@ -1036,11 +1035,14 @@ void CL_ClearModelPrecaches()
 		BZ_Free(cl.model_precache);
 		cl.model_precache = next;
 	}
-	while (cl.model_csqcprecache)
+	if (csqc)
 	{
-		next = cl.model_csqcprecache->next;
-		BZ_Free(cl.model_csqcprecache);
-		cl.model_csqcprecache = next;
+		while (cl.model_csqcprecache)
+		{
+			next = cl.model_csqcprecache->next;
+			BZ_Free(cl.model_csqcprecache);
+			cl.model_csqcprecache = next;
+		}
 	}
 }
 
@@ -1053,18 +1055,6 @@ void CL_ClearSoundPrecaches()
 		next = cl.sound_precache->next;
 		BZ_Free(cl.sound_precache);
 		cl.sound_precache = next;
-	}
-}
-
-void CL_ClearCSQCPrecaches()
-{
-	precache_t *next;
-
-	while (cl.model_csqcprecache)
-	{
-		next = cl.model_csqcprecache->next;
-		BZ_Free(cl.model_csqcprecache);
-		cl.model_csqcprecache = next;
 	}
 }
 
@@ -5806,7 +5796,7 @@ void CL_FTP_f(void)
 #endif
 
 #ifdef TEMPORALCORTEX
-static void CL_SetFog(int ftype, int argc, float density, float r, float g, float b, float alpha, float depthbias, short timeperiod)
+void CL_SetFog(int ftype, int argc, float density, float r, float g, float b, float alpha, float depthbias, short timeperiod)
 {
 	vec3_t rgb;
 
@@ -6322,101 +6312,6 @@ static void CL_UserinfoChanged(void *ctx, const char *keyname)
 void CL_Skygroup_f(void);
 void WAD_ImageList_f(void);
 
-#if 0
-// Missi: The way this console commands works is a bit tricky, so I will explain it here.
-// When a client runs this command, it sends a clctc_timeperiod message to the server,
-// which then checks if the client that sent it is player 1. If this check passes, and if
-// the tc_sv_allow_host_time_travel cvar is set, then the server changes time period immediately.
-// It then sends a svctc_timeperiod message to all clients that then updates the time
-// period for all clients.
-//
-// If tc_sv_allow_host_time_travel is 0, then the server has ultimate authority over time travel,
-// and this command will fail immediately if a client attempts to use it.
-//
-// This console command has to exist for time travel in single player and dedicated servers.
-// Otherwise players on dedis wouldn't be able to utilize the tc_sv_allow_host_time_travel cvar.
-// If you're planning to get rid of that cvar entirely, and also give the server ultimate
-// authority on time travel, you can erase this console command.
-//
-static void CL_ChangeTimePeriod_f()
-{
-	const char*	arg = Cmd_Argv(1);
-	const char*	suffix;
-	int		bspnum;
-	int		pnum;
-	char	printstring[256];
-	cvar_t	*cvar;
-
-	if (!arg)
-	{
-		Con_Printf( "changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
-		return;
-	}
-
-	pnum = CL_TargettedSplit(false);
-
-	cvar = Cvar_Get("tc_cl_allow_time_travel", "1", 0, "When 0, this completely disables the ability for the player to change the time period in single player.");
-
-	if (!cvar)
-		return;
-
-	if (cvar->ival < 1 || (pnum > -1 && cl.allocated_client_slots > 1))
-		return;
-
-	bspnum = Q_atoi(arg);
-
-	if (!cl.worldmodel[bspnum])
-	{
-		const char* suffix_postfix = NULL;
-
-		switch(bspnum)
-		{
-			case TIME_PERIOD_PRESENT:
-				suffix = "present";
-				break;
-			case TIME_PERIOD_PAST:
-				suffix = "past";
-				break;
-			case TIME_PERIOD_FUTURE:
-				suffix = "future";
-				break;
-			default:
-				suffix = "unknown";
-				break;
-		}
-		switch(tc_cl_current_bsp_index)
-		{
-			case TIME_PERIOD_PRESENT:
-				suffix_postfix = "melancholy";
-				break;
-			case TIME_PERIOD_PAST:
-				suffix_postfix = "strange";
-				break;
-			case TIME_PERIOD_FUTURE:
-				suffix_postfix = "wretched";
-				break;
-			default:
-				suffix_postfix = "unknown";
-				break;
-		}
-
-		if (cl.allocated_client_slots == 1)
-			snprintf(printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix);
-		else
-			snprintf(printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix);
-
-		SCR_CenterPrint(CL_TargettedSplit(true), printstring, true);
-
-		return;
-	}
-
-	r_worldentity.model = cl.worldmodel[bspnum];
-
-	tc_cl_current_bsp_index = bspnum;
-	MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
-	MSG_WriteShort (&cls.netchan.message, bspnum);
-}
-#endif
 /*
 =================
 CL_Init

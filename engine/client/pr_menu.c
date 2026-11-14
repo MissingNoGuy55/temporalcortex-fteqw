@@ -3609,7 +3609,7 @@ void MP_RendererRestarted(void)
 #ifdef TEMPORALCORTEX
 	menu_world.worldmodel[tc_cl_current_bsp_index] = cl.worldmodel[tc_cl_current_bsp_index];
 
-	CL_ClearCSQCPrecaches();
+	CL_ClearModelPrecaches(true);
 #else
 	menu_world.worldmodel = cl.worldmodel;
 

@@ -174,8 +174,13 @@ struct pubprogfuncs_s
 														, int timeperiod, int skippedbsps
 #endif
 												); //restore the entire progs state (or just add some more ents) (returns edict size)
+#ifdef TEMPORALCORTEX_QCC
+	char	*(PDECL *saveent)					(pubprogfuncs_t *prinst, char *buf, size_t *size, size_t maxsize, struct edict_s *ed, int bspnum);	//will save just one entities vars
+	struct edict_s	*(PDECL *restoreent)		(pubprogfuncs_t *prinst, const char *buf, size_t *size, struct edict_s *ed, int bspnum);	//will restore the entity that had it's values saved (can use NULL for ed)
+#else
 	char	*(PDECL *saveent)					(pubprogfuncs_t *prinst, char *buf, size_t *size, size_t maxsize, struct edict_s *ed);	//will save just one entities vars
 	struct edict_s	*(PDECL *restoreent)		(pubprogfuncs_t *prinst, const char *buf, size_t *size, struct edict_s *ed);	//will restore the entity that had it's values saved (can use NULL for ed)
+#endif
 
 	union eval_s	*(PDECL *FindGlobal)		(pubprogfuncs_t *prinst, const char *name, progsnum_t num, etype_t *type);	//find a pointer to the globals value
 

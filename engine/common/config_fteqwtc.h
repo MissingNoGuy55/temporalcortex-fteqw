@@ -1,5 +1,5 @@
 // Build-Config file for FTE's standard builds, the default settings.
-// to use: make FTE_CONFIG=fteqw
+// to use: make FTE_CONFIG=fteqwtc
 
 // Features should either be commented or not. If you change undefs to defines or vice versa then expect problems.
 // Later code will disable any features if they're not supported on the current platform, so don't worry about win/lin/mac/android/web/etc here - any such issues should be fixed elsewhere.

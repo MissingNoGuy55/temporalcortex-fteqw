@@ -340,11 +340,13 @@ char *PDECL PR_EvaluateDebugString(pubprogfuncs_t *progfuncs, const char *key);
 char *PDECL PR_SaveEnts(pubprogfuncs_t *progfuncs, char *mem, size_t *size, size_t maxsize, int mode);
 #ifdef TEMPORALCORTEX_QCC
 int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline), int bspnum, int skippedbsps);
+char *PDECL PR_SaveEnt (pubprogfuncs_t *progfuncs, char *buf, size_t *size, size_t maxsize, struct edict_s *ed, int bspnum);
+struct edict_s *PDECL PR_RestoreEnt (pubprogfuncs_t *progfuncs, const char *buf, size_t *size, struct edict_s *ed, int bspnum);
 #else
 int PDECL PR_LoadEnts(pubprogfuncs_t *ppf, const char *file, void *ctx, void (PDECL *memoryreset) (pubprogfuncs_t *progfuncs, void *ctx), void (PDECL *entspawned) (pubprogfuncs_t *progfuncs, struct edict_s *ed, void *ctx, const char *entstart, const char *entend), pbool(PDECL *extendedterm)(pubprogfuncs_t *progfuncs, void *ctx, const char **extline));
-#endif
 char *PDECL PR_SaveEnt (pubprogfuncs_t *progfuncs, char *buf, size_t *size, size_t maxsize, struct edict_s *ed);
 struct edict_s *PDECL PR_RestoreEnt (pubprogfuncs_t *progfuncs, const char *buf, size_t *size, struct edict_s *ed);
+#endif
 void PDECL PR_StackTrace (pubprogfuncs_t *progfuncs, int showlocals);
 
 eval_t *PR_GetReadTempStringPtr(progfuncs_t *progfuncs, string_t str, size_t offset, size_t datasize);

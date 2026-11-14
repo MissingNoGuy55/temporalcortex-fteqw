@@ -11908,6 +11908,7 @@ void QCBUILTIN PF_TimePeriod_Change(pubprogfuncs_t *prinst, struct globalvars_s 
 	{
 		ent = (edict_t*)EDICT_NUM_PB( svprogfuncs, tc_edictnums[i] );
 		ent->bspnum = bspnum;
+		ent->xv->timeperiod = bspnum;
 	}
 
 	SV_ChangeTimePeriod( bspnum );
@@ -11930,6 +11931,7 @@ void QCBUILTIN PF_TimePeriod_Change_Ent(pubprogfuncs_t *prinst, struct globalvar
 		return;
 
 	ent->bspnum = bspnum;
+	ent->xv->timeperiod = bspnum;
 }
 
 void QCBUILTIN PF_NumLoadedBSPs(pubprogfuncs_t *prinst, struct globalvars_s *pr_globals)
@@ -14404,14 +14406,6 @@ void PR_DumpPlatform_f(void)
 		{"cursor_entitynumber",	".entity", NQ,		D("For DP compat only.")},
 
 #ifdef TEMPORALCORTEX
-		{ "grappling",			".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
-		{ "hooked",				".float", TC|TC_CS,		D("Temporal Cortex: Player grappling.") },
-		{ "tc_currentweapon",	".entity", TC|TC_CS,	D("Temporal Cortex: Current weapon entity") },
-		{ "tc_currentammotype",	".float", TC|TC_CS,		D("Temporal Cortex: Current ammo type in use") },
-		{ "tc_weapons[256]",		".entity", TC|TC_CS,	D("Temporal Cortex: List of player-owned weapons") },
-		{ "tc_ammo[256]",		".float", TC|TC_CS,		D("Temporal Cortex: Entity ammo reserve") },
-		{ "timeperiod",			".float", TC|TC_CS, 	D("Time period of entity. If this does not match the server's time period, then it will be invisible and \"dead\", as in, left in its last position, frame, and angle until the time period from the server matches the value on this entity.") },
-
 		{"ServerShutdown",		"void()", TC, D("Called once the server shuts down.")},
 #endif
 

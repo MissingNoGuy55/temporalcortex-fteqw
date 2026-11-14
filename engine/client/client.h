@@ -1931,7 +1931,7 @@ void CLTC_ClearDLights();
 
 void CL_InitPrecaches();
 void CL_ClearPrecaches();
-void CL_ClearModelPrecaches();
+void CL_ClearModelPrecaches(qboolean csqc);
 void CL_ClearSoundPrecaches();
-void CL_ClearCSQCPrecaches();
+void CL_SetFog(int ftype, int argc, float density, float r, float g, float b, float alpha, float depthbias, short timeperiod);
 #endif

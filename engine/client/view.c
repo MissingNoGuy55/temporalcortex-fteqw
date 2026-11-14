@@ -2480,7 +2480,11 @@ void R_DrawNameTags(void)
 
 					sprintf(asciibuffer, "entity %i ", e->entnum);
 					buflen = strlen(asciibuffer);
+#ifdef TEMPORALCORTEX
+					entstr = w->progs->saveent(w->progs, asciibuffer, &buflen, sizeof(asciibuffer), (edict_t*)e, ((edict_t*)e)->bspnum);	//will save just one entities vars
+#else
 					entstr = w->progs->saveent(w->progs, asciibuffer, &buflen, sizeof(asciibuffer), (edict_t*)e);	//will save just one entities vars
+#endif
 					if (entstr)
 					{
 						vec2_t scale = {8,8};

@@ -1028,7 +1028,11 @@ qboolean SV_LoadLevelCache(const char *savename, const char *level, const char *
 				globalvars_t *pr_globals = PR_globals(svprogfuncs, PR_CURRENT);
 				ent = svs.clients[i].edict;
 				j = strlen(svs.clients[i].spawninfo);
+#ifdef TEMPORALCORTEX
+				svprogfuncs->restoreent(svprogfuncs, svs.clients[i].spawninfo, &j, ent, ent->bspnum);
+#else
 				svprogfuncs->restoreent(svprogfuncs, svs.clients[i].spawninfo, &j, ent);
+#endif
 
 				e2 = svprogfuncs->GetEdictFieldValue(svprogfuncs, ent, "stats_restored", ev_float, NULL);
 				if (e2)

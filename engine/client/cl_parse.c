@@ -1640,7 +1640,6 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 			if (cl.worldmodel[i] && cl.worldmodel[i]->loadstate == MLS_LOADING)
 				COM_WorkerPartialSync(cl.worldmodel[i], &cl.worldmodel[i]->loadstate, MLS_LOADING);
 			Mod_ParseInfoFromEntityLump(cl.worldmodel[i], i);
-
 			Wad_NextDownload(i);
 		}
 #else

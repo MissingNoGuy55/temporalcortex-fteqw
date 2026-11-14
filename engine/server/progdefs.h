@@ -270,12 +270,6 @@ and the extension fields are added on the end and can have extra vm-specific stu
 #define svextqcfieldshexen2
 #endif
 
-#ifdef TEMPORALCORTEX
-#define svextqcfields_temporalcortex \
-	comfieldfloat(grappling,"Temporal Cortex: Checks if the player is casting the grappling hook, and is not hooked to anything.") \
-	comfieldfloat(hooked,"Temporal Cortex: Checks if the player is hooked to anything.")
-#endif
-
 #define comextqcfields	\
 	comfieldvector(punchangle,NULL) /*std in nq*/\
 	comfieldfloat(gravity,"Multiplier applied in addition to sv_gravity (not absolute units), to control the gravity affecting this entity specifically.")	/*added in quake 1.09 (for hipnotic)*/\
@@ -418,12 +412,22 @@ and the extension fields are added on the end and can have extra vm-specific stu
 
 #ifdef TEMPORALCORTEX
 	#define svextqcfieldstemporalcortex	\
-		comfieldfloat(grappling,"Temporal Cortex: Used for testing whether the player casted the grappling hook, NOT WHETHER THEY ARE HOOKED TO SOMETHING.") \
-		comfieldfloat(hooked,"Temporal Cortex: Used for testing whether the player is HOOKED to something with the grappling hook.")
+		comfieldfloat(grappling,"Temporal Cortex: Checks if the player is casting the grappling hook, and is not hooked to anything.") \
+		comfieldfloat(hooked,"Temporal Cortex: Checks if the player is hooked to anything.") \
+		comfieldfloat(timeperiod,"Temporal Cortex: Current time period. This variable can be set, but is effectively read-only and never read by the engine. To change an entity's time period, use the timeperiod_change_ent builtin.") \
+		comfieldentity(tc_currentweapon, "Temporal Cortex: Current weapon entity") \
+		comfieldfloat(tc_currentammotype, "Temporal Cortex: Current ammo type in use") \
+		comfieldentity(tc_weapons[256], "Temporal Cortex: List of player-owned weapons") \
+		comfieldfloat(tc_ammo[256], "Temporal Cortex: Entity ammo reserve")
 
 	#define csextqcfieldstemporalcortex \
-		comfieldfloat(grappling,"Temporal Cortex: Used for testing whether the player casted the grappling hook, NOT WHETHER THEY ARE HOOKED TO SOMETHING.") \
-		comfieldfloat(hooked,"Temporal Cortex: Used for testing whether the player is HOOKED to something with the grappling hook.")
+		comfieldfloat(grappling,"Temporal Cortex: Checks if the player is casting the grappling hook, and is not hooked to anything.") \
+		comfieldfloat(hooked,"Temporal Cortex: Checks if the player is hooked to anything.") \
+		comfieldfloat(timeperiod,"Temporal Cortex: Current time period. This variable can be set, but is effectively read-only and never read by the engine. To change an entity's time period, use the timeperiod_change_ent builtin.") \
+		comfieldentity(tc_currentweapon, "Temporal Cortex: Current weapon entity") \
+		comfieldfloat(tc_currentammotype, "Temporal Cortex: Current ammo type in use") \
+		comfieldentity(tc_weapons[256], "Temporal Cortex: List of player-owned weapons") \
+		comfieldfloat(tc_ammo[256], "Temporal Cortex: Entity ammo reserve")
 #endif
 
 typedef struct stdentvars_s //standard = standard for qw
