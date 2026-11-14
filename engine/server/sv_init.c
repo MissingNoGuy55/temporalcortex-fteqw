@@ -986,10 +986,8 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;
-	tc_sv_unloaded_bsps = 0;
-
-	if (!playerslots)
-		tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_cl_unloaded_bsps = 0;
+	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 
 	for (i = 0; i < MAX_TIME_PERIODS; i++)
 		tc_snd_positions[i] = 0;
@@ -997,9 +995,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
 	tc_sv_unloaded_bsps = 0;
-
-	if (!playerslots)
-		tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
+	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
 
