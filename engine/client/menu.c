@@ -814,9 +814,6 @@ bindnames_t qwbindnames[] =
 #ifdef TEMPORALCORTEX
 {"impulse 50", 		"second attack "},
 {"impulse 51", 		"third attack  "},
-{"+slowtime", 		"slow time     "},
-{"+speeduptime", 	"speed up time "},
-{"+centertime",		"reset speed   "},
 #endif
 {"impulse 10", 		"change weapon "},
 {"impulse 12", 		"prev weapon   "},

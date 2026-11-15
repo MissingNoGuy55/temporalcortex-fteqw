@@ -249,10 +249,6 @@ cvar_t  ruleset_allow_watervis				= CVARFCD("ruleset_allow_watervis", "1", CVAR_
 cvar_t  ruleset_allow_fbmodels				= CVARFD("ruleset_allow_fbmodels", "0", CVAR_SHADERSYSTEM, "When 1, allows all models to be displayed fullbright, completely ignoring the lightmaps. This feature exists only for parity with ezquake's defaults."RULESETADVICE);
 cvar_t  ruleset_allow_triggers				= CVARAD("ruleset_allow_triggers", "1", "tp_msgtriggers"/*ez*/, "When 0, blocks the use of msg_trigger checks."RULESETADVICE);
 
-#ifdef TEMPORALCORTEX
-cvar_t	tc_cl_allow_time_travel = CVARFD("tc_cl_allow_time_travel", "1", CVAR_SEMICHEAT, "When 0, this completely disables the ability for the player to change the time period in single player.");
-#endif
-
 extern cvar_t cl_hightrack;
 extern cvar_t	vid_renderer;
 
@@ -6539,10 +6535,6 @@ void CL_Init (void)
 	Cvar_Register (&ruleset_allow_shaders,			cl_controlgroup);
 	Cvar_Register (&ruleset_allow_watervis,			cl_controlgroup);
 	Cvar_Register (&ruleset_allow_fbmodels,			cl_controlgroup);
-
-#ifdef TEMPORALCORTEX
-	Cvar_Register (&tc_cl_allow_time_travel,			cl_controlgroup);
-#endif
 
 	Cvar_Register (&qtvcl_forceversion1,				cl_controlgroup);
 	Cvar_Register (&qtvcl_eztvextensions,				cl_controlgroup);

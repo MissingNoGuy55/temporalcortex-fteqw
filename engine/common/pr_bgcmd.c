@@ -7062,6 +7062,7 @@ void QCBUILTIN PF_rotatevectorsbymatrix (pubprogfuncs_t *prinst, struct globalva
 }
 
 #ifdef TEMPORALCORTEX
+#if 0
 static void eulertoaxisangle(const vec3_t input, vec4_t dst)
 {
 	float angle;
@@ -7097,7 +7098,7 @@ static void eulertoaxisangle(const vec3_t input, vec4_t dst)
 
 	printf("euler->axisangle %f %f %f: %f %f %f %f\n", input[0], input[1], input[2], dst[0], dst[1], dst[2], dst[3]);
 }
-
+#endif
 static void axisangletoeuler(const float* input, float *dst, float degrees)
 {
 	float angle = degrees / 180.0f * M_PI;
@@ -7144,11 +7145,10 @@ void QCBUILTIN PF_rotateaxisangle(pubprogfuncs_t *prinst, struct globalvars_s *p
 	float newrot33[9];
 	float newrot34[12];
 	float newrot44[16];
-	float *angles = G_VECTOR(OFS_PARM0);
-	float *frame = G_VECTOR(OFS_PARM1);
-	float *org = G_VECTOR(OFS_PARM2);
-	float *axis = G_VECTOR(OFS_PARM3);
-	float ang = G_FLOAT(OFS_PARM4);
+	float *frame = G_VECTOR(OFS_PARM0);
+	float *org = G_VECTOR(OFS_PARM1);
+	float *axis = G_VECTOR(OFS_PARM2);
+	float ang = G_FLOAT(OFS_PARM3);
 	float out[16];
 	vec3_t ret;
 

@@ -1299,11 +1299,6 @@ extern	kbutton_t	in_mlook;
 extern 	kbutton_t 	in_strafe;
 extern 	kbutton_t 	in_speed;
 
-#ifdef TEMPORALCORTEX
-extern kbutton_t	in_slowtime, in_speeduptime, in_centertime;
-extern cvar_t tc_cl_allow_time_travel;
-#endif
-
 extern	float in_sensitivityscale;
 
 void CL_MakeActive(char *gamename);

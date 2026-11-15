@@ -13322,7 +13322,7 @@ static BuiltinList_t BuiltinList[] = {				//nq	qw		h2		ebfs
 	{"numloadedbsps",										PF_NumLoadedBSPs,0,0,0,746,	"float()", "Gets the number of loaded BSPs on the server, or client, depending on where it is called."},
 	{"getworldtimeperiod",									PF_CurrentTimePeriod,0,0,0,747,	"float()", "Obtains the current time period for the world."},
 	{"getentitytimeperiod",									PF_EntityTimePeriod,0,0,0,748,	"float(entity e)", "Obtains the current time period for a specific entity."},
-	{"rotateaxisangle",										PF_rotateaxisangle,0,0,0,749,	"vector(vector ang, vector frame, vector origin, vector axis, float degrees)", "Takes a Euler angle vector, converts it to axis-angle, rotates it, and then returns the result."},
+	{"rotateaxisangle",										PF_rotateaxisangle,0,0,0,749,	"vector(vector angles, vector origin, vector axis, float degrees)", "Takes a Euler angle vector, converts it to axis-angle, rotates it, and then returns the result."},
 #endif
 	{"getrmqeffectsversion",PF_Ignore,		0,		0,		0,		666,	"DEP float()" STUB},
 	//don't exceed sizeof(pr_builtin)/sizeof(pr_builtin[0]) (currently 1024) without modifing the size of pr_builtin
