@@ -8849,9 +8849,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int		checksumIndex;
 	qbyte	checksum, calculatedChecksum;
 	int		seq_hash;
-#ifdef TEMPORALCORTEX
-	float	newspeed;
-#endif
 
 	if (!cl->frameunion.frames)
 	{
@@ -9197,16 +9194,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 #ifdef TEMPORALCORTEX
 		case clctc_timeperiod:
 			tc_sv_current_bsp_index = MSG_ReadShort();
-			break;
-		case clctc_gamespeed:
-			newspeed = MSG_ReadFloat();
-			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-			{
-				MSG_WriteByte( &sv.reliable_datagram, svctc_gamespeed );
-				MSG_WriteFloat( &sv.reliable_datagram, newspeed );
-
-				Cvar_SetValue( Cvar_FindVar("sv_gamespeed"), newspeed );
-			}
 			break;
 #endif
 		}
@@ -9780,10 +9767,6 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 //	client_frame_t	*frame;
 	qboolean forceangle16;
 
-#ifdef TEMPORALCORTEX
-	float	newspeed;
-#endif
-
 	cl->netchan.outgoing_sequence++;
 	cl->netchan.incoming_acknowledged = cl->netchan.outgoing_sequence-1;
 
@@ -9988,11 +9971,6 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
 		case clctc_timeperiod:
 			tc_sv_current_bsp_index = MSG_ReadShort();
-			break;
-		case clctc_gamespeed:
-			newspeed = MSG_ReadFloat();
-			if ( (int)Cvar_VariableValue( "sv_playerslots" ) == 1 )
-				Cvar_SetValue( Cvar_FindVar("sv_gamespeed"), newspeed );
 			break;
 #endif
 		safedefault:

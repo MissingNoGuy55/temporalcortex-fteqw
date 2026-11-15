@@ -584,7 +584,6 @@ enum {
 
 #ifdef TEMPORALCORTEX
 #define clctc_timeperiod		128 // Missi: Only used for savegames. See sv_user.c and SV_ExecuteClientMessage for more info (2025.12.6)
-#define clctc_gamespeed			129 // Missi: Used to query the server to change gamespeed. NOTE: This behavior is intentionally blocked off for MP games (2026.1.1)
 #endif
 
 #define VRM_LOSS	(1u<<0)	//for server packetloss reports
