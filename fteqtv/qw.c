@@ -4384,6 +4384,11 @@ void ParseQWC(cluster_t *cluster, sv_t *qtv, viewer_t *v, netmsg_t *m)
 			Sys_Printf(cluster, "Client uploads are not supported from %s\n", v->name);
 			v->drop = true;
 			return;
+#ifdef TEMPORALCORTEX
+		case clctc_timeperiod:
+			v->bspnum = MSG_ReadShort();
+			break;
+#endif
 
 		default:
 			Sys_Printf(cluster, "bad clc from %s\n", v->name);

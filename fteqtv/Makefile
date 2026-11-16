@@ -11,7 +11,7 @@ CLIBNAME = c
 
 VPATH=../engine/common
 
-OBJS = netchan.o parse.o msg.o qw.o source.o bsp.o rcon.o mdfour.o crc.o control.o forward.o pmove.o menu.o httpsv.o sha1.o
+OBJS = netchan.o parse.o msg.o qw.o source.o bsp.o rcon.o mdfour.o crc.o control.o forward.o pmove.o menu.o httpsv.o sha1.o relay.o
 
 #I hate this big long list.
 INCLUDES=-I../engine/common -I../engine/client -I../engine/server -I../engine/qclib -I../engine/gl
@@ -28,7 +28,7 @@ libqtvc:
 libqtvc/libqtvc.a: libqtvc
 
 qtv: libqtvc/libqtvc.a $(OBJS) qtv.h
-	$(CC) $(SPIKEISALAZYBUGGERCFLAGS) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $@.db -lm -l$(CLIBNAME) -Llibqtvc -lqtvc
+	$(CC) $(SPIKEISALAZYBUGGERCFLAGS) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $@.db -lm -lz -l$(CLIBNAME) -Llibqtvc -lqtvc
 	$(STRIP) $(STRIPFLAGS) $@.db -o $@
 
 qtv.exe: *.c *.h

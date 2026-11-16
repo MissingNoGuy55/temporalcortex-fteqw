@@ -47,6 +47,7 @@ we have two types of relay here.
 #define QRY_PINGINTERVAL		100			//time between outgoing pings
 #define QRY_TIMEOUT				20*60*1000	//servers will be removed if not seen in any server listings for this long.
 
+hashfunc_t hash_md5;
 
 static void Fwd_DoPing(cluster_t *cluster);
 #define countof(x) (sizeof(x)/sizeof((x)[0]))
