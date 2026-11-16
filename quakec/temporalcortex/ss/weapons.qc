@@ -378,23 +378,7 @@ void() bullet_think =
 	//dprint(ftos(self.bullet_damage));
 	//dprint("\n");
 
-	if (self.oldorigin != self.origin)
-		self.SendFlags |= SENDFLAG_ORIGIN;
-	if (self.oldangles != self.angles)
-		self.SendFlags |= SENDFLAG_ANGLES;
-	if (self.oldavel != self.avelocity)
-		self.SendFlags |= SENDFLAG_AVELOCITY;
-	if (self.oldvel != self.velocity)
-		self.SendFlags |= SENDFLAG_VELOCITY;
-
-	if (self.origin != self.oldorigin)
-		self.oldorigin = self.origin;
-	if (self.angles != self.oldangles)
-		self.oldangles = self.angles;
-	if (self.avelocity != self.oldavel)
-		self.oldavel = self.avelocity;
-	if (self.velocity != self.oldvel)
-		self.oldvel = self.velocity;
+	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES);
 
 	if (self.owner)
 		if (self.owner.items2 & IT2_INCENDIARY_AMMO)
@@ -959,27 +943,9 @@ float(entity toplayer, float fl) SendBullet =
 		WriteCoord (MSG_ENTITY, self.velocity_y);
 		WriteCoord (MSG_ENTITY, self.velocity_z);
 	}
-	if (fl & SENDFLAG_AVELOCITY)
-	{
-		WriteCoord (MSG_ENTITY, self.avelocity_x);
-		WriteCoord (MSG_ENTITY, self.avelocity_y);
-		WriteCoord (MSG_ENTITY, self.avelocity_z);
-	}
 	if (fl & SENDFLAG_MODELINDEX)
 	{
-		WriteLong (MSG_ENTITY, self.modelindex);
-	}
-	if (fl & SENDFLAG_MINS)
-	{
-		WriteCoord (MSG_ENTITY, self.mins_x);
-		WriteCoord (MSG_ENTITY, self.mins_y);
-		WriteCoord (MSG_ENTITY, self.mins_z);
-	}
-	if (fl & SENDFLAG_MAXS)
-	{
-		WriteCoord (MSG_ENTITY, self.maxs_x);
-		WriteCoord (MSG_ENTITY, self.maxs_y);
-		WriteCoord (MSG_ENTITY, self.maxs_z);
+		WriteShort (MSG_ENTITY, self.modelindex);
 	}
 
 	WriteEntity(MSG_ENTITY, o);
@@ -1120,8 +1086,8 @@ void(float damage, float ammotype, float speed, vector org, vector dir) shoot_bu
 
 	newbullet.source = newbullet.origin;
 	newbullet.starttime = time;
-	//newbullet.SendEntity = SendBullet;
-	//newbullet.SendFlags = FULLSEND;
+	newbullet.SendEntity = SendBullet;
+	newbullet.SendFlags = FULLSEND;
 
 	makevectors(self.angles);
 };
@@ -1804,6 +1770,15 @@ void() W_SetCurrentAmmo =
 			self.items = self.items | IT_SHELLS;
 			break;
 		}
+		case "weapon_mp5":
+		{
+			self.currentammo = self.tc_ammo[TC_AMMO_9x19MM];
+			self.tc_currentammotype = TC_AMMO_9x19MM;
+			self.weaponmodel = "progs/v_light.mdl";
+			self.weaponframe = 0;
+			self.items = self.items | IT_SHELLS;
+			break;
+		}
 		case "weapon_mac10":
 		{
 			self.currentammo = self.tc_ammo[TC_AMMO_9x19MM];
@@ -2098,6 +2073,80 @@ void()	player_uzi1;
 void()	player_mac10_1;
 void()	player_vector1;
 
+void() W_FireUzi =
+{
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	self.effects = self.effects | EF_MUZZLEFLASH;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_uzi_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
+
+	self.attack_finished = time + 0.109;
+};
+
+void() W_FireMP5 =
+{
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	self.effects = self.effects | EF_MUZZLEFLASH;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_mp5_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
+
+	self.attack_finished = time + 0.075;
+};
+
+void() W_FireMac10 =
+{
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	self.effects = self.effects | EF_MUZZLEFLASH;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_mac10_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
+
+	self.attack_finished = time + 0.04;
+};
+
+void() W_FireVector =
+{
+	local vector dir;
+
+	if (!self.button0)
+		return;
+
+	dir = aim(self, 10000);
+
+	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_45_ACP, cvar("tc_sv_ammo_45acp_speed"), 1, dir, VEC_ORIGIN);
+
+	if (self.tc_ammo[TC_AMMO_45_ACP] > 0)
+		self.currentammo = self.tc_ammo[TC_AMMO_45_ACP] = self.tc_ammo[TC_AMMO_45_ACP] - 1;
+
+	self.attack_finished = time + 0.04;
+};
+
 void() W_Attack =
 {
 	local	float	r;
@@ -2176,21 +2225,28 @@ void() W_Attack =
 		case "weapon_uzi":
 		{
 			player_uzi1();
-			self.attack_finished = time + 0.109;
+			W_FireUzi();
+			sound (self, CHAN_AUTO, "weapons/rocket1i.wav", 1, ATTN_NORM);
+			break;
+		}
+		case "weapon_mp5":
+		{
+			player_uzi1();
+			W_FireMP5();
 			sound (self, CHAN_AUTO, "weapons/rocket1i.wav", 1, ATTN_NORM);
 			break;
 		}
 		case "weapon_mac10":
 		{
 			player_mac10_1();
-			self.attack_finished = time + 0.04;
+			W_FireMac10();
 			sound (self, CHAN_AUTO, "weapons/rocket1i.wav", 1, ATTN_NORM);
 			break;
 		}
 		case "weapon_vector":
 		{
 			player_vector1();
-			self.attack_finished = time + 0.05;
+			W_FireVector();
 			sound (self, CHAN_AUTO, "weapons/rocket1i.wav", 1, ATTN_NORM);
 			break;
 		}
@@ -2445,6 +2501,10 @@ void() CheatCommand =
 	W_AddWeaponToEntity(self, stringpool_get_string("weapon_grenadelauncher"));
 	W_AddWeaponToEntity(self, stringpool_get_string("weapon_rocketlauncher"));
 	W_AddWeaponToEntity(self, stringpool_get_string("weapon_lightning"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_uzi"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_mp5"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_mac10"));
+	W_AddWeaponToEntity(self, stringpool_get_string("weapon_vector"));
 #else
 	self.items = self.items |
 		IT_AXE |

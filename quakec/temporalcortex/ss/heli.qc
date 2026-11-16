@@ -15,22 +15,22 @@ $frame idle1 idle2 idle3 idle4 idle5 idle6
 $frame idle7 idle8 idle9 idle10 idle11 idle12
 $frame idle13 idle14 idle15 idle16
 
-void()	heli_stand1		=[	$idle1,		heli_stand2		] {};
-void()	heli_stand2		=[	$idle2,		heli_stand3		] {};
-void()	heli_stand3		=[	$idle3,		heli_stand4		] {};
-void()	heli_stand4		=[	$idle4,		heli_stand5		] {};
-void()	heli_stand5		=[	$idle5,		heli_stand6		] {};
-void()	heli_stand6		=[	$idle6,		heli_stand7		] {};
-void()	heli_stand7		=[	$idle7,		heli_stand8		] {};
-void()	heli_stand8		=[	$idle8,		heli_stand9		] {};
-void()	heli_stand9		=[	$idle9,		heli_stand10	] {};
-void()	heli_stand10	=[	$idle10,	heli_stand11	] {};
-void()	heli_stand11	=[	$idle11,	heli_stand12	] {};
-void()	heli_stand12	=[	$idle12,	heli_stand13	] {};
-void()	heli_stand13	=[	$idle13,	heli_stand14	] {};
-void()	heli_stand14	=[	$idle14,	heli_stand15	] {};
-void()	heli_stand15	=[	$idle15,	heli_stand16	] {};
-void()	heli_stand16	=[	$idle16,	heli_stand1		] {};
+void()	heli_stand1		=	[	$idle1,		heli_stand2		] {};
+void()	heli_stand2		=	[	$idle2,		heli_stand3		] {};
+void()	heli_stand3		=	[	$idle3,		heli_stand4		] {};
+void()	heli_stand4		=	[	$idle4,		heli_stand5		] {};
+void()	heli_stand5		=	[	$idle5,		heli_stand6		] {};
+void()	heli_stand6		=	[	$idle6,		heli_stand7		] {};
+void()	heli_stand7		=	[	$idle7,		heli_stand8		] {};
+void()	heli_stand8		=	[	$idle8,		heli_stand9		] {};
+void()	heli_stand9		=	[	$idle9,		heli_stand10	] {};
+void()	heli_stand10	=	[	$idle10,	heli_stand11	] {};
+void()	heli_stand11	=	[	$idle11,	heli_stand12	] {};
+void()	heli_stand12	=	[	$idle12,	heli_stand13	] {};
+void()	heli_stand13	=	[	$idle13,	heli_stand14	] {};
+void()	heli_stand14	=	[	$idle14,	heli_stand15	] {};
+void()	heli_stand15	=	[	$idle15,	heli_stand16	] {};
+void()	heli_stand16	=	[	$idle16,	heli_stand1		] {};
 
 .float windup;
 .float force;
@@ -330,7 +330,7 @@ void() heli_flight_mesh =
 	local float dir, roll, dist;
 	local float side;
 	local float speed;
-	local float dt;
+	local float td;
 	local vector adjust = '-5 0 0';
 	local vector temp;
 
@@ -343,9 +343,6 @@ void() heli_flight_mesh =
 
 	avel_x *= -1;
 	ang_x *= -1;
-
-	dt = time-self.starttime;
-	self.starttime = time;
 
 	makevectors(ang + avel * 2 + adjust);
 
@@ -419,14 +416,21 @@ void() heli_flight_mesh =
 	self.velocity = temp;
 	vel = self.velocity;
 
+	td = time - self.starttime;
+	self.starttime = time;
+
+	//dprint("frametime: ");
+	//dprint(ftos(frametime));
+	//dprint("\n");
+
 	if (self.force < 80 && estimate_z < self.goalpos_z)
 	{
-		self.force += 12;
+		self.force += 12 * (1 - frametime);
 	}
 	else if (self.force > 30)
 	{
 		if (estimate_z > self.goalpos_z)
-			self.force -= 8;
+			self.force -= 8 * (1 - frametime);
 	}
 
 	//dprint ("heli dist: ");
@@ -463,36 +467,6 @@ void() heli_flight_mesh =
 
 	self.avelocity = avel;
 	self.nextthink = time;
-};
-
-void() heli_think;
-
-void() heli_find_target =
-{
-	local entity targ;
-
-	targ = world;
-
-	if (self.target)
-	{
-		targ = find (world, targetname, self.target);
-
-		if (!targ.prev_path)
-		{
-			self.prev_path = world;
-			self.next_path = targ;
-		}
-		else
-		{
-			self.prev_path = targ.prev_path;
-			self.next_path = targ;
-		}
-
-		self.movetarget = self.next_path;
-	}
-
-	self.think = heli_think;
-	self.nextthink = time + 1;
 };
 
 void() heli_update_enemy =
@@ -622,7 +596,7 @@ void() heli_spinout =
 		self.death_explosion_stage++;
 	}
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY);
+	self.SendFlags = FULLSEND;
 	self.nextthink = time;
 };
 
@@ -661,9 +635,53 @@ void() heli_think =
 		self.rotor_update_time = time + 0.005;
 	}
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY);
+	if (self.oldorigin != self.origin)
+		self.SendFlags |= SENDFLAG_ORIGIN;
+	if (self.oldangles != self.angles)
+		self.SendFlags |= SENDFLAG_ANGLES;
+	if (self.oldavel != self.avelocity)
+		self.SendFlags |= SENDFLAG_AVELOCITY;
+	if (self.oldvel != self.velocity)
+		self.SendFlags |= SENDFLAG_VELOCITY;
+
+	if (self.origin != self.oldorigin)
+		self.oldorigin = self.origin;
+	if (self.angles != self.oldangles)
+		self.oldangles = self.angles;
+	if (self.avelocity != self.oldavel)
+		self.oldavel = self.avelocity;
+	if (self.velocity != self.oldvel)
+		self.oldvel = self.velocity;
 
 	self.nextthink = time;
+};
+
+void() heli_find_target =
+{
+	local entity targ;
+
+	targ = world;
+
+	if (self.target)
+	{
+		targ = find (world, targetname, self.target);
+
+		if (!targ.prev_path)
+		{
+			self.prev_path = world;
+			self.next_path = targ;
+		}
+		else
+		{
+			self.prev_path = targ.prev_path;
+			self.next_path = targ;
+		}
+
+		self.movetarget = self.next_path;
+	}
+
+	self.think = heli_think;
+	self.nextthink = time + 1;
 };
 
 float(entity toplayer, float fl) SendHeli =
@@ -776,7 +794,7 @@ void() func_helicopter =
 	self.rotor_oldangle = 0;
 	self.lastangleupdate = self.angles;
 
-	self.starttime = time + 1;
+	self.starttime = time;
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
@@ -809,7 +827,7 @@ void() heli_rotor_update_angle =
 	//dprint(vtos(self.angles));
 	//dprint("\n");
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY | SENDFLAG_MINS | SENDFLAG_MAXS);
+	self.SendFlags = FULLSEND;
 };
 
 void() heli_rotor_think =
@@ -904,7 +922,7 @@ void() rotor_mountpoint_think =
 	else
 		self.think = SUB_Remove;
 
-	self.SendFlags |= (SENDFLAG_ORIGIN | SENDFLAG_ANGLES | SENDFLAG_VELOCITY | SENDFLAG_AVELOCITY | SENDFLAG_MINS | SENDFLAG_MAXS);
+	self.SendFlags = FULLSEND;
 	self.nextthink = time;
 };
 
@@ -1150,6 +1168,7 @@ void() monster_army_helicopter =
 	self.SendEntity = SendHeli;
 	self.SendFlags = FULLSEND;
 };
+
 
 
 

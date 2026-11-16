@@ -1235,12 +1235,6 @@ void() PlayerPreThink =
 	if (self.view_ofs == '0 0 0')
 		return;		// intermission or finale
 
-#ifdef TEMPORALCORTEX
-	self.timeperiod = getworldtimeperiod();
-	dprint(ftos(self.timeperiod));
-	dprint("\n");
-#endif
-
 	self.SendFlags = FULLSEND;
 
 	makevectors (self.v_angle);		// is this still used
@@ -1896,22 +1890,23 @@ void(entity targ, entity attacker) ClientObituary =
 				if (attacker.classname == "monster_zombie")
 					bprint (" joins the Zombies\n");
 #ifdef TEMPORALCORTEX
-				if (attacker.classname == "monster_army_gunner")
+				if (attacker.classname == "monster_army_gunner" || attacker.classname == "monster_army_shotgunner" ||
+					attacker.classname == "monster_army_grenadier" || attacker.classname == "monster_army_rocketeer")
 				{
-					bprint (" was " );
+					bprint (" was" );
 					switch(attacker.timeperiod)
 					{
 						case 0:	// present
-							bprint ("gunned down by the US Military Industrial Complex\n");
+							bprint (" gunned down by the US Military Industrial Complex\n");
 							break;
 						case 1:	// past
-							bprint ("gunned down by the US Army\n");
+							bprint (" gunned down by the US Army\n");
 							break;
 						case 2:	// future
-							bprint ("gunned down by the US Global Hegemony\n");
+							bprint (" gunned down by the US Global Hegemony\n");
 							break;
 						default:
-							bprint ("gunned down by an Army Gunner\n");
+							bprint (" gunned down by an Army Gunner\n");
 							break;
 					}
 				}

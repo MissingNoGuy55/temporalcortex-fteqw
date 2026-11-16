@@ -530,8 +530,11 @@ void(float width, float height, float do2d) CSQC_UpdateView =
 			vieworg = intermission_pos;
 			view_angles = intermission_angle;
 
-			setviewprop(VF_ORIGIN, vieworg);
-			setviewprop(VF_ANGLES, view_angles);
+			if (cvar("cg_thirdPerson") != 1)
+			{
+				setviewprop(VF_ORIGIN, vieworg);
+				setviewprop(VF_ANGLES, view_angles);
+			}
 
 			makevectors(view_angles);
 			SetListener(vieworg, v_forward, v_right, v_up);

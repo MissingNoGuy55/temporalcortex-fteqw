@@ -322,62 +322,13 @@ local float		rs;
 #ifdef TEMPORALCORTEX
 //============================================================================
 
-void() player_uzi1   =[$light1, player_uzi2  ] {
-	local vector dir;
+void() player_uzi1   =[$light1, player_uzi2  ] {self.effects |= EF_MUZZLEFLASH;self.weaponframe=1;};
+void() player_uzi2   =[$light2, player_uzi1  ] {self.weaponframe=0;};
 
-	if (!self.button0)
-		return;
+void() player_mac10_1   =[$light1, player_mac10_2  ] {self.effects |= EF_MUZZLEFLASH;self.weaponframe=1;};
+void() player_mac10_2   =[$light2, player_mac10_1  ] {self.weaponframe=0;};
 
-	self.effects = self.effects | EF_MUZZLEFLASH;
-
-	dir = aim(self, 10000);
-
-	FireBullets_NoHitScan(cvar("tc_sv_uzi_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
-
-	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
-		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
-
-	self.attack_finished = time + 0.109;
-};
-
-void() player_uzi2   =[$light2, player_uzi1  ] {};
-
-void() player_mac10_1   =[$light1, player_mac10_2  ] {
-	local vector dir;
-
-	if (!self.button0)
-		return;
-
-	self.effects = self.effects | EF_MUZZLEFLASH;
-
-	dir = aim(self, 10000);
-
-	FireBullets_NoHitScan(cvar("tc_sv_mac10_damage"), TC_AMMO_9x19MM, cvar("tc_sv_ammo_9x19mm_speed"), 1, dir, VEC_ORIGIN);
-
-	if (self.tc_ammo[TC_AMMO_9x19MM] > 0)
-		self.currentammo = self.tc_ammo[TC_AMMO_9x19MM] = self.tc_ammo[TC_AMMO_9x19MM] - 1;
-
-	self.attack_finished = time + 0.04;
-};
-
-void() player_mac10_2   =[$light2, player_mac10_1  ] {};
-
-void() player_vector1   =[$light1, player_vector2  ] {
-	local vector dir;
-
-	if (!self.button0)
-		return;
-
-	dir = aim(self, 10000);
-
-	FireBullets_NoHitScan(cvar("tc_sv_vector_damage"), TC_AMMO_45_ACP, cvar("tc_sv_ammo_45acp_speed"), 1, dir, VEC_ORIGIN);
-
-	if (self.tc_ammo[TC_AMMO_45_ACP] > 0)
-		self.currentammo = self.tc_ammo[TC_AMMO_45_ACP] = self.tc_ammo[TC_AMMO_45_ACP] - 1;
-
-	self.attack_finished = time + 0.04;
-};
-
+void() player_vector1   =[$light1, player_vector2  ] {self.effects |= EF_MUZZLEFLASH;};
 void() player_vector2   =[$light2, player_vector1  ] {};
 #endif
 

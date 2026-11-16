@@ -127,7 +127,6 @@ nonstatic void(float isnew) ParseBulletClass =
 
 		self.origin = self.source;
 	}
-
 	if (fl & SENDFLAG_ANGLES)
 	{
 		self.angles_x = (readshort()*360)/256;
@@ -140,31 +139,10 @@ nonstatic void(float isnew) ParseBulletClass =
 		self.velocity_y = readcoord();
 		self.velocity_z = readcoord();
 	}
-	if (fl & SENDFLAG_AVELOCITY)
-	{
-		self.avelocity_x = readcoord();
-		self.avelocity_y = readcoord();
-		self.avelocity_z = readcoord();
-	}
 	if (fl & SENDFLAG_MODELINDEX)
 	{
-		setmodelindex(self, readlong());
+		setmodelindex(self, readshort());
 	}
-	if (fl & SENDFLAG_MINS)
-	{
-		lastmin_x = readcoord();
-		lastmin_y = readcoord();
-		lastmin_z = readcoord();
-	}
-	if (fl & SENDFLAG_MAXS)
-	{
-		lastmax_x = readcoord();
-		lastmax_y = readcoord();
-		lastmax_z = readcoord();
-	}
-
-	if ((fl & SENDFLAG_MINS) && (fl & SENDFLAG_MAXS))
-		setsize (self, lastmin, lastmax);
 
 	ent = readentitynum ();
 

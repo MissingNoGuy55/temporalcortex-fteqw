@@ -493,6 +493,12 @@ void() weapon_touch =
 
 		sound (other, CHAN_ITEM, "weapons/pkup.wav", 1, ATTN_NORM);
 
+		if (invweapon.tc_currentammotype == self.tc_currentammotype)
+		{
+			dprint("Found ammo type\n");
+			other.currentammo += 15;
+		}
+
 		switch(self.classname)
 		{
 			case "weapon_shotgun":
@@ -587,6 +593,16 @@ void() weapon_touch =
 			other.tc_ammo[TC_AMMO_Q1_CELLS] += 15;
 			break;
 		case "weapon_uzi":
+			if (leave && (W_FindWeaponInInventory(other, touched)))
+			{
+				other.tc_ammo[TC_AMMO_9x19MM] += 15;
+				return;
+			}
+			hadammo = other.tc_ammo[TC_AMMO_9x19MM];
+			new = W_AddWeaponToEntity(other, touched);
+			other.tc_ammo[TC_AMMO_9x19MM] += 15;
+			break;
+		case "weapon_mp5":
 			if (leave && (W_FindWeaponInInventory(other, touched)))
 			{
 				other.tc_ammo[TC_AMMO_9x19MM] += 15;
@@ -2070,6 +2086,7 @@ void(entity e) DetermineWeaponModel =
 			precache_model("progs/weapons/g_mac10.mdl");
 			setmodel(e, "progs/weapons/g_mac10.mdl");
 			e.netname = "MP5";
+			setsize (e, '-4 -15 -1', '4 15 1');
 			break;
 		case "weapon_mac10":
 			precache_model("progs/weapons/g_mac10.mdl");
