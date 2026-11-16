@@ -5,9 +5,9 @@
 // Later code will disable any features if they're not supported on the current platform, so don't worry about win/lin/mac/android/web/etc here - any such issues should be fixed elsewhere.
 
 //general rebranding
-#define DISTRIBUTION			"FTE"							//should be kept short. 8 or less letters is good, with no spaces.
-#define DISTRIBUTIONLONG		"Forethought Entertainment"		//think of this as your company name. It isn't shown too often, so can be quite long.
-#define FULLENGINENAME			"FTEQW Temporal Cortex"		//nominally user-visible name.
+#define DISTRIBUTION			"DDCTC"							//should be kept short. 8 or less letters is good, with no spaces.
+#define DISTRIBUTIONLONG		"Diamond Dust Collective"		//think of this as your company name. It isn't shown too often, so can be quite long.
+#define FULLENGINENAME			"Temporal Cortex"		//nominally user-visible name.
 #define ENGINEWEBSITE			"https://steamcommunity.com/id/missingnoguy55"	//for shameless self-promotion purposes.
 #define BRANDING_ICON			"fte_temporalcortex.ico"				//The file to use in windows' resource files - for linux your game should include an icon.[png|ico] file in the game's data.
 

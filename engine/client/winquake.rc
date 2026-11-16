@@ -84,6 +84,28 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+#ifdef TEMPORALCORTEX
+#if defined(BRANDING_ICON) && defined(QUAKETC)
+	IDI_ICON1               ICON                    BRANDING_ICON
+#elif defined(BRANDING_ICON)
+	IDI_ICON1               ICON                    BRANDING_ICON
+	#if defined( _MSC_VER ) && ( _MSC_VER >= 1500 )
+		IDI_ICON2				ICON					"fte_temporalcortex.ico"
+	#else
+		IDI_ICON2				ICON					"fte_temporalcortexnopng.ico"
+	#endif
+	IDI_ICON3               ICON                    "bymorphed.ico"
+	IDI_ICON4               ICON                    "q2.ico"
+#else
+	#if defined( _MSC_VER ) && ( _MSC_VER >= 1500 )
+		IDI_ICON1				ICON					"fte_temporalcortex.ico"
+	#else
+		IDI_ICON1				ICON					"fte_temporalcortexnopng.ico"
+	#endif
+	IDI_ICON2               ICON                    "bymorphed.ico"
+	IDI_ICON3               ICON                    "q2.ico"
+#endif
+#else
 #if defined(BRANDING_ICON) && defined(QUAKETC)
 	IDI_ICON1               ICON                    BRANDING_ICON
 #elif defined(BRANDING_ICON)
@@ -103,6 +125,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 	#endif
 	IDI_ICON2               ICON                    "bymorphed.ico"
 	IDI_ICON3               ICON                    "q2.ico"
+#endif
 #endif
 
 #ifdef CONFIG_MANIFEST_TEXT

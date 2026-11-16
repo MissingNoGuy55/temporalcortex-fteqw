@@ -3829,11 +3829,15 @@ static void CLQW_ParseServerData (void)
 				cl.playerview[pnum].viewheight = cl.playerview[pnum].statsf[STAT_VIEWHEIGHT];
 #endif
 			cl.playerview[pnum].playernum = (qbyte)MSG_ReadByte();
-			if (cl.playerview[pnum].playernum >= cl.allocated_client_slots)
-				Host_EndGame("unsupported local player slot\n");
 #ifdef TEMPORALCORTEX
+			if (cl.playerview[pnum].playernum >= cl.allocated_client_slots+tc_cl_loaded_bsps)
+				Host_EndGame("unsupported local player slot\n");
+
 			cl.playerview[pnum].viewentity = cl.playerview[pnum].playernum+tc_cl_loaded_bsps;
 #else
+			if (cl.playerview[pnum].playernum >= cl.allocated_client_slots)
+				Host_EndGame("unsupported local player slot\n");
+
 			cl.playerview[pnum].viewentity = cl.playerview[pnum].playernum+1;
 #endif
 		}
@@ -3858,12 +3862,15 @@ static void CLQW_ParseServerData (void)
 			}
 			else
 				cl.playerview[clnum].spectator = false;
-
-			if (cl.playerview[clnum].playernum >= cl.allocated_client_slots)
-				Host_EndGame("unsupported local player slot\n");
 #ifdef TEMPORALCORTEX
+			if (cl.playerview[clnum].playernum >= cl.allocated_client_slots+tc_cl_loaded_bsps)
+				Host_EndGame("unsupported local player slot\n");
+
 			cl.playerview[clnum].viewentity = cl.playerview[clnum].playernum+tc_cl_loaded_bsps;
 #else
+			if (cl.playerview[clnum].playernum >= cl.allocated_client_slots)
+				Host_EndGame("unsupported local player slot\n");
+
 			cl.playerview[clnum].viewentity = cl.playerview[clnum].playernum+1;
 #endif
 			if (!(cls.fteprotocolextensions & PEXT_SPLITSCREEN))
