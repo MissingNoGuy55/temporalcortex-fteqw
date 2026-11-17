@@ -2008,8 +2008,6 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 	tc_sv3_unloaded_bsps = plugfuncs->NumUnLoadedBSPs();
 	tc_sv3_worldmodel_indices = plugfuncs->WorldmodelIndices();
 
-	Con_DPrintf("stinky test: %d %d %d\n", tc_sv3_worldmodel_indices[0], tc_sv3_worldmodel_indices[1], tc_sv3_worldmodel_indices[2]);
-
 	if (sv3.world->worldmodel[tc_sv3_current_bsp_index]->type == mod_heightmap)
 	{
 	}
