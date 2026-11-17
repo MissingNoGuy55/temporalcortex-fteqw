@@ -8,6 +8,8 @@ Temporal Cortex FTEQW is a fork of the ![FTEQW](https://github.com/fte-team/fteq
 
 The game's main gimmick is time travel, achieved by having three BSPs loaded at runtime for each time period (past, present, future), with switching between the three as fast as the press of a button.
 
+This project uses ***NO AI*** and will maintain that stance as such. Any PR's with vibecoding will be immediately rejected.
+
 # Time travel compatibility list
 
 | Game  | Status |
