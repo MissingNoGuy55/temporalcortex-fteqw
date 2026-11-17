@@ -2649,11 +2649,19 @@ QTV_OBJECTS=	\
 	httpsv.c	\
 	sha1.c		\
 	libqtvc/glibc_sucks.c
+ifneq ($(findstring fteqwtc, $(FTE_CONFIG)),)
+$(RELEASE_DIR)/qtvtc$(BITS)$(EXEPOSTFIX): $(QTV_OBJECTS)
+	$(CC) -o $@ $? -lstdc++ -lm $(BASE_INCLUDES) $(QTV_LDFLAGS) $(SVNREVISION)
+qtvtc-rel:
+	@$(MAKE) $(RELEASE_DIR)/qtvtc$(BITS)$(EXEPOSTFIX) VPATH="$(BASE_DIR)/../fteqtv:$(VPATH)"
+qtvtc: qtvtc-rel
+else
 $(RELEASE_DIR)/qtv$(BITS)$(EXEPOSTFIX): $(QTV_OBJECTS)
 	$(CC) -o $@ $? -lstdc++ -lm $(BASE_INCLUDES) $(QTV_LDFLAGS) $(SVNREVISION)
 qtv-rel:
 	@$(MAKE) $(RELEASE_DIR)/qtv$(BITS)$(EXEPOSTFIX) VPATH="$(BASE_DIR)/../fteqtv:$(VPATH)"
 qtv: qtv-rel
+endif
 
 utils: httpserver iqmtool imgtool master qtv-rel
 
