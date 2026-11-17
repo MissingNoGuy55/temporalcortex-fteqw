@@ -44,3 +44,6 @@ engine/droid/project.properties
 
 # Flatpak build artifacts
 .flatpak-builder
+
+# Missi: Linux misc
+engine/*.kdev4
