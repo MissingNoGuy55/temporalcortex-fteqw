@@ -329,6 +329,7 @@ typedef struct
 	int			max_edicts;
 #ifdef TEMPORALCORTEX
 	short		num_loaded_bsps;
+	short		num_unloaded_bsps;
 	short		current_bsp_index;
 	short		worldmodel_indices[MAX_TIME_PERIODS];
 	short		world_indices[MAX_TIME_PERIODS];

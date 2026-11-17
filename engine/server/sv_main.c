@@ -1342,7 +1342,7 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 	precache->next->data = S_PrecacheSound(name);
 #endif
 	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(name);
+	precache->next->publicname = Z_StrDup(precache->next->name);
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 
@@ -1390,16 +1390,23 @@ void SV_ClearStringPrecaches()
 	precache_t *next_model;
 	precache_t *next_sound;
 
-	for (next_model = sv.strings.model_precache; next_model; next_model = next_model->next)
+	if (sv.strings.model_precache)
 	{
-		Z_Free(next_model->name);
-		Z_Free(next_model->publicname);
-		BZ_Free(next_model);
+		for (next_model = sv.strings.model_precache; next_model; next_model = next_model->next)
+		{
+			Z_Free(next_model->name);
+			Z_Free(next_model->publicname);
+			BZ_Free(next_model);
+		}
 	}
-	for (next_sound = sv.strings.sound_precache; next_sound; next_sound = next_sound->next)
+	if (sv.strings.sound_precache)
 	{
-		Z_Free(next_sound->name);
-		BZ_Free(next_sound);
+		for (next_sound = sv.strings.sound_precache; next_sound; next_sound = next_sound->next)
+		{
+			Z_Free(next_sound->name);
+			Z_Free(next_sound->publicname);
+			BZ_Free(next_sound);
+		}
 	}
 
 	sv.strings.model_precache = NULL;

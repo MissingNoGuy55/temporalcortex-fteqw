@@ -1538,12 +1538,10 @@ MSV_OpenUserDatabase();
 #ifdef Q2SERVER
 #ifdef TEMPORALCORTEX
 	else if ((sv.world.worldmodel[0]->fromgame == fg_quake2 || sv.world.worldmodel[0]->fromgame == fg_quake3) && sv.world.worldmodel[0]->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
-
-	newgametype = GT_QUAKE2;	//we loaded the dll
+		newgametype = GT_QUAKE2;	//we loaded the dll
 #else
 	else if ((sv.world.worldmodel->fromgame == fg_quake2 || sv.world.worldmodel->fromgame == fg_quake3) && sv.world.worldmodel->funcs.AreasConnected && !*pr_ssqc_progs.string && SVQ2_InitGameProgs())	//these are the rules for running a q2 server
-
-	newgametype = GT_QUAKE2;	//we loaded the dll
+		newgametype = GT_QUAKE2;	//we loaded the dll
 #endif
 #endif
 #ifdef VM_LUA

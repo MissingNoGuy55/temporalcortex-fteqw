@@ -1210,6 +1210,7 @@ precache_t *CL_AddSoundPrecache(const char* name, precache_t *head, short int ti
 
 	precache->next->data = S_PrecacheSound(name);
 	precache->next->name = Z_StrDup(name);
+	precache->next->publicname = Z_StrDup(name);
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 

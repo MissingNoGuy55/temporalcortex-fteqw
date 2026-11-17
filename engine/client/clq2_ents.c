@@ -2901,6 +2901,9 @@ static void CLQ2_AddViewWeapon (int seat, q2player_state_t *ps, q2player_state_t
 #ifdef TEMPORALCORTEX
 	model_precache = CL_FindPrecacheByIndex(ps->gunindex, cl.model_precache);
 
+	if (!model_precache)
+		return;
+
 	if (om != model_precache->data)
 	{
 		pv->vm.prevframe = pv->vm.oldframe = ps->gunframe;

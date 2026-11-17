@@ -3124,6 +3124,25 @@ void SV_UpdateToReliableMessages (void)
 #endif
 
 #ifdef PEXT_VIEW2
+#ifdef TEMPORALCORTEX
+			j = PROG_TO_EDICTINDEX(svprogfuncs, host_client->edict->xv->clientcamera);
+			if (j)
+			{
+				if ((unsigned int)j >= svprogfuncs->edicttable_length)
+					j = i+tc_sv_loaded_bsps;
+				if (j != host_client->clientcamera)
+				{
+					if (host_client->fteprotocolextensions & PEXT_VIEW2)
+					{
+						ClientReliableWrite_Begin(host_client, svc_setview, 4);
+						ClientReliableWrite_Entity(host_client, j);
+					}
+					if (j == i+tc_sv_loaded_bsps)
+						j = 0;	//self.
+					host_client->viewent = j;
+				}
+			}
+#else
 			j = PROG_TO_EDICTINDEX(svprogfuncs, host_client->edict->xv->clientcamera);
 			if (j)
 			{
@@ -3141,6 +3160,7 @@ void SV_UpdateToReliableMessages (void)
 					host_client->viewent = j;
 				}
 			}
+#endif
 #endif
 
 			name = PR_GetString(svprogfuncs, host_client->edict->v->netname);

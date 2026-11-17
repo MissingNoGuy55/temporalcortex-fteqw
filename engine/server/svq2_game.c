@@ -1074,6 +1074,7 @@ qboolean SVQ2_InitGameProgs(void)
 	SVQ2_InitWorld();
 
 	ge->num_loaded_bsps = tc_sv_loaded_bsps;
+	ge->num_unloaded_bsps = tc_sv_unloaded_bsps;
 	for (int t = 0, o = 0; t < MAX_TIME_PERIODS; t++)
 	{
 		if (!sv.world.worldmodel[t])

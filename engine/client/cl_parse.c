@@ -1777,7 +1777,7 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 #endif
 #endif
 #ifdef TEMPORALCORTEX
-			CL_AddSoundPrecache(cl.sound_name[i], cl.sound_precache, cl.model_time_periods[i]);
+			CL_AddSoundPrecache(cl.sound_name[i], cl.sound_precache, cl.sound_time_periods[i]);
 #else
 			cl.sound_precache[i] = S_PrecacheSound (cl.sound_name[i]);
 #endif
