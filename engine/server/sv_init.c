@@ -1585,7 +1585,9 @@ MSV_OpenUserDatabase();
 	Cvar_ForceCallback(&sv_nqplayerphysics);
 
 #ifdef TEMPORALCORTEX
-	SV_ClearStringPrecaches();
+	if (sv.strings.model_precache || sv.strings.sound_precache)
+		SV_ClearStringPrecaches();
+
 	SV_InitStringPrecaches();
 
 	// SV_AddPrecache("", sv.strings.model_precache, TIME_PERIOD_PRESENT);
@@ -1695,10 +1697,15 @@ MSV_OpenUserDatabase();
 				sv.strings.configstring[Q2CS_AIRACCEL] = Z_StrDup("0");
 
 			subs = sv.world.worldmodel[t]->numsubmodels;
-			sv.world.worldmodel_indices[t] = j;
-			sv.world.model_time_periods[j] = t;
 
-			sv.strings.configstring[Q2CS_MODELS+j] = Z_StrDupf("%s", sv.modelname[t]);
+			// Missi: These casts are needed to prevent memory corruption from storing different-sized
+			// types. Do not be deceived, this appears valid without the casts, but it really causes issues (2026.11.17)
+			sv.world.worldmodel_indices[t] = ((short)j);
+			sv.world.model_time_periods[j] = ((short)t);
+
+			sv.strings.configstring[((int)Q2CS_MODELS+i+j)] = Z_StrDup(sv.modelname[t]);
+
+			model_precache = SV_AddModelPrecache(sv.modelname[t], sv.strings.model_precache, t);
 
 			if (subs > MAX_PRECACHE_MODELS-1)
 			{
