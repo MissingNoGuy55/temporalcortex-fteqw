@@ -184,13 +184,13 @@ jobs:
           echo "::group::Lint metainfo"
           flatpak-builder-lint \
             --user-exceptions=dist/linux/linter-exceptions.json --exceptions \
-            appstream ./dist/linux/org.fteqwtc.fteqwtc.metainfo.xml \
+            appstream ./dist/linux/io.github.missingnoguy55.temporalcortex-fteqw.metainfo.xml \
             || export FLATPAK_LINT_FAILED=1
           echo "::endgroup::"
           echo "::group::Lint Flatpak manifest"
           flatpak-builder-lint \
             --user-exceptions=dist/linux/linter-exceptions.json --exceptions \
-            manifest ./dist/linux/org.fteqwtc.fteqwtc.yml \
+            manifest ./dist/linux/io.github.missingnoguy55.temporalcortex-fteqw.yml \
             || export FLATPAK_LINT_FAILED=1
           echo "::endgroup::"
           if [[ ! -z "$FLATPAK_LINT_FAILED" ]]; then
@@ -203,8 +203,8 @@ jobs:
       - name: Build flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: org.fteqwtc.fteqwtc.${{ env.SHORT_SHA }}.flatpak
-          manifest-path: dist/linux/org.fteqwtc.fteqwtc.yml
+          bundle: io.github.missingnoguy55.temporalcortex-fteqw.${{ env.SHORT_SHA }}.flatpak
+          manifest-path: dist/linux/io.github.missingnoguy55.temporalcortex-fteqw.yml
           cache-key: flatpak-builder-${{ matrix.arch }}-${{ env.SHORT_SHA }}
           arch: ${{ matrix.arch.name }}
 
