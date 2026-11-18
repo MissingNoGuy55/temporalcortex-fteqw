@@ -159,7 +159,7 @@ modules:
       - type: file
         path: org.fteqwtc.fteqwtc.sh
       - type: git
-        url: https://github.com/fte-team/fteqwtc.git
+        url: https://github.com/MissingNoGuy55/temporalcortex-fteqw.git
         branch: master
       # In an ideal world, fteqwtc would be built off of tagged releases so the Flatpak infra can auto-update:
       # - type: archive
