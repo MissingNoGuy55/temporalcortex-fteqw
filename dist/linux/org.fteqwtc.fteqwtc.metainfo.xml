@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.fteqw.fteqw</id>
-  <name>FTEQW</name>
+  <id>org.fteqwtc.fteqwtc</id>
+  <name>Temporal Cortex FTEQW</name>
   <developer id="org.fteqw.fteqw">
-    <name>Forethought Entertainment</name>
-    <url>https://github.com/fte-team/fteqw/graphs/contributors</url>
+    <name>Diamond Dust Collective</name>
+    <url>https://github.com/MissingNoGuy55/temporalcortex-fteqw/graphs/contributors</url>
   </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0</project_license>
   <summary>Modern Quake source port</summary>
   <launchable type="desktop-id">org.fteqw.fteqw.desktop</launchable>
   <description>
-    <p>FTEQW is a highly versatile game engine originally based on QuakeWorld with support for
+    <p>Temporal Cortex FTEQW is a fork of FTEQW, a highly versatile game engine originally based on QuakeWorld with support for
       a number of Quake engine games.</p>
     <p>Features:</p>
     <ul>
@@ -34,11 +34,11 @@
     <color type="primary" scheme_preference="dark">#1e191e</color>
   </branding>
   <provides>
-    <binary>fteqw</binary>
+    <binary>fteqwtc</binary>
     <binary>fteqcc</binary>
     <binary>fteqccgui</binary>
     <binary>ftemaster</binary>
-    <binary>qtv</binary>
+    <binary>qtvtc</binary>
   </provides>
   <supports>
     <control>gamepad</control>
@@ -113,7 +113,6 @@
     <content_attribute id="social-chat">intense</content_attribute>
   </content_rating>
   <releases>
-    <release version="latest" date="2025-05-14" />
-    <release version="6202" date="2022-03-01" />
+    <release version="latest" date="2026-11-17" />
   </releases>
 </component>

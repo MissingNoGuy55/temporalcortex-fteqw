@@ -15,5 +15,5 @@ function check_exit_code () {
   fi
 }
 
-/app/bin/fteqw -basedir $XDG_DATA_HOME "$@"
+/app/bin/fteqwtc -basedir $XDG_DATA_HOME "$@"
 check_exit_code $?

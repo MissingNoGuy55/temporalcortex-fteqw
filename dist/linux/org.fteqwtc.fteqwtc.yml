@@ -1,15 +1,15 @@
 ---
 # Flatpak runtime version issues:
 #   - 22.08 has a slightly-too-old version of SDL2 that doesn't include SDL_misc.h
-#   - 24.08 includes ffmpeg 7.x, which fteqw fails to build against
+#   - 24.08 includes ffmpeg 7.x, which fteqwtc fails to build against
 # 
 # Options to resolve this:
 #   - manually build ffmpeg 6.x? on the 24.08 runtime
 #   - manually build a newer SDL2 on the 22.08 runtime
-#   - update fteqw to use SDL3 and ffmpeg 7.x (which are the 24.08 runtime versions)
+#   - update fteqwtc to use SDL3 and ffmpeg 7.x (which are the 24.08 runtime versions)
 
-app-id: org.fteqw.fteqw
-command: org.fteqw.fteqw.sh
+app-id: org.fteqwtc.fteqwtc
+command: org.fteqwtc.fteqwtc.sh
 
 # runtime: org.freedesktop.Platform
 # runtime-version: "23.08"
@@ -140,7 +140,7 @@ modules:
       - type: patch
         path: com.riverbankcomputing.qscintilla.install.patch
 
-  - name: fteqw
+  - name: fteqwtc
     buildsystem: cmake-ninja
     builddir: true
     config-opts:
@@ -157,24 +157,24 @@ modules:
     sources:
       # Launcher script
       - type: file
-        path: org.fteqw.fteqw.sh
+        path: org.fteqwtc.fteqwtc.sh
       - type: git
-        url: https://github.com/fte-team/fteqw.git
+        url: https://github.com/fte-team/fteqwtc.git
         branch: master
-      # In an ideal world, fteqw would be built off of tagged releases so the Flatpak infra can auto-update:
+      # In an ideal world, fteqwtc would be built off of tagged releases so the Flatpak infra can auto-update:
       # - type: archive
-      #   url: https://api.github.com/repos/fte-team/fteqw/zipball/v6202
-      #   dest-filename: fteqw.zip
+      #   url: https://api.github.com/repos/fte-team/fteqwtc/zipball/v6202
+      #   dest-filename: fteqwtc.zip
       #   sha256: 1955a7c7eb2e6c3ba2da689d115d10f89c6e5e261577e67cd0ad176bea1b97ef
       #   x-checker-data:
       #     type: json
-      #     url: https://api.github.com/repos/fte-team/fteqw/releases/latest
+      #     url: https://api.github.com/repos/fte-team/fteqwtc/releases/latest
       #     version-query: .tag_name | sub("^v"; "")
       #     url-query: .zipball_url
       # Patches to fix Flatpak sandbox compliance, currently WIP
       - type: patch
-        path: org.fteqw.fteqw.fixdownloads.patch
+        path: org.fteqwtc.fteqwtc.fixdownloads.patch
       - type: patch
-        path: org.fteqw.fteqw.fixhomedir.patch
+        path: org.fteqwtc.fteqwtc.fixhomedir.patch
     post-install:
-      - install -Dm755 ${FLATPAK_BUILDER_BUILDDIR}/org.fteqw.fteqw.sh /app/bin/
+      - install -Dm755 ${FLATPAK_BUILDER_BUILDDIR}/org.fteqwtc.fteqwtc.sh /app/bin/
