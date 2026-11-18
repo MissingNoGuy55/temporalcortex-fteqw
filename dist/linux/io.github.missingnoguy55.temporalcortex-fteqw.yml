@@ -161,17 +161,6 @@ modules:
       - type: git
         url: https://github.com/MissingNoGuy55/temporalcortex-fteqw.git
         branch: master
-      # In an ideal world, fteqwtc would be built off of tagged releases so the Flatpak infra can auto-update:
-      # - type: archive
-      #   url: https://api.github.com/repos/fte-team/fteqwtc/zipball/v6202
-      #   dest-filename: fteqwtc.zip
-      #   sha256: 1955a7c7eb2e6c3ba2da689d115d10f89c6e5e261577e67cd0ad176bea1b97ef
-      #   x-checker-data:
-      #     type: json
-      #     url: https://api.github.com/repos/fte-team/fteqwtc/releases/latest
-      #     version-query: .tag_name | sub("^v"; "")
-      #     url-query: .zipball_url
-      # Patches to fix Flatpak sandbox compliance, currently WIP
       - type: patch
         path: io.github.missingnoguy55.temporalcortex-fteqw.fixdownloads.patch
       - type: patch
