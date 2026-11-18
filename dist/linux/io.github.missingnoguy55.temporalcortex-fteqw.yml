@@ -8,8 +8,8 @@
 #   - manually build a newer SDL2 on the 22.08 runtime
 #   - update fteqwtc to use SDL3 and ffmpeg 7.x (which are the 24.08 runtime versions)
 
-app-id: org.fteqwtc.fteqwtc
-command: org.fteqwtc.fteqwtc.sh
+app-id: io.github.missingnoguy55.temporalcortex-fteqw
+command: io.github.missingnoguy55.temporalcortex-fteqw.sh
 
 # runtime: org.freedesktop.Platform
 # runtime-version: "23.08"
@@ -157,7 +157,7 @@ modules:
     sources:
       # Launcher script
       - type: file
-        path: org.fteqwtc.fteqwtc.sh
+        path: io.github.missingnoguy55.temporalcortex-fteqw.sh
       - type: git
         url: https://github.com/MissingNoGuy55/temporalcortex-fteqw.git
         branch: master
@@ -173,8 +173,8 @@ modules:
       #     url-query: .zipball_url
       # Patches to fix Flatpak sandbox compliance, currently WIP
       - type: patch
-        path: org.fteqwtc.fteqwtc.fixdownloads.patch
+        path: io.github.missingnoguy55.temporalcortex-fteqw.fixdownloads.patch
       - type: patch
-        path: org.fteqwtc.fteqwtc.fixhomedir.patch
+        path: io.github.missingnoguy55.temporalcortex-fteqw.fixhomedir.patch
     post-install:
-      - install -Dm755 ${FLATPAK_BUILDER_BUILDDIR}/org.fteqwtc.fteqwtc.sh /app/bin/
+      - install -Dm755 ${FLATPAK_BUILDER_BUILDDIR}/io.github.missingnoguy55.temporalcortex-fteqw.sh /app/bin/
