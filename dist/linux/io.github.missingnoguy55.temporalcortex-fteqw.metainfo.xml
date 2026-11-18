@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.fteqwtc.fteqwtc</id>
+  <id>io.github.missingnoguy55.temporalcortex-fteqw</id>
   <name>Temporal Cortex FTEQW</name>
-  <developer id="org.fteqwtc.fteqwtc">
+  <developer id="io.github.missingnoguy55.temporalcortex-fteqw">
     <name>Diamond Dust Collective</name>
     <url>https://github.com/MissingNoGuy55/temporalcortex-fteqw/graphs/contributors</url>
   </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0</project_license>
   <summary>Modern Quake source port</summary>
-  <launchable type="desktop-id">org.fteqwtc.fteqwtc.desktop</launchable>
+  <launchable type="desktop-id">io.github.missingnoguy55.temporalcortex-fteqw.desktop</launchable>
   <description>
     <p>Temporal Cortex FTEQW is a fork of FTEQW, a highly versatile game engine originally based on QuakeWorld with support for
       a number of Quake engine games.</p>
