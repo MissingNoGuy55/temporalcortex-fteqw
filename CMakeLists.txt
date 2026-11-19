@@ -1824,13 +1824,13 @@ INSTALL(TARGETS ${INSTALLTARGS}
 
 IF(UNIX AND NOT APPLE)
 	INSTALL(FILES
-		${CMAKE_SOURCE_DIR}/dist/linux/org.fteqw.fteqw.desktop
+		${CMAKE_SOURCE_DIR}/dist/linux/io.github.missingnoguy55.temporalcortex-fteqw.desktop
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications/")
 	INSTALL(FILES
-		${CMAKE_SOURCE_DIR}/dist/org.fteqw.fteqw.svg
+		${CMAKE_SOURCE_DIR}/dist/io.github.missingnoguy55.temporalcortex-fteqw.svg
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps/")
 	INSTALL(FILES
-		${CMAKE_SOURCE_DIR}/dist/linux/org.fteqw.fteqw.metainfo.xml
+		${CMAKE_SOURCE_DIR}/dist/linux/io.github.missingnoguy55.temporalcortex-fteqw.metainfo.xml
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo/")
 	INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/games
 		DESTINATION "${CMAKE_INSTALL_PREFIX}/etc/xdg/fteqw"
