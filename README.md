@@ -23,7 +23,7 @@ This project uses ***NO AI*** and will maintain that stance as such. Any PR's wi
 | Half-Life | Implemented, not tested |
 | Half-Life 2 (FTE plugin modification) | Implemented, not tested |
 
-# Building
+# Building (Linux)
 
 The provided Dockerfile has all the necessary dependencies listed. If you do not feel like installing Docker, run this in a terminal from a clean installation:
 
@@ -32,6 +32,32 @@ apt install build-essential libsdl2-dev libsdl3-dev libx11-dev libgl-dev libxss-
 ```
 
 to install all the dependencies. Do *not* run this with `apt remove`, or you will most likely run into issues.
+
+To compile the engine manually, enter this in a terminal:
+
+```
+cd engine
+make makelibs
+make FTE_CONFIG=fteqwtc m-rel
+```
+
+To automate the build, run instead:
+
+```
+./engine/makestuff.sh
+```
+
+# Building (Windows)
+
+Like FTEQW, building on Windows requires Cygwin. Then the above packages from the Linux tutorial can be installed through Cygwin's installer exe. Then run in Cygwin's terminal:
+
+```
+cd engine
+make FTE_TARGET=win64 makelibs
+make FTE_TARGET=win64 FTE_CONFIG=fteqwtc m-rel
+```
+
+Note that to build Win64 binaries in Cygwin, you *may* need the `mingw-w64` package from Cygwin's installer -- I honestly forget.
 
 # How to time travel
 
@@ -51,7 +77,7 @@ So, if you wanted to spawn inside `dev_present.bsp`, you would type
 map dev
 ```
 
-at the console, and not  `map dev_present`. The engine *does* autocomplete still with the suffixes present, so please be aware of that.
+at the console, and not  `map dev_present`. The engine *does* autocomplete the suffixes present still, so please be aware of that.
 
 Absolute map names are supported for those who simply want to test specific time periods without loading all the BSPs at once.
 
