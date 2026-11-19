@@ -36,12 +36,22 @@ to install all the dependencies. Do *not* run this with `apt remove`, or you wil
 # How to time travel
 
 In-game, bind any keys you want to `changetimeperiod [idx]`, which is a hardcoded console command with this engine. Valid values are `0` (present), `1` (past), and `2` (future). So, for example
-```bind x "changetimeperiod 2"``` will bind the X key to changing time periods if `tc_sv_allow_host_time_travel` is set to `1`, which it is set to `1` by default.
+
+```
+bind x "changetimeperiod 2"
+```
+
+will bind the X key to changing time periods if `tc_sv_allow_host_time_travel` is set to `1`, which it is set to `1` by default.
 
 To make individual time period BSPs, each BSP file needs to be suffixed with `_present`, `_past`, and `_future`, with the map name typed without any suffix at the console.
 
 So, if you wanted to spawn inside `dev_present.bsp`, you would type 
-```map dev``` at the console, and not  ```map dev_present```. The engine *does* autocomplete still with the suffixes present, so please be aware of that.
+
+```
+map dev
+```
+
+at the console, and not  `map dev_present`. The engine *does* autocomplete still with the suffixes present, so please be aware of that.
 
 Absolute map names are supported for those who simply want to test specific time periods without loading all the BSPs at once.
 
