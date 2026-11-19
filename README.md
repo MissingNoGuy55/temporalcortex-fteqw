@@ -1,4 +1,4 @@
-# [Temporal Cortex FTEQW](https://steamcommunity.com/id/missingnoguy55)
+# [Temporal Cortex FTEQW](https://missingnoguy55.github.io/temporalcortex-fteqw)
 
 ![Temporal Cortex FTEQW Logo](engine/client/fte_temporalcortex.ico)
 
