@@ -934,7 +934,7 @@ void CL_DownloadFinished(qdownload_t *dl)
 									mod->loadstate = MLS_NOTLOADED;
 							}
 							CL_CheckModelResources(cl.model_csqcname[i]);
-							model_precache->name = cl.model_csqcname[i];
+							Q_strncpy(model_precache->name, cl.model_csqcname[i], sizeof(model_precache->name));
 							model_precache->data = Mod_ForName(cl.model_csqcname[i], MLV_WARN);
 							t++;
 						}
@@ -1487,10 +1487,7 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 					model_precache = CL_FindPrecacheByModelName(cl.model_name[i], cl.model_precache);
 				else
 					model_precache = CL_AddModelPrecache (cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
-#ifdef Q2CLIENT
-				if (model_precache->index == cl.worldmodel_indices[cl.model_time_periods[i]])
-					cl.worldmodel[cl.world_indices[cl.model_time_periods[i]]] = model_precache->data;
-#endif
+
 				S_ExtraUpdate();
 
 				endstage();
@@ -1757,7 +1754,6 @@ static int CL_LoadSounds(int stage, qboolean dontactuallyload)
 		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
 		memset(cl.sound_precache, 0, sizeof(precache_t));
 
-		cl.sound_precache->name = Z_Malloc(sizeof(char));;
 		cl.sound_precache->index = 0;
 		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->data = S_FindName("", false, false);
@@ -4074,7 +4070,7 @@ static void CLQ2_ParseServerData (void)
 	tc_cl_current_bsp_index = MSG_ReadShort();
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
-		cl.worldmodel_indices[t] = MSG_ReadShort();
+		cl.worldmodel_indices[t] = MSG_ReadShort();	// Missi: Blaster always comes first... (2026.11.18)
 #endif
 
 	cl.minpitch = -89;
@@ -4088,7 +4084,11 @@ static void CLQ2_ParseServerData (void)
 
 	// parse player entity number
 	cl.playerview[0].playernum = MSG_ReadShort ();
+#ifdef TEMPORALCORTEX
+	cl.playerview[0].viewentity = cl.playerview[0].playernum+(tc_cl_loaded_bsps - tc_cl_unloaded_bsps);
+#else
 	cl.playerview[0].viewentity = cl.playerview[0].playernum+1;
+#endif
 	cl.playerview[0].spectator = false;
 	cl.splitclients = 1;
 
@@ -4102,7 +4102,7 @@ static void CLQ2_ParseServerData (void)
 		{
 			cl.playerview[i].playernum = MSG_ReadShort ();
 #ifdef TEMPORALCORTEX
-			cl.playerview[i].viewentity = cl.playerview[i].playernum+tc_cl_loaded_bsps;
+			cl.playerview[i].viewentity = cl.playerview[i].playernum+(tc_cl_loaded_bsps - tc_cl_unloaded_bsps);
 #else
 			cl.playerview[i].viewentity = cl.playerview[i].playernum+1;
 #endif
@@ -9614,7 +9614,7 @@ isillegible:
 
 				CSQC_TC_ChangeLevelName(cl.levelname);
 
-				MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
+				MSG_WriteByte (&cls.netchan.message, clcq2tc_timeperiod);
 				MSG_WriteShort (&cls.netchan.message, bspindex);
 				break;
 			}

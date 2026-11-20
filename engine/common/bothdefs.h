@@ -1184,8 +1184,8 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 	// Missi: Precache structure shared by the client and server (2026.6.22)
 	typedef struct precache_s
 	{
-		char* name;
-		char* publicname;
+		char name[256];
+		char publicname[256];
 		int index;
 		short timeperiod;
 		void* data;

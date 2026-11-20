@@ -1938,7 +1938,7 @@ void CLQ2_ParseFrame (int extrabits)
 
 	for (cmd = 0; cmd < MAX_SPLITS; cmd++)
 #ifdef TEMPORALCORTEX
-		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+tc_cl_loaded_bsps;
+		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+1;
 #else
 		cl.playerview[cmd].viewentity = cl.q2frame.seat[cmd].clientnum+1;
 #endif

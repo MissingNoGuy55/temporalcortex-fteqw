@@ -309,7 +309,7 @@ static void CLQ2_PredictMovement (int seat)	//q2 doesn't support split clients.
 
 	frame = 0;
 #ifdef TEMPORALCORTEX
-	predignoreentitynum = cl.q2frame.seat[seat].clientnum+tc_cl_loaded_bsps;//cl.playerview[seat].playernum+1;
+	predignoreentitynum = cl.q2frame.seat[seat].clientnum+1;//cl.playerview[seat].playernum+1;
 #else
 	predignoreentitynum = cl.q2frame.seat[seat].clientnum+1;//cl.playerview[seat].playernum+1;
 #endif
@@ -1125,7 +1125,7 @@ void CL_PredictMovePNum (int seat)
 		{
 			pv->cam_state = CAM_EYECAM;
 #ifdef TEMPORALCORTEX
-			pv->viewentity = pv->cam_spec_track+tc_cl_loaded_bsps;
+			pv->viewentity = pv->cam_spec_track+1;
 #else
 			pv->viewentity = pv->cam_spec_track+1;
 #endif

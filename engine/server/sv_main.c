@@ -1294,8 +1294,8 @@ precache_t *SV_AddModelPrecache(const char* name, precache_t *head, short timepe
 	precache->next = BZ_Malloc(sizeof(precache_t));
 	memset(precache->next, 0, sizeof(precache_t));
 
-	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(Mod_FixName(name, sv.modelname[timeperiod]));
+	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
+	Q_strncpy(precache->next->publicname, Mod_FixName(name, sv.modelname[timeperiod]), sizeof(precache->next->publicname));
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 	precache->next->data = mod = Mod_ForName(precache->next->publicname, MLV_ERROR);
@@ -1333,7 +1333,7 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 	while (precache->next)
 		precache = precache->next;
 
-	precache->next = BZ_Malloc(sizeof(precache_t));
+	precache->next = malloc(sizeof(precache_t));
 	memset(precache->next, 0, sizeof(precache_t));
 
 #ifdef SERVERONLY
@@ -1341,8 +1341,8 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 #else
 	precache->next->data = S_PrecacheSound(name);
 #endif
-	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(precache->next->name);
+	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
+	Q_strncpy(precache->next->publicname, name, sizeof(precache->next->publicname));
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 
@@ -1362,23 +1362,19 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 
 void SV_InitStringPrecaches()
 {
-	sv.strings.model_precache = BZ_Malloc(sizeof(precache_t));
-	sv.strings.sound_precache = BZ_Malloc(sizeof(precache_t));
-	sv.strings.particle_precache = BZ_Malloc(sizeof(const char*) * MAX_SSPARTICLESPRE);
+	sv.strings.model_precache = malloc(sizeof(precache_t));
+	sv.strings.sound_precache = malloc(sizeof(precache_t));
+	sv.strings.particle_precache = malloc(sizeof(const char*) * MAX_SSPARTICLESPRE);
 
+	memset(sv.strings.model_precache, 0, sizeof(sizeof(precache_t)));
+	memset(sv.strings.sound_precache, 0, sizeof(sizeof(precache_t)));
 	memset(sv.strings.particle_precache, 0, sizeof(const char*) * MAX_SSPARTICLESPRE);
 
-	sv.strings.model_precache->name = Z_Malloc(sizeof(char));
-	sv.strings.model_precache->name[0] = 0;
-	sv.strings.model_precache->publicname = Z_Malloc(sizeof(char));
-	sv.strings.model_precache->publicname[0] = 0;
 	sv.strings.model_precache->index = 0;
 	sv.strings.model_precache->timeperiod = 0;
 	sv.strings.model_precache->data = Mod_ForName("", MLV_WARN);
 	sv.strings.model_precache->next = NULL;
 
-	sv.strings.sound_precache->name = Z_Malloc(sizeof(char));
-	sv.strings.sound_precache->name[0] = 0;
 	sv.strings.sound_precache->index = 0;
 	sv.strings.sound_precache->timeperiod = 0;
 	sv.strings.sound_precache->data = NULL;
@@ -1387,30 +1383,35 @@ void SV_InitStringPrecaches()
 
 void SV_ClearStringPrecaches()
 {
-	precache_t *next_model;
-	precache_t *next_sound;
+	precache_t *temp;
 
 	if (sv.strings.model_precache)
 	{
-		for (next_model = sv.strings.model_precache; next_model; next_model = next_model->next)
+		while (sv.strings.model_precache)
 		{
-			Z_Free(next_model->name);
-			Z_Free(next_model->publicname);
-			BZ_Free(next_model);
+			temp = sv.strings.model_precache->next;
+			free(sv.strings.model_precache);
+			sv.strings.model_precache = temp;
 		}
+
+		sv.strings.model_precache = NULL;
 	}
 	if (sv.strings.sound_precache)
 	{
-		for (next_sound = sv.strings.sound_precache; next_sound; next_sound = next_sound->next)
+		while (sv.strings.sound_precache)
 		{
-			Z_Free(next_sound->name);
-			Z_Free(next_sound->publicname);
-			BZ_Free(next_sound);
+			temp = sv.strings.sound_precache->next;
+			free(sv.strings.sound_precache);
+			sv.strings.sound_precache = temp;
 		}
-	}
 
-	sv.strings.model_precache = NULL;
-	sv.strings.sound_precache = NULL;
+		sv.strings.sound_precache = NULL;
+	}
+	if (sv.strings.particle_precache)
+	{
+		free(sv.strings.particle_precache);
+		sv.strings.particle_precache = NULL;
+	}
 }
 #endif
 

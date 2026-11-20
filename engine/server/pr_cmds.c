@@ -585,13 +585,6 @@ static void PDECL PR_SSQC_Relocated(pubprogfuncs_t *pr, char *oldb, char *newb, 
 	}
 #endif
 #ifdef TEMPORALCORTEX
-	precache_t* precache;
-
-	for (precache = sv.strings.model_precache; precache; precache = precache->next)
-	{
-		if (precache->name >= oldb && precache->name < oldb+oldlen)
-			precache->name += newb - oldb;
-	}
 #else
 	for (i = 0; sv.strings.model_precache[i]; i++)
 	{
@@ -5250,7 +5243,7 @@ static void QCBUILTIN PF_modelnameforindex (pubprogfuncs_t *prinst, struct globa
 #ifdef TEMPORALCORTEX
 	precache_t *model_precache = SV_FindPrecacheByIndex(idx, sv.strings.model_precache);
 
-	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && model_precache->name)
+	if (idx >= 0 && idx < MAX_PRECACHE_MODELS && model_precache->name[0])
 		RETURN_TSTRING(model_precache->name);
 	else
 		G_INT(OFS_RETURN) = 0;

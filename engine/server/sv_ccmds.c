@@ -3802,6 +3802,9 @@ void SV_ChangeTimePeriod( int bspindex )
 		}
 
 		track = q2WorldEdict->s.sound;
+
+		if (ge)
+			ge->current_bsp_index = bspindex;
 	}
 #endif
 	else
@@ -3820,10 +3823,6 @@ void SV_ChangeTimePeriod( int bspindex )
 	}
 
 	tc_sv_current_bsp_index = bspindex;
-#ifdef Q2SERVER
-	if (svs.gametype == GT_QUAKE2)
-		ge->current_bsp_index = bspindex;
-#endif
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )

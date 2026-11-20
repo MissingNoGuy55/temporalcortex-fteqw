@@ -793,7 +793,7 @@ void SV_UnspawnServer (void)	//terminate the running server.
 
 	if (sv.world.model_time_periods)
 	{
-		BZ_Free(sv.world.model_time_periods);
+		free(sv.world.model_time_periods);
 		sv.world.model_time_periods = NULL;
 	}
 #endif
@@ -1598,7 +1598,7 @@ MSV_OpenUserDatabase();
 
 	if (!sv.world.model_time_periods)
 	{
-		sv.world.model_time_periods = BZ_Malloc(sizeof(short) * 16385);
+		sv.world.model_time_periods = malloc(sizeof(short) * 16385);
 		memset(sv.world.model_time_periods, 0, sizeof(short) * 16385);
 	}
 
@@ -1700,10 +1700,11 @@ MSV_OpenUserDatabase();
 
 			// Missi: These casts are needed to prevent memory corruption from storing different-sized
 			// types. Do not be deceived, this appears valid without the casts, but it really causes issues (2026.11.17)
-			sv.world.worldmodel_indices[t] = ((short)j);
-			sv.world.model_time_periods[j] = ((short)t);
+			sv.world.worldmodel_indices[t] = ((short)tc_sv_loaded_bsps+t);
+			sv.world.model_time_periods[tc_sv_loaded_bsps+t] = ((short)t);
 
-			sv.strings.configstring[((int)Q2CS_MODELS+i+j)] = Z_StrDup(sv.modelname[t]);
+			// Missi: The world(s) get special treatment (2026.11.19)
+			sv.strings.configstring[((int)Q2CS_MODELS+tc_sv_loaded_bsps+t)] = Z_StrDup(sv.modelname[t]);
 
 			model_precache = SV_AddModelPrecache(sv.modelname[t], sv.strings.model_precache, t);
 
@@ -1848,7 +1849,7 @@ MSV_OpenUserDatabase();
 #endif
 
 #ifdef TEMPORALCORTEX
-	sv.world.model_time_periods = BZ_Realloc(sv.world.model_time_periods, sizeof(short) * j+1);
+	sv.world.model_time_periods = realloc(sv.world.model_time_periods, sizeof(short) * j+1);
 #endif
 
 #ifndef SERVERONLY
@@ -1964,24 +1965,6 @@ MSV_OpenUserDatabase();
 #ifdef Q2SERVER
 	case GT_QUAKE2:
 		SV_UpdateMaxPlayers(svq2_maxclients);
-#ifdef TEMPORALCORTEX
-		// Missi: Iterate through each time period (2025.9.20)
-		// Missi: NOTE: Better to allocate by index considering
-		// how the edict list is initialized (2025.12.19)
-		for ( i = 0, j = 0; i < MAX_TIME_PERIODS; i++ )
-		{
-			if (!sv.world.worldmodel[i])
-			{
-				j++;
-				continue;
-			}
-
-			q2ent = Q2EDICT_NUM(i-j);
-			q2ent->bspnum = i;
-
-			sv.world.world_indices[i] = i-j;
-		}
-#endif
 		for (i=0 ; i<sv.allocated_client_slots ; i++)
 		{
 #ifdef TEMPORALCORTEX
@@ -2276,6 +2259,27 @@ MSV_OpenUserDatabase();
 #endif
 		}
 	}
+#ifdef Q2SERVER
+	// Missi: Iterate through each time period (2025.9.20)
+	// Missi: NOTE: Better to allocate by index considering
+	// how the edict list is initialized (2025.12.19)
+	if (svs.gametype == GT_QUAKE2)
+	{
+		for ( i = 0, j = 0; i < MAX_TIME_PERIODS; i++ )
+		{
+			if (!sv.world.worldmodel[i])
+			{
+				j++;
+				continue;
+			}
+
+			q2ent = Q2EDICT_NUM(i-j);
+			q2ent->bspnum = i;
+
+			sv.world.world_indices[i] = i-j;
+		}
+	}
+#endif
 #else
 	if (sv.world.worldmodel->entitiescrc)
 	{

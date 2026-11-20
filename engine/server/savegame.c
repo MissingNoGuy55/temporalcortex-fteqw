@@ -379,12 +379,12 @@ static qboolean SV_LegacySavegame (const char *savename, qboolean verbose)
 
 	for (model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next)
 	{
-		if (model_precache->name)
+		if (model_precache->name[0])
 			VFS_PRINTF(f, "sv.model_precache %i %s %i\n", model_precache->index, model_precache->name, model_precache->timeperiod);
 	}
 	for (sound_precache = sv.strings.sound_precache->next; sound_precache; sound_precache = sound_precache->next)
 	{
-		if (sound_precache->name)
+		if (sound_precache->name[0])
 			VFS_PRINTF(f, "sv.sound_precache %i %s %i\n", sound_precache->index, sound_precache->name, sound_precache->timeperiod);
 	}
 	for (i = 1, particle_precache = *sv.strings.particle_precache; particle_precache; particle_precache++, i++)

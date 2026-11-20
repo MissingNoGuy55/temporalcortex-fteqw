@@ -965,32 +965,27 @@ void CL_InitPrecaches()
 {
 	if (!cl.model_precache)
 	{
-		cl.model_precache = BZ_Malloc(sizeof(precache_t));
+		cl.model_precache = malloc(sizeof(precache_t));
 		memset(cl.model_precache, 0, sizeof(precache_t));
 
-		cl.model_precache->name = Z_Malloc(sizeof(char));;
-		cl.model_precache->publicname = Z_Malloc(sizeof(char));;
 		cl.model_precache->index = 0;
 		cl.model_precache->timeperiod = 0;
 		cl.model_precache->data = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.model_csqcprecache)
 	{
-		cl.model_csqcprecache = BZ_Malloc(sizeof(precache_t));
+		cl.model_csqcprecache = malloc(sizeof(precache_t));
 		memset(cl.model_csqcprecache, 0, sizeof(precache_t));
 
-		cl.model_csqcprecache->name = Z_Malloc(sizeof(char));;
-		cl.model_csqcprecache->publicname = Z_Malloc(sizeof(char));;
 		cl.model_csqcprecache->index = 0;
 		cl.model_csqcprecache->timeperiod = 0;
 		cl.model_csqcprecache->data = Mod_ForName("", MLV_WARN);
 	}
 	if (!cl.sound_precache)
 	{
-		cl.sound_precache = BZ_Malloc(sizeof(precache_t));
+		cl.sound_precache = malloc(sizeof(precache_t));
 		memset(cl.sound_precache, 0, sizeof(precache_t));
 
-		cl.sound_precache->name = Z_Malloc(sizeof(char));;
 		cl.sound_precache->index = 0;
 		cl.sound_precache->timeperiod = 0;
 		cl.sound_precache->data = S_FindName("", false, false);
@@ -1004,19 +999,19 @@ void CL_ClearPrecaches()
 	while (cl.model_precache)
 	{
 		next = cl.model_precache->next;
-		BZ_Free(cl.model_precache);
+		free(cl.model_precache);
 		cl.model_precache = next;
 	}
 	while (cl.model_csqcprecache)
 	{
 		next = cl.model_csqcprecache->next;
-		BZ_Free(cl.model_csqcprecache);
+		free(cl.model_csqcprecache);
 		cl.model_csqcprecache = next;
 	}
 	while (cl.sound_precache)
 	{
 		next = cl.sound_precache->next;
-		BZ_Free(cl.sound_precache);
+		free(cl.sound_precache);
 		cl.sound_precache = next;
 	}
 }
@@ -1028,7 +1023,7 @@ void CL_ClearModelPrecaches(qboolean csqc)
 	while (cl.model_precache)
 	{
 		next = cl.model_precache->next;
-		BZ_Free(cl.model_precache);
+		free(cl.model_precache);
 		cl.model_precache = next;
 	}
 	if (csqc)
@@ -1036,7 +1031,7 @@ void CL_ClearModelPrecaches(qboolean csqc)
 		while (cl.model_csqcprecache)
 		{
 			next = cl.model_csqcprecache->next;
-			BZ_Free(cl.model_csqcprecache);
+			free(cl.model_csqcprecache);
 			cl.model_csqcprecache = next;
 		}
 	}
@@ -1049,7 +1044,7 @@ void CL_ClearSoundPrecaches()
 	while (cl.sound_precache)
 	{
 		next = cl.sound_precache->next;
-		BZ_Free(cl.sound_precache);
+		free(cl.sound_precache);
 		cl.sound_precache = next;
 	}
 }
@@ -1161,11 +1156,11 @@ precache_t *CL_AddModelPrecache(const char* name, precache_t *head, short timepe
 	while (precache->next)
 		precache = precache->next;
 
-	precache->next = BZ_Malloc(sizeof(precache_t));
+	precache->next = malloc(sizeof(precache_t));
 	memset(precache->next, 0, sizeof(precache_t));
 
-	Z_StrDupPtr(&precache->next->name, name);
-	Z_StrDupPtr(&precache->next->publicname, Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]));
+	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
+	Q_strncpy(precache->next->publicname, Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]), sizeof(precache->next->publicname));
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 	precache->next->data = Mod_ForName(Mod_FixName(name, cl.model_name[cl.worldmodel_indices[timeperiod]]), MLV_ERROR);
@@ -1205,12 +1200,14 @@ precache_t *CL_AddSoundPrecache(const char* name, precache_t *head, short int ti
 	while (precache->next)
 		precache = precache->next;
 
-	precache->next = BZ_Malloc(sizeof(precache_t));
+	precache->next = malloc(sizeof(precache_t));
 	memset(precache->next, 0, sizeof(precache_t));
 
 	precache->next->data = S_PrecacheSound(name);
-	precache->next->name = Z_StrDup(name);
-	precache->next->publicname = Z_StrDup(name);
+
+	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
+	Q_strncpy(precache->next->publicname, name, sizeof(precache->next->publicname));
+
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
 

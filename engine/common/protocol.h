@@ -542,7 +542,10 @@ enum clcq2_ops_e
 	//fte-extended
 	clcq2_stringcmd_seat = 30,
 #ifdef VOICECHAT
-	clcq2_voicechat = 31
+	clcq2_voicechat = 31,
+#endif
+#ifdef TEMPORALCORTEX
+	clcq2tc_timeperiod = 34,
 #endif
 };
 

@@ -9524,6 +9524,14 @@ nextseat:
 			break;
 #endif
 
+#ifdef TEMPORALCORTEX
+		case clcq2tc_timeperiod:
+			tc_sv_current_bsp_index = MSG_ReadShort();
+			if (ge)
+				ge->current_bsp_index = tc_sv_current_bsp_index;
+			break;
+#endif
+
 		case clcq2_bad:
 		case clcr1q2_setting:
 		case clcr1q2_multimoves:
