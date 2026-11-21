@@ -174,7 +174,7 @@ static void SV_SetTimePeriodForEnt_f()
 	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
 	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
 	int timeperiod = atoi(Cmd_Argv(3));
-	precache_t *model_precache = SV_FindPrecacheByIndex(mdlidx, sv.strings.model_precache);
+	precache_t *model_precache = SV_FindPrecacheByIndex(mdlidx, sv.model_precache);
 	struct edict_s *ent = EDICT_NUM_PB(svprogfuncs, entnum);
 
 	ent->bspnum = timeperiod;
@@ -2611,15 +2611,15 @@ static void SV_Status_f (void)
 		}
 		Con_TPrintf("entities         : %i/%i/%i (mem: %.1f%%)\n", count, sv.world.num_edicts, sv.world.max_edicts, 100.0*(sv.world.progs->stringtablesize/(double)sv.world.progs->stringtablemaxsize));
 #ifdef TEMPORALCORTEX
-		for (count = 1, model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next, count++)
+		for (count = 1, model_precache = sv.model_precache->next; model_precache; model_precache = model_precache->next, count++)
 			;
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
-		for (count = 1, sound_precache = sv.strings.sound_precache->next; sound_precache; sound_precache = sound_precache->next, count++)
+		for (count = 1, sound_precache = sv.sound_precache->next; sound_precache; sound_precache = sound_precache->next, count++)
 			;
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 #else
 		for (count = 1; count < MAX_PRECACHE_MODELS; count++)
-			if (!sv.strings.model_precache[count])
+			if (!sv.model_precache[count])
 				break;
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
 		for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
@@ -2628,9 +2628,15 @@ static void SV_Status_f (void)
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 #endif
 
+#ifdef TEMPORALCORTEX
+		for (count = 1; count < MAX_SSPARTICLESPRE; count++)
+			if (!sv.particle_precache[count])
+				break;
+#else
 		for (count = 1; count < MAX_SSPARTICLESPRE; count++)
 			if (!sv.strings.particle_precache[count])
 				break;
+#endif
 		if (count!=1)
 			Con_TPrintf("particles        : %i/%i\n", count, MAX_SSPARTICLESPRE);
 	}
@@ -3613,21 +3619,21 @@ void SV_PrecacheList_f(void)
 #ifdef TEMPORALCORTEX
 	if (!*group || !strncmp(group, "model", 5))
 	{
-		for (i = 0, precache = sv.strings.model_precache->next; precache; i++, precache = precache->next)
+		for (i = 0, precache = sv.model_precache->next; precache; i++, precache = precache->next)
 		{
 			Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, precache->name, Mod_FixName(precache->name, sv.modelname[precache->timeperiod]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))
 	{
-		for (i = 0, precache = sv.strings.sound_precache->next; precache; i++, precache = precache->next)
+		for (i = 0, precache = sv.sound_precache->next; precache; i++, precache = precache->next)
 		{
 			Con_Printf("sound %u: ^[%s\\playaudio\\%s^]\n", i, precache->name, precache->name);
 		}
 	}
 	if (!*group || !strncmp(group, "part", 4))
 	{
-		for (i = 0, part_precache = *sv.strings.particle_precache; part_precache; i++, part_precache++)
+		for (i = 0, part_precache = *sv.particle_precache; part_precache; i++, part_precache++)
 		{
 			Con_Printf("part  %u: %s\n", i, part_precache);
 		}
@@ -3637,8 +3643,8 @@ void SV_PrecacheList_f(void)
 	{
 		for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 		{
-			if (sv.strings.model_precache[i])
-				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[i], Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
+			if (sv.model_precache[i])
+				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.model_precache[i], Mod_FixName(sv.model_precache[i], sv.model_precache[1]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))

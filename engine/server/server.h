@@ -158,11 +158,7 @@ typedef struct server_s
 #ifdef HAVE_LEGACY
 			const char	*vw_model_precache[32];
 #endif
-#ifdef TEMPORALCORTEX
-			precache_t *model_precache;	// NULL terminated
-			const char	**particle_precache;	// NULL terminated
-			precache_t *sound_precache;	// NULL terminated
-#else
+#ifndef TEMPORALCORTEX
 			const char	*model_precache[MAX_PRECACHE_MODELS];	// NULL terminated
 			const char	*particle_precache[MAX_SSPARTICLESPRE];	// NULL terminated
 			const char	*sound_precache[MAX_PRECACHE_SOUNDS];	// NULL terminated
@@ -315,6 +311,12 @@ typedef struct server_s
 	svcustomtents_t customtents[255];
 
 	int		*csqcentversion;//prevents ent versions from going backwards
+
+#ifdef TEMPORALCORTEX
+	precache_t *model_precache;	// NULL terminated
+	const char	**particle_precache;	// NULL terminated
+	precache_t *sound_precache;	// NULL terminated
+#endif
 } server_t;
 void SV_WipeServerState(void);
 
@@ -1190,8 +1192,7 @@ short SV_NumSoundPrecaches();
 short SV_NumParticlePrecaches();
 precache_t *SV_FindPrecacheByName(const char* name, precache_t *head, short timeperiod);
 precache_t *SV_FindPrecacheByIndex(short index, precache_t *head);
-precache_t *SV_AddModelPrecache(const char* name, precache_t* head, short timeperiod);
-precache_t *SV_AddSoundPrecache(const char* name, precache_t* head, short timeperiod);
+precache_t *SV_AddPrecache(const char* name, precache_t* head, int type, short timeperiod);
 void SV_ClearStringPrecaches();
 void SV_InitStringPrecaches();
 #endif

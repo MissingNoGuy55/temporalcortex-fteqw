@@ -1739,7 +1739,7 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 		{
 			for (i = 1; i < MAX_PRECACHE_MODELS; i++)
 			{
-				model_precache = SV_FindPrecacheByIndex(i, sv.strings.model_precache);
+				model_precache = SV_FindPrecacheByIndex(i, sv.model_precache);
 
 				if (!model_precache)
 				{
@@ -1749,7 +1749,7 @@ TRACE(("dbg: R_ApplyRenderer: clearing world\n"));
 
 				if (!strcmp(model_precache->name + strlen(model_precache->name) - 4, ".bsp") || strchr(model_precache->name, '*'))
 				{
-					worldmodel_precache = SV_FindPrecacheByIndex(sv.world.worldmodel_indices[model_precache->timeperiod], sv.strings.model_precache);
+					worldmodel_precache = SV_FindPrecacheByIndex(sv.world.worldmodel_indices[model_precache->timeperiod], sv.model_precache);
 					sv.models[i] = Mod_FindName(Mod_FixName(model_precache->name, worldmodel_precache->name));
 				}
 //			ent = sv.world.edicts;
@@ -1975,12 +1975,12 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 					wmidx = i;
 #ifdef TEMPORALCORTEX
 				if (i == wmidx)
-					CL_AddModelPrecache(cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
+					CL_AddPrecache(cl.model_name[i], cl.model_precache, PRECACHE_MODEL, cl.model_time_periods[i], false);
 				else
 				{
 					Con_DPrintf("%s\n", Mod_FixName(cl.model_name[i], cl.model_name[cl.worldmodel_indices[cl.model_time_periods[i]]]));
 					// Missi: Come back to this later. Probably not correct (2026.6.17)
-					CL_AddModelPrecache(cl.model_name[i], cl.model_precache, cl.model_time_periods[i], false);
+					CL_AddPrecache(cl.model_name[i], cl.model_precache, PRECACHE_MODEL, cl.model_time_periods[i], false);
 				}
 #else
 #ifdef Q2CLIENT	//skip vweps
@@ -2023,7 +2023,7 @@ TRACE(("dbg: R_ApplyRenderer: starting on client state\n"));
 #endif
 				TRACE(("dbg: R_ApplyRenderer: reloading csqc model %s\n", cl.model_csqcname[i]));
 #ifdef TEMPORALCORTEX
-				CL_AddModelPrecache(cl.model_csqcname[i], cl.model_csqcprecache, tc_cl_current_bsp_index, true);
+				CL_AddPrecache(cl.model_csqcname[i], cl.model_csqcprecache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 #else
 				cl.model_csqcprecache[i] = Mod_ForName (Mod_FixName(cl.model_csqcname[i], cl.model_name[1]), MLV_SILENT);
 #endif

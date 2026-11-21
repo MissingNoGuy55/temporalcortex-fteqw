@@ -3359,15 +3359,15 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 #ifdef TEMPORALCORTEX
 	precache_t *model_precache;
 
-	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache; model_precache = model_precache->next, i++)
+	for (i = 1, model_precache = sv.model_precache->next; model_precache; model_precache = model_precache->next, i++)
 		if (!strcmp(model_precache->name, modelname))
 			break;
 	if (!model_precache)
 #else
-	for (i=1; sv.strings.model_precache[i] ; i++)
-		if (!strcmp(sv.strings.model_precache[i], modelname))
+	for (i=1; sv.model_precache[i] ; i++)
+		if (!strcmp(sv.model_precache[i], modelname))
 			break;
-	if (!sv.strings.model_precache[i])
+	if (!sv.model_precache[i])
 #endif
 	{
 		if (allowwarn)
@@ -3701,11 +3701,11 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 	{
 		char modname[MAX_QPATH];
 #ifdef TEMPORALCORTEX
-		model_precache = SV_FindPrecacheByIndex(state->modelindex, sv.strings.model_precache);
+		model_precache = SV_FindPrecacheByIndex(state->modelindex, sv.model_precache);
 
 		Q_strncpyz(modname, model_precache->name, sizeof(modname));
 #else
-		Q_strncpyz(modname, sv.strings.model_precache[state->modelindex], sizeof(modname));
+		Q_strncpyz(modname, sv.model_precache[state->modelindex], sizeof(modname));
 #endif
 		if (strlen(modname)>5)
 		{
@@ -3749,7 +3749,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 		if (progstype == PROG_TENEBRAE)
 		{
 #ifdef TEMPORALCORTEX
-			model_precache = SV_FindPrecacheByIndex(state->modelindex, sv.strings.model_precache);
+			model_precache = SV_FindPrecacheByIndex(state->modelindex, sv.model_precache);
 
 			//tenebrae has some hideous hacks
 			if (!strcmp(model_precache->name, "progs/w_light.spr") ||
@@ -3771,18 +3771,18 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 			}
 #else
 			//tenebrae has some hideous hacks
-			if (!strcmp(sv.strings.model_precache[state->modelindex], "progs/w_light.spr") ||
-				!strcmp(sv.strings.model_precache[state->modelindex], "progs/b_light.spr") ||
-				!strcmp(sv.strings.model_precache[state->modelindex], "progs/s_light.spr") ||
-				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame.mdl") ||
-				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame2.mdl"))
+			if (!strcmp(sv.model_precache[state->modelindex], "progs/w_light.spr") ||
+				!strcmp(sv.model_precache[state->modelindex], "progs/b_light.spr") ||
+				!strcmp(sv.model_precache[state->modelindex], "progs/s_light.spr") ||
+				!strcmp(sv.model_precache[state->modelindex], "progs/flame.mdl") ||
+				!strcmp(sv.model_precache[state->modelindex], "progs/flame2.mdl"))
 			{
 				//fixme: add some default colours
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				if (!state->light[3])
 					state->light[3] = 350;
 			}
-			if (!strcmp (sv.strings.model_precache[state->modelindex], "progs/lavaball.mdl"))
+			if (!strcmp (sv.model_precache[state->modelindex], "progs/lavaball.mdl"))
 			{
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				state->skinnum = 17;

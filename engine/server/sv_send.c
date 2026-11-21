@@ -1376,7 +1376,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 	else
 	{
 #ifdef TEMPORALCORTEX
-		sound_precache = SV_FindPrecacheByName(sample, sv.strings.sound_precache, ed->bspnum);
+		sound_precache = SV_FindPrecacheByName(sample, sv.sound_precache, ed->bspnum);
 
 		if (!sound_precache)
 			return;
@@ -1398,7 +1398,7 @@ void SV_StartSound (int ent, vec3_t origin, float *velocity, int seenmask, int c
 				Con_Printf("WARNING: SV_StartSound: sound %s not precached\n", sample);
 				//late precache it. use multicast to ensure that its sent NOW (and to all). normal reliables would mean it would arrive after the svc_sound
 #ifdef TEMPORALCORTEX
-				SV_AddSoundPrecache(PR_AddString(svprogfuncs, sample, 0, false), sv.strings.sound_precache, tc_sv_current_bsp_index);
+				SV_AddPrecache(PR_AddString(svprogfuncs, sample, 0, false), sv.sound_precache, PRECACHE_SOUND, tc_sv_current_bsp_index);
 #else
 				sv.strings.sound_precache[ctx.sampleidx] = PR_AddString(svprogfuncs, sample, 0, false);
 #endif
@@ -1605,10 +1605,10 @@ void SV_FindModelNumbers (void)
 #ifdef TEMPORALCORTEX
 	precache_t *model_precache;
 
-	if (!sv.strings.model_precache)
+	if (!sv.model_precache)
 		return;
 
-	for (i = 1, model_precache = sv.strings.model_precache->next; model_precache ; model_precache = model_precache->next, i++)
+	for (i = 1, model_precache = sv.model_precache->next; model_precache ; model_precache = model_precache->next, i++)
 	{
 		if (!strcmp(model_precache->name,"progs/spike.mdl") && sv.multicast.prim.coordtype == COORDTYPE_FIXED_13_3)
 			sv_nailmodel = i;

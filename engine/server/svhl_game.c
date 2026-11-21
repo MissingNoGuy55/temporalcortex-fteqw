@@ -71,14 +71,14 @@ int QDECL GHL_PrecacheModel(const char *name)
 
 	for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 	{
-		if (!sv.strings.model_precache[i])
+		if (!sv.model_precache[i])
 		{
 			if (strlen(name)>=MAX_QPATH-1)	//probably safest to keep this.
 			{
 				SV_Error ("Precache name too long");
 				return 0;
 			}
-			name = sv.strings.model_precache[i] = SVHL_Globals.stringbase+GHL_AllocString(name);
+			name = sv.model_precache[i] = SVHL_Globals.stringbase+GHL_AllocString(name);
 
 			if (!strcmp(name + strlen(name) - 4, ".bsp"))
 				sv.models[i] = Mod_FindName(name);
@@ -104,7 +104,7 @@ int QDECL GHL_PrecacheModel(const char *name)
 
 			return i;
 		}
-		if (!strcmp(sv.strings.model_precache[i], name))
+		if (!strcmp(sv.model_precache[i], name))
 		{
 			return i;
 		}
@@ -170,7 +170,7 @@ void QDECL GHL_SetModel(hledict_t *ed, char *modelname)
 	int mdlidx = GHL_PrecacheModel(modelname);
 	bi_trace();
 	ed->v.modelindex = mdlidx;
-	ed->v.model = sv.strings.model_precache[mdlidx] - SVHL_Globals.stringbase;
+	ed->v.model = sv.model_precache[mdlidx] - SVHL_Globals.stringbase;
 
 	mod = sv.models[mdlidx];
 	if (mod)
@@ -1015,7 +1015,7 @@ void *QDECL GHL_GetModelPtr(hledict_t *ed)
 	if (!ed->v.modelindex)
 		return NULL;
 	if (!sv.models[ed->v.modelindex])
-		sv.models[ed->v.modelindex] = Mod_ForName(sv.strings.model_precache[ed->v.modelindex], false);
+		sv.models[ed->v.modelindex] = Mod_ForName(sv.model_precache[ed->v.modelindex], false);
 	return Mod_GetHalfLifeModelData(sv.models[ed->v.modelindex]);
 #endif
 }
@@ -1902,15 +1902,15 @@ void SVHL_SpawnEntities(char *entstring)
 	sv.allocated_client_slots = i;
 
 	//precache the inline models (and touch them).
-	sv.strings.model_precache[0] = "";
-	sv.strings.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
+	sv.model_precache[0] = "";
+	sv.model_precache[1] = sv.modelname;	//the qvm doesn't have access to this array
 	for (i=1 ; i<sv.world.worldmodel[tc_sv_current_bsp_index]->numsubmodels ; i++)
 	{
 		const char *s = va("*%i", i);
 		char *n;
 		n = ZG_Malloc(&hlmapmemgroup, strlen(s)+1);
 		strcpy(n, s);
-		sv.strings.model_precache[1+i] = n;
+		sv.model_precache[1+i] = n;
 		sv.models[i+1] = Mod_ForName (Mod_FixName(n, sv.modelname), false);
 	}
 

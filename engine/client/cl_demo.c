@@ -3300,7 +3300,7 @@ void CL_Record_f (void)
 		n = 0;
 		precache = cl.sound_precache->next;
 
-		while (precache && precache->name && *precache->name)
+		while (precache && precache->name[0] && *precache->name)
 		{
 			MSG_WriteString (&buf, precache->name);
 			MSG_WriteShort (&buf, precache->timeperiod);
@@ -3340,7 +3340,7 @@ void CL_Record_f (void)
 		n = 0;
 		precache = cl.model_precache->next;
 
-		while (precache && precache->name && *precache->name)
+		while (precache && precache->name[0] && *precache->name)
 		{
 			MSG_WriteString (&buf, precache->name);
 			MSG_WriteShort (&buf, precache->timeperiod);

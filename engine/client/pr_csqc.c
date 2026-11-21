@@ -760,7 +760,7 @@ static model_t *CSQC_GetModelForIndex(int index)
 		model_precache = CSQC_FindPrecacheByModelIndex(-index, cl.model_csqcprecache);
 
 		if (!model_precache)
-			model_precache = CL_AddModelPrecache(cl.model_csqcname[-index], cl.model_csqcprecache, tc_cl_current_bsp_index, true);
+			model_precache = CL_AddPrecache(cl.model_csqcname[-index], cl.model_csqcprecache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 		return model_precache->data;
 	}
 	else
@@ -3229,10 +3229,10 @@ static model_t *csqc_setmodel(pubprogfuncs_t *prinst, csqcedict_t *ent, int mode
 			return NULL;
 		prinst->SetStringField(prinst, (void*)ent, &ent->v->model, cl.model_csqcname[-modelindex], true);
 #ifdef TEMPORALCORTEX
-		model_precache = CL_AddModelPrecache(cl.model_csqcname[-modelindex], cl.model_csqcprecache, tc_cl_current_bsp_index, true);
+		model_precache = CL_AddPrecache(cl.model_csqcname[-modelindex], cl.model_csqcprecache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 
 		if (!model_precache)
-			CL_AddModelPrecache(cl.model_csqcname[-modelindex], cl.model_precache, tc_cl_current_bsp_index, true);
+			CL_AddPrecache(cl.model_csqcname[-modelindex], cl.model_precache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 
 		model = CSQC_GetModelForIndex(-modelindex);
 #else
@@ -3349,7 +3349,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 			break;
 		if (!strcmp(cl.model_name[i], modelname))
 		{
-			CL_AddModelPrecache(modelname, cl.model_precache, tc_cl_current_bsp_index, true);
+			CL_AddPrecache(modelname, cl.model_precache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 			break;
 		}
 	}
@@ -3387,7 +3387,7 @@ static int PF_cs_PrecacheModel_Internal(pubprogfuncs_t *prinst, const char *mode
 
 		CL_CheckOrEnqueDownloadFile(modelname, modelname, 0);
 #ifdef TEMPORALCORTEX
-		CL_AddModelPrecache(fixedname, cl.model_csqcprecache, tc_cl_current_bsp_index, true);
+		CL_AddPrecache(fixedname, cl.model_csqcprecache, PRECACHE_MODEL, tc_cl_current_bsp_index, true);
 #else
 		cl.model_csqcprecache[-freei] = Mod_ForName(fixedname, MLV_WARN);
 #endif
