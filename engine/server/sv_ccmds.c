@@ -3876,18 +3876,64 @@ void SV_ChangeTimePeriod_f()
 	const char *arg2 = Cmd_Argv(2);
 	int i, bspnum, pnum;
 	char printstring[256];
-	const char *suffix;
+	const char *timeperiod;
+	const char* timeperiod_suffix;
 	trace_t tr;
 	cvar_t *cvar;
 	qboolean stuck = false;
 
-	if (!arg)
+	if (!arg || !arg2)
 	{
 		Con_Printf("changetimeperiod usage: \"changetimeperiod [time period index]\"\n");
 		return;
 	}
 
 	bspnum = Q_atoi(arg);
+
+	// Missi: HACK: Prevent time travel in Airship with a special message, but also check the gamedir
+	// so we don't mess with mods (2026.11.21)
+	if (!Q_strncmp(InfoBuf_ValueForKey(&svs.info, "*gamedir"), "temporalcortex", 14) && !Q_strncmp(InfoBuf_ValueForKey(&svs.info, "map"), "airship", 7))
+	{
+		switch(bspnum)
+		{
+			case TIME_PERIOD_PRESENT:
+				timeperiod = "present";
+				break;
+			case TIME_PERIOD_PAST:
+				timeperiod = "past";
+				break;
+			case TIME_PERIOD_FUTURE:
+				timeperiod = "future";
+				break;
+			default:
+				timeperiod = "unknown";
+				break;
+		}
+		switch(tc_sv_current_bsp_index)
+		{
+			case TIME_PERIOD_PRESENT:
+				timeperiod_suffix = "melancholy";
+				break;
+			case TIME_PERIOD_PAST:
+				timeperiod_suffix = "strange";
+				break;
+			case TIME_PERIOD_FUTURE:
+				timeperiod_suffix = "wretched";
+				break;
+			default:
+				timeperiod_suffix = "unknown";
+				break;
+		}
+
+		snprintf(printstring, sizeof(printstring), "The constantly-changing terrain makes imagining a %s difficult for this %s place.\n", timeperiod, timeperiod_suffix);
+		for (i = 0; i < svs.allocated_client_slots; i++)
+#ifdef HAVE_CLIENT
+			SCR_CenterPrint(i, printstring, true);
+#elif defined(HAVE_SERVER)
+		Con_Printf(printstring);
+#endif
+		return;
+	}
 
 	if (bspnum < TIME_PERIOD_PRESENT || bspnum >= MAX_TIME_PERIODS)
 	{
@@ -3915,43 +3961,41 @@ void SV_ChangeTimePeriod_f()
 
 	if (!sv.world.worldmodel[bspnum])
 	{
-		const char* suffix_postfix = NULL;
-
 		switch(bspnum)
 		{
 			case TIME_PERIOD_PRESENT:
-				suffix = "present";
+				timeperiod = "present";
 				break;
 			case TIME_PERIOD_PAST:
-				suffix = "past";
+				timeperiod = "past";
 				break;
 			case TIME_PERIOD_FUTURE:
-				suffix = "future";
+				timeperiod = "future";
 				break;
 			default:
-				suffix = "unknown";
+				timeperiod = "unknown";
 				break;
 		}
 		switch(tc_sv_current_bsp_index)
 		{
 			case TIME_PERIOD_PRESENT:
-				suffix_postfix = "melancholy";
+				timeperiod_suffix = "melancholy";
 				break;
 			case TIME_PERIOD_PAST:
-				suffix_postfix = "strange";
+				timeperiod_suffix = "strange";
 				break;
 			case TIME_PERIOD_FUTURE:
-				suffix_postfix = "wretched";
+				timeperiod_suffix = "wretched";
 				break;
 			default:
-				suffix_postfix = "unknown";
+				timeperiod_suffix = "unknown";
 				break;
 		}
 
 		if (svs.allocated_client_slots == 1)
-			snprintf(printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", suffix, suffix_postfix);
+			snprintf(printstring, sizeof(printstring), CON_WARNING "You struggle to comperehend a %s for this %s place.", timeperiod, timeperiod_suffix);
 		else
-			snprintf(printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", suffix, suffix_postfix);
+			snprintf(printstring, sizeof(printstring), CON_WARNING "Everyone in the server struggles to comprehend a %s for this %s place.", timeperiod, timeperiod_suffix);
 
 		for (i = 0; i < svs.allocated_client_slots; i++)
 #ifdef HAVE_CLIENT
@@ -3978,25 +4022,23 @@ void SV_ChangeTimePeriod_f()
 			switch(bspnum)
 			{
 				case TIME_PERIOD_PRESENT:
-					suffix = "present";
+					timeperiod = "present";
 					break;
 				case TIME_PERIOD_PAST:
-					suffix = "past";
+					timeperiod = "past";
 					break;
 				case TIME_PERIOD_FUTURE:
-					suffix = "future";
+					timeperiod = "future";
 					break;
 				default:
-					suffix = "unknown";
+					timeperiod = "unknown";
 					break;
 			}
 
 			if (svs.allocated_client_slots == 1)
-				snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", suffix);
+				snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", timeperiod);
 			else
-				snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, suffix);
-
-			//Con_Printf("%s\n", printstring);
+				snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, timeperiod);
 
 			stuck = true;
 		}
