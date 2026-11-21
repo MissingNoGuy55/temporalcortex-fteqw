@@ -1590,9 +1590,6 @@ MSV_OpenUserDatabase();
 
 	SV_InitStringPrecaches();
 
-	// SV_AddPrecache("", sv.strings.model_precache, TIME_PERIOD_PRESENT);
-	// SV_AddPrecache("", sv.strings.sound_precache, TIME_PERIOD_PRESENT);
-
 	for (t = 0; t < MAX_TIME_PERIODS; t++)
 		sv.world.worldmodel_indices[t] = 0;
 
@@ -1700,11 +1697,11 @@ MSV_OpenUserDatabase();
 
 			// Missi: These casts are needed to prevent memory corruption from storing different-sized
 			// types. Do not be deceived, this appears valid without the casts, but it really causes issues (2026.11.17)
-			sv.world.worldmodel_indices[t] = ((short)tc_sv_loaded_bsps+t);
-			sv.world.model_time_periods[tc_sv_loaded_bsps+t] = ((short)t);
+			sv.world.worldmodel_indices[t] = ((short)j);
+			sv.world.model_time_periods[j] = ((short)t);
 
 			// Missi: The world(s) get special treatment (2026.11.19)
-			sv.strings.configstring[((int)Q2CS_MODELS+tc_sv_loaded_bsps+t)] = Z_StrDup(sv.modelname[t]);
+			sv.strings.configstring[Q2CS_MODELS+j] = Z_StrDup(sv.modelname[t]);
 
 			model_precache = SV_AddModelPrecache(sv.modelname[t], sv.strings.model_precache, t);
 

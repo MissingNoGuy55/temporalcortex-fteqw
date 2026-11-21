@@ -1265,11 +1265,10 @@ precache_t *SV_AddModelPrecache(const char* name, precache_t *head, short timepe
 {
 	int i;
 	precache_t* precache = head;
-	model_t *mod;
 
 	if (!precache)
 	{
-		Host_EndGame("SV_AddPrecache: NULL head\n");
+		Host_EndGame("SV_AddModelPrecache: NULL head\n");
 		return NULL;
 	}
 
@@ -1281,7 +1280,7 @@ precache_t *SV_AddModelPrecache(const char* name, precache_t *head, short timepe
 	{
 		if (i == MAX_PRECACHE_MODELS)
 		{
-			Host_EndGame("SV_AddPrecache: i == MAX_PRECACHE_MODELS\n");
+			Host_EndGame("SV_AddModelPrecache: i == MAX_PRECACHE_MODELS\n");
 			return NULL;
 		}
 	}
@@ -1298,11 +1297,11 @@ precache_t *SV_AddModelPrecache(const char* name, precache_t *head, short timepe
 	Q_strncpy(precache->next->publicname, Mod_FixName(name, sv.modelname[timeperiod]), sizeof(precache->next->publicname));
 	precache->next->index = i;
 	precache->next->timeperiod = timeperiod;
-	precache->next->data = mod = Mod_ForName(precache->next->publicname, MLV_ERROR);
+	precache->next->data = Mod_ForName(precache->next->publicname, MLV_ERROR);
 
 	precache->next->next = NULL;
 
-	if (mod)
+	if (precache->next->data)
 		Con_DPrintf(S_COLOR_GREEN "[TEMPORAL CORTEX] [SV] Precached model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);
 	else
 		Con_DPrintf(S_COLOR_RED "[TEMPORAL CORTEX] [SV] Failed to precache model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);
@@ -1313,8 +1312,13 @@ precache_t *SV_AddModelPrecache(const char* name, precache_t *head, short timepe
 precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timeperiod)
 {
 	int i;
-	precache_t* precache;
-	sfx_t *sfx;
+	precache_t* precache = head;
+
+	if (!precache)
+	{
+		Host_EndGame("SV_AddSoundPrecache: NULL head\n");
+		return NULL;
+	}
 
 	precache = SV_FindPrecacheByName(name, head, timeperiod);
 	if (precache)
@@ -1324,7 +1328,7 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 	{
 		if (i == MAX_PRECACHE_SOUNDS)
 		{
-			Host_EndGame("SV_AddPrecache: i == MAX_PRECACHE_SOUNDS\n");
+			Host_EndGame("SV_AddSoundPrecache: i == MAX_PRECACHE_SOUNDS\n");
 			return NULL;
 		}
 	}
@@ -1336,19 +1340,17 @@ precache_t *SV_AddSoundPrecache(const char* name, precache_t *head, short timepe
 	precache->next = malloc(sizeof(precache_t));
 	memset(precache->next, 0, sizeof(precache_t));
 
+	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
+	Q_strncpy(precache->next->publicname, name, sizeof(precache->next->publicname));
+	precache->next->index = i;
+	precache->next->timeperiod = timeperiod;
 #ifdef SERVERONLY
 	precache->next->data = NULL;
 #else
 	precache->next->data = S_PrecacheSound(name);
 #endif
-	Q_strncpy(precache->next->name, name, sizeof(precache->next->name));
-	Q_strncpy(precache->next->publicname, name, sizeof(precache->next->publicname));
-	precache->next->index = i;
-	precache->next->timeperiod = timeperiod;
 
-	sfx = precache->next->data;
-
-	if (sfx)
+	if (precache->next->data)
 		Con_DPrintf( S_COLOR_GREEN "[TEMPORAL CORTEX] [SV] Precached sound \"%s\" with time period %d\n", name, timeperiod );
 #ifndef SERVERONLY
 	else
@@ -1366,15 +1368,21 @@ void SV_InitStringPrecaches()
 	sv.strings.sound_precache = malloc(sizeof(precache_t));
 	sv.strings.particle_precache = malloc(sizeof(const char*) * MAX_SSPARTICLESPRE);
 
-	memset(sv.strings.model_precache, 0, sizeof(sizeof(precache_t)));
-	memset(sv.strings.sound_precache, 0, sizeof(sizeof(precache_t)));
-	memset(sv.strings.particle_precache, 0, sizeof(const char*) * MAX_SSPARTICLESPRE);
+	for (int i = 0; i < MAX_SSPARTICLESPRE; i++)
+		sv.strings.particle_precache[i] = NULL;
 
+	memset(sv.strings.model_precache, 0, sizeof(precache_t));
+	memset(sv.strings.sound_precache, 0, sizeof(precache_t));
+
+	sv.strings.model_precache->name[0] = '\0';
+	sv.strings.model_precache->publicname[0] = '\0';
 	sv.strings.model_precache->index = 0;
 	sv.strings.model_precache->timeperiod = 0;
 	sv.strings.model_precache->data = Mod_ForName("", MLV_WARN);
 	sv.strings.model_precache->next = NULL;
 
+	sv.strings.sound_precache->name[0] = '\0';
+	sv.strings.sound_precache->publicname[0] = '\0';
 	sv.strings.sound_precache->index = 0;
 	sv.strings.sound_precache->timeperiod = 0;
 	sv.strings.sound_precache->data = NULL;
@@ -1389,23 +1397,37 @@ void SV_ClearStringPrecaches()
 	{
 		while (sv.strings.model_precache)
 		{
-			temp = sv.strings.model_precache->next;
-			free(sv.strings.model_precache);
-			sv.strings.model_precache = temp;
+			if (sv.strings.model_precache->next)
+			{
+				temp = sv.strings.model_precache->next;
+				Mod_PurgeModel(sv.strings.model_precache->data, MP_MAPCHANGED);
+				free(sv.strings.model_precache);
+				sv.strings.model_precache = temp;
+			}
+			else
+			{
+				free(sv.strings.model_precache);
+				sv.strings.model_precache = NULL;
+			}
 		}
-
-		sv.strings.model_precache = NULL;
 	}
 	if (sv.strings.sound_precache)
 	{
 		while (sv.strings.sound_precache)
 		{
-			temp = sv.strings.sound_precache->next;
-			free(sv.strings.sound_precache);
-			sv.strings.sound_precache = temp;
-		}
+			if (sv.strings.sound_precache->next)
+			{
+				temp = sv.strings.sound_precache->next;
 
-		sv.strings.sound_precache = NULL;
+				free(sv.strings.sound_precache);
+				sv.strings.sound_precache = temp;
+			}
+			else
+			{
+				free(sv.strings.sound_precache);
+				sv.strings.sound_precache = NULL;
+			}
+		}
 	}
 	if (sv.strings.particle_precache)
 	{
