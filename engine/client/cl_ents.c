@@ -4654,7 +4654,6 @@ void CL_LinkPacketEntities (void)
 		else
 			model2 = NULL;
 
-
 		if (r_ignoreentpvs.ival || !model)
 		{
 			ent->pvscache.num_leafs = 0;

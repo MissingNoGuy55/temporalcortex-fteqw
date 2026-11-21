@@ -3808,9 +3808,6 @@ void SV_ChangeTimePeriod( int bspindex )
 		}
 
 		track = q2WorldEdict->s.sound;
-
-		if (ge)
-			ge->current_bsp_index = bspindex;
 	}
 #endif
 	else

@@ -2242,7 +2242,7 @@ MSV_OpenUserDatabase();
 			break;
 #ifdef Q2SERVER
 		case GT_QUAKE2:
-			ge->SpawnEntities(svs.name, file, startspot?startspot:"", t-o);
+			ge->SpawnEntities(svs.name, file, startspot?startspot:"", t-o, t);
 			break;
 #endif
 		case GT_QUAKE3:

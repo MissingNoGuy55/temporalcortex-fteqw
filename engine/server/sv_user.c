@@ -9531,8 +9531,12 @@ nextseat:
 #ifdef TEMPORALCORTEX
 		case clcq2tc_timeperiod:
 			tc_sv_current_bsp_index = MSG_ReadShort();
+#ifdef Q2SERVER
 			if (ge)
+			{
 				ge->current_bsp_index = tc_sv_current_bsp_index;
+			}
+#endif
 			break;
 #endif
 

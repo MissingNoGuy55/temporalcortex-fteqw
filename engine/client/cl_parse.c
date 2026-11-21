@@ -9615,6 +9615,8 @@ isillegible:
 
 				CSQC_TC_ChangeLevelName(cl.levelname);
 
+				tc_cl_pvscache_dirty = true;
+
 				MSG_WriteByte (&cls.netchan.message, clcq2tc_timeperiod);
 				MSG_WriteShort (&cls.netchan.message, bspindex);
 				break;

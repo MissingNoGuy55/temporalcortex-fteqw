@@ -33,6 +33,8 @@ extern short tc_cl_current_bsp_index;
 
 extern short tc_cl_current_mus_index;
 
+extern int tc_cl_pvscache_dirty;
+
 #endif
 
 #endif

@@ -2861,6 +2861,14 @@ static void CLQ2_AddPacketEntities (q2frame_t *frame)
 			}
 		}
 
+#ifdef TEMPORALCORTEX
+		if (tc_cl_pvscache_dirty)
+		{
+			memset(&ent.pvscache, 0, sizeof(ent.pvscache));
+			tc_cl_pvscache_dirty = false;
+		}
+#endif
+
 		VectorCopy (ent.origin, cent->lerp_origin);
 	}
 }
