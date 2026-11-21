@@ -1115,11 +1115,10 @@ precache_t *CL_FindPrecacheBySoundIndex(short soundindex, precache_t *head)
 	return NULL;
 }
 
-precache_t *CL_AddPrecache(const char* name, precache_t *head, int type, short timeperiod, qboolean csqc)
+precache_t *CL_AddPrecache(const char* name, precache_t *head, enum precache_e type, short timeperiod, qboolean csqc)
 {
 	int i;
 	precache_t* precache = head;
-	model_t *mod;
 	extern world_t csqc_world;
 
 	if (!precache)
@@ -1182,7 +1181,7 @@ precache_t *CL_AddPrecache(const char* name, precache_t *head, int type, short t
 
 	precache->next->next = NULL;
 
-	if (mod)
+	if (precache->next->data)
 		Con_DPrintf(S_COLOR_GREEN "[TEMPORAL CORTEX] [CL] Precached model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);
 	else
 		Con_DPrintf(S_COLOR_RED "[TEMPORAL CORTEX] [CL] Failed to precache model \"%s\" with time period %d; public name \"%s\"\n", precache->next->name, timeperiod, precache->next->publicname);

@@ -1261,7 +1261,7 @@ precache_t *SV_FindPrecacheByIndex(short index, precache_t *head)
 	return NULL;
 }
 
-precache_t *SV_AddPrecache(const char* name, precache_t *head, int type, short timeperiod)
+precache_t *SV_AddPrecache(const char* name, precache_t *head, enum precache_e type, short timeperiod)
 {
 	int i;
 	precache_t* precache = head;
@@ -1298,6 +1298,8 @@ precache_t *SV_AddPrecache(const char* name, precache_t *head, int type, short t
 				}
 				break;
 			}
+			default:
+				break;
 		}
 	}
 

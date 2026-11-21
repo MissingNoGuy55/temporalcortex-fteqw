@@ -1192,7 +1192,7 @@ short SV_NumSoundPrecaches();
 short SV_NumParticlePrecaches();
 precache_t *SV_FindPrecacheByName(const char* name, precache_t *head, short timeperiod);
 precache_t *SV_FindPrecacheByIndex(short index, precache_t *head);
-precache_t *SV_AddPrecache(const char* name, precache_t* head, int type, short timeperiod);
+precache_t *SV_AddPrecache(const char* name, precache_t* head, enum precache_e type, short timeperiod);
 void SV_ClearStringPrecaches();
 void SV_InitStringPrecaches();
 #endif

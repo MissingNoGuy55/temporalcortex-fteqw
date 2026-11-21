@@ -1230,7 +1230,7 @@ short CL_NumModelPrecaches();
 short CL_NumSoundPrecaches();
 precache_t *CL_FindPrecacheByModelName(const char* name, precache_t *head);
 precache_t *CL_FindPrecacheByIndex(short modelindex, precache_t *head);
-precache_t *CL_AddPrecache(const char* name, precache_t *head, int type, short timeperiod, qboolean csqc);
+precache_t *CL_AddPrecache(const char* name, precache_t *head, enum precache_e type, short timeperiod, qboolean csqc);
 #define CSQC_FindPrecacheByModelIndex CL_FindPrecacheByIndex
 #define CSQC_FindPrecacheByModelName CL_FindPrecacheByModelName
 #endif

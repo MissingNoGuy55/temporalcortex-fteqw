@@ -1192,13 +1192,13 @@ STAT_MOVEVARS_AIRACCEL_SIDEWAYS_FRICTION	= 255, // DP
 		struct precache_s* next;
 	} precache_t;
 
-	typedef enum
+	enum precache_e
 	{
 		PRECACHE_MODEL,
 		PRECACHE_SOUND,
 		PRECACHE_PARTICLE,
 		PRECACHE_MAX
-	} precache_e;
+	};
 #endif
 
 #if 0 //fuck sake, just build it in an older chroot.
