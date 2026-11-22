@@ -208,7 +208,11 @@ pbool PDECL SV_ExtendedSaveData(pubprogfuncs_t *progfuncs, void *loadctx, const 
 #endif
 			return false;	//unsupported index.
 		l = COM_ParseTokenOut(l, NULL, token, sizeof(token), &tt);if (tt != TTP_STRING)return false;
+#ifdef TEMPORALCORTEX
 		sv.particle_precache[idx] = PR_AddString(svprogfuncs, token, 0, false);
+#else
+		sv.strings.particle_precache[idx] = PR_AddString(svprogfuncs, token, 0, false);
+#endif
 	}
 	else if (!strcmp(token, "serverflags"))
 	{	//serverflags N  (for map_restart to work properly)
@@ -1347,6 +1351,9 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 				VFS_PRINTF (f, "model %i %s %i\n", model_precache->index, COM_QuotedString(model_precache->name, buf, sizeof(buf), false), model_precache->timeperiod);
 			for (sound_precache = sv.sound_precache->next; sound_precache; sound_precache = sound_precache->next)
 				VFS_PRINTF (f, "sound %i %s %i \n", sound_precache->index, COM_QuotedString(sound_precache->name, buf, sizeof(buf), false), sound_precache->timeperiod);
+			for (i=1 ; i<MAX_SSPARTICLESPRE ; i++)
+				if (sv.particle_precache[i] && *sv.particle_precache[i])
+					VFS_PRINTF (f, "particle %i %s\n", i, COM_QuotedString(sv.particle_precache[i], buf, sizeof(buf), false));
 #else
 			for (i=1 ; i<MAX_PRECACHE_MODELS ; i++)
 				if (sv.strings.model_precache[i] && *sv.strings.model_precache[i])
@@ -1354,10 +1361,10 @@ void SV_SaveLevelCache(const char *savedir, qboolean dontharmgame)
 			for (i=1 ; i<MAX_PRECACHE_SOUNDS ; i++)
 				if (sv.strings.sound_precache[i] && *sv.strings.sound_precache[i])
 					VFS_PRINTF (f, "sound %i %s\n", i, COM_QuotedString(sv.strings.sound_precache[i], buf, sizeof(buf), false));
-#endif
 			for (i=1 ; i<MAX_SSPARTICLESPRE ; i++)
-				if (sv.particle_precache[i] && *sv.particle_precache[i])
-					VFS_PRINTF (f, "particle %i %s\n", i, COM_QuotedString(sv.particle_precache[i], buf, sizeof(buf), false));
+				if (sv.strings.particle_precache[i] && *sv.strings.particle_precache[i])
+					VFS_PRINTF (f, "particle %i %s\n", i, COM_QuotedString(sv.strings.particle_precache[i], buf, sizeof(buf), false));
+			#endif
 #ifdef HAVE_LEGACY
 			for (i = 0; i < sizeof(sv.strings.vw_model_precache)/sizeof(sv.strings.vw_model_precache[0]); i++)
 				if (sv.strings.vw_model_precache[i])

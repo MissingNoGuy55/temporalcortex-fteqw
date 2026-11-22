@@ -719,7 +719,7 @@ void SVNQ_New_f (void)
 			if (!host_client->supportedprotocols && !host_client->fteprotocolextensions && !host_client->fteprotocolextensions2)
 			{
 #ifndef TEMPORALCORTEX
-				for (modelcount = 1; modelcount < MAX_PRECACHE_MODELS && sv.model_precache[modelcount]; modelcount++)
+				for (modelcount = 1; modelcount < MAX_PRECACHE_MODELS && sv.strings.model_precache[modelcount]; modelcount++)
 					;
 				for (soundcount = 1; soundcount < MAX_PRECACHE_SOUNDS && sv.strings.sound_precache[soundcount]; soundcount++)
 					;
@@ -906,8 +906,8 @@ void SVNQ_New_f (void)
 			MSG_WriteString (&host_client->netchan.message, model_precache->name);
 		}
 #else
-		if (sv.model_precache[1])
-			MSG_WriteString (&host_client->netchan.message, sv.model_precache[1]);
+		if (sv.strings.model_precache[1])
+			MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[1]);
 #endif
 		MSG_WriteByte (&host_client->netchan.message, 0);	//models. worldmodel only.
 		MSG_WriteByte (&host_client->netchan.message, 0);	//sounds. none at all.
@@ -932,8 +932,8 @@ void SVNQ_New_f (void)
 		MSG_WriteByte (&host_client->netchan.message, 0);
 #else
 		//fixme: don't send too many models.
-		for (i = 1; sv.model_precache[i] ; i++)
-			MSG_WriteString (&host_client->netchan.message, sv.model_precache[i]);
+		for (i = 1; sv.strings.model_precache[i] ; i++)
+			MSG_WriteString (&host_client->netchan.message, sv.strings.model_precache[i]);
 		MSG_WriteByte (&host_client->netchan.message, 0);
 
 		//fixme: don't send too many sounds.
@@ -1863,14 +1863,14 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				client->prespawn_idx++;
 
-				if (client->prespawn_idx >= client->maxmodels || !sv.model_precache[client->prespawn_idx])
+				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
 				{
 					//write final-end-of-list
 					MSG_WriteByte (&client->netchan.message, 0);
 					MSG_WriteByte (&client->netchan.message, 0);
 					started = 0;
 
-					if (sv.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1881,7 +1881,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 					break;
 				}
 				else
-					MSG_WriteString (&client->netchan.message, sv.model_precache[client->prespawn_idx]);
+					MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
 			}
 			if (started)
 			{
@@ -1896,9 +1896,9 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				client->prespawn_idx = 1;
 			while (client->netchan.message.cursize < maxsize)
 			{
-				if (client->prespawn_idx >= client->maxmodels || !sv.model_precache[client->prespawn_idx])
+				if (client->prespawn_idx >= client->maxmodels || !sv.strings.model_precache[client->prespawn_idx])
 				{
-					if (sv.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
+					if (sv.strings.model_precache[client->prespawn_idx] && !(client->plimitwarned & PLIMIT_MODELS))
 					{
 						client->plimitwarned |= PLIMIT_MODELS;
 						SV_ClientPrintf(client, PRINT_HIGH, "WARNING: Your client's network protocol only supports %i models. Please upgrade or enable extensions.\n", client->prespawn_idx);
@@ -1910,7 +1910,7 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				}
 				MSG_WriteByte (&client->netchan.message, svcdp_precache);
 				MSG_WriteShort(&client->netchan.message, client->prespawn_idx);
-				MSG_WriteString (&client->netchan.message, sv.model_precache[client->prespawn_idx]);
+				MSG_WriteString (&client->netchan.message, sv.strings.model_precache[client->prespawn_idx]);
 				client->prespawn_idx++;
 			}
 		}
@@ -1948,15 +1948,19 @@ void SV_SendClientPrespawnInfo(client_t *client)
 				break;
 			}
 
+#ifdef TEMPORALCORTEX
 			if (sv.particle_precache[client->prespawn_idx])
 			{
-#ifdef TEMPORALCORTEX
 				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 6 + strlen(sv.particle_precache[client->prespawn_idx]));
-#else
-				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 4 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
-#endif
 				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
 				ClientReliableWrite_String (client, sv.particle_precache[client->prespawn_idx]);
+#else
+			if (sv.strings.particle_precache[client->prespawn_idx])
+			{
+				ClientReliableWrite_Begin (client, ISNQCLIENT(client)?svcdp_precache:svcfte_precache, 4 + strlen(sv.strings.particle_precache[client->prespawn_idx]));
+				ClientReliableWrite_Short (client, client->prespawn_idx | PC_PARTICLE);
+				ClientReliableWrite_String (client, sv.strings.particle_precache[client->prespawn_idx]);
+#endif
 #ifdef TEMPORALCORTEX
 				ClientReliableWrite_Short(client, sv.world.model_time_periods[client->prespawn_idx]);
 #endif

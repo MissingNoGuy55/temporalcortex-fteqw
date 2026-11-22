@@ -3364,10 +3364,10 @@ void SV_GibFilterAdd(char *modelname, int min, int max, qboolean allowwarn)
 			break;
 	if (!model_precache)
 #else
-	for (i=1; sv.model_precache[i] ; i++)
-		if (!strcmp(sv.model_precache[i], modelname))
+	for (i=1; sv.strings.model_precache[i] ; i++)
+		if (!strcmp(sv.strings.model_precache[i], modelname))
 			break;
-	if (!sv.model_precache[i])
+	if (!sv.strings.model_precache[i])
 #endif
 	{
 		if (allowwarn)
@@ -3705,7 +3705,7 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 
 		Q_strncpyz(modname, model_precache->name, sizeof(modname));
 #else
-		Q_strncpyz(modname, sv.model_precache[state->modelindex], sizeof(modname));
+		Q_strncpyz(modname, sv.strings.model_precache[state->modelindex], sizeof(modname));
 #endif
 		if (strlen(modname)>5)
 		{
@@ -3771,18 +3771,18 @@ void SV_Snapshot_BuildStateQ1(entity_state_t *state, edict_t *ent, client_t *cli
 			}
 #else
 			//tenebrae has some hideous hacks
-			if (!strcmp(sv.model_precache[state->modelindex], "progs/w_light.spr") ||
-				!strcmp(sv.model_precache[state->modelindex], "progs/b_light.spr") ||
-				!strcmp(sv.model_precache[state->modelindex], "progs/s_light.spr") ||
-				!strcmp(sv.model_precache[state->modelindex], "progs/flame.mdl") ||
-				!strcmp(sv.model_precache[state->modelindex], "progs/flame2.mdl"))
+			if (!strcmp(sv.strings.model_precache[state->modelindex], "progs/w_light.spr") ||
+				!strcmp(sv.strings.model_precache[state->modelindex], "progs/b_light.spr") ||
+				!strcmp(sv.strings.model_precache[state->modelindex], "progs/s_light.spr") ||
+				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame.mdl") ||
+				!strcmp(sv.strings.model_precache[state->modelindex], "progs/flame2.mdl"))
 			{
 				//fixme: add some default colours
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				if (!state->light[3])
 					state->light[3] = 350;
 			}
-			if (!strcmp (sv.model_precache[state->modelindex], "progs/lavaball.mdl"))
+			if (!strcmp (sv.strings.model_precache[state->modelindex], "progs/lavaball.mdl"))
 			{
 				state->lightpflags |= PFLAGS_FULLDYNAMIC;
 				state->skinnum = 17;

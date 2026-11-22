@@ -2619,7 +2619,7 @@ static void SV_Status_f (void)
 		Con_TPrintf("sounds           : %i/%i\n", count, MAX_PRECACHE_SOUNDS);
 #else
 		for (count = 1; count < MAX_PRECACHE_MODELS; count++)
-			if (!sv.model_precache[count])
+			if (!sv.strings.model_precache[count])
 				break;
 		Con_TPrintf("models           : %i/%i\n", count, MAX_PRECACHE_MODELS);
 		for (count = 1; count < MAX_PRECACHE_SOUNDS; count++)
@@ -3643,8 +3643,8 @@ void SV_PrecacheList_f(void)
 	{
 		for (i = 0; i < MAX_PRECACHE_MODELS; i++)
 		{
-			if (sv.model_precache[i])
-				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.model_precache[i], Mod_FixName(sv.model_precache[i], sv.model_precache[1]));
+			if (sv.strings.model_precache[i])
+				Con_Printf("model %u: ^[%s\\modelviewer\\%s^]\n", i, sv.strings.model_precache[i], Mod_FixName(sv.strings.model_precache[i], sv.strings.model_precache[1]));
 		}
 	}
 	if (!*group || !strncmp(group, "sound", 5))

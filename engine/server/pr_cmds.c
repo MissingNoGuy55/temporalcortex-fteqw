@@ -4855,9 +4855,15 @@ static int SV_ParticlePrecache_Add(const char *pname)
 	int i;
 	for (i=1 ; i<MAX_SSPARTICLESPRE ; i++)
 	{
+#ifdef TEMPORALCORTEX
 		if (!sv.particle_precache[i])
 		{
 			sv.particle_precache[i] = PR_AddString(sv.world.progs, pname, 0, false);
+#else
+		if (!sv.strings.particle_precache[i])
+		{
+			sv.strings.particle_precache[i] = PR_AddString(sv.world.progs, pname, 0, false);
+#endif
 
 			if (sv.state != ss_loading)
 			{
@@ -4880,7 +4886,11 @@ static int SV_ParticlePrecache_Add(const char *pname)
 				SV_MulticastProtExt(vec3_origin, MULTICAST_ALL_R, pr_global_struct->dimension_send, PEXT_CSQC, 0);
 			}
 		}
+#ifdef TEMPORALCORTEX
 		if (!strcmp(sv.particle_precache[i], pname))
+#else
+		if (!strcmp(sv.strings.particle_precache[i], pname))
+#endif
 		{
 			return i;
 		}
@@ -4908,7 +4918,11 @@ void QCBUILTIN PF_sv_particleeffectnum(pubprogfuncs_t *prinst, struct globalvars
 
 #ifdef NQPROT
 	//DPP7's network protocol depends upon the ordering of these from an external file. unreliable, but if we're meant to be compatible then we need to at least pretend.
+#ifdef TEMPORALCORTEX
 	if (!sv.particle_precache[1] && (sv_listen_dp.ival || !strncmp(s, "effectinfo.", 11)))
+#else
+	if (!sv.strings.particle_precache[1] && (sv_listen_dp.ival || !strncmp(s, "effectinfo.", 11)))
+#endif
 		COM_Effectinfo_Enumerate(SV_ParticlePrecache_Add);
 #endif
 
