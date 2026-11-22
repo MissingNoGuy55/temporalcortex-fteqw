@@ -6951,8 +6951,8 @@ void SV_UserMVDList_f (void);
 void SV_UserMVDInfo_f (void);
 
 #ifdef TEMPORALCORTEX
-void SV_ChangeTimePeriod_f();
-void SV_Bot_f();
+void SV_ChangeTimePeriod_f(void);
+void SV_Bot_f(void);
 #endif
 
 typedef struct

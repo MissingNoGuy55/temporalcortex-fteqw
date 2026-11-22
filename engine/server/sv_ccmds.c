@@ -169,7 +169,7 @@ These commands can only be entered from stdin or by a remote operator datagram
 */
 
 #ifdef TEMPORALCORTEX
-static void SV_SetTimePeriodForEnt_f()
+static void SV_SetTimePeriodForEnt_f(void)
 {
 	int mdlidx = Cmd_Argv(1) ? atoi(Cmd_Argv(1)) : tc_sv_current_bsp_index;
 	int entnum = Cmd_Argv(2) ? atoi(Cmd_Argv(2)) : tc_sv_current_bsp_index;
@@ -3870,7 +3870,7 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 	MSG_WriteString (&sv.reliable_datagram, sv.modelname[bspindex]);
 }
 
-void SV_ChangeTimePeriod_f()
+void SV_ChangeTimePeriod_f(void)
 {
 	const char *arg = Cmd_Argv(1);
 	const char *arg2 = Cmd_Argv(2);
