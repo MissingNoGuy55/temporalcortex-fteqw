@@ -1690,8 +1690,8 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 	{
 		SCR_SetLoadingFile("newmap");
 #ifdef TEMPORALCORTEX
-#if 0
 		// Missi: Iterate through each time period (2025.9.20)
+		// Missi: Needed for lightmap data (2026.11.21)
 		for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 		{
 			if (!cl.worldmodel[t])
@@ -1699,7 +1699,6 @@ static int CL_LoadModels(int stage, qboolean dontactuallyload)
 
 			Surf_NewMap (cl.worldmodel[t], t);
 		}
-#endif
 		r_worldentity.model = cl.worldmodel[0];
 		pmove.physents[0].model = cl.worldmodel[0];
 #else
