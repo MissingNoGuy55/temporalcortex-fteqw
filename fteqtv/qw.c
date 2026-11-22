@@ -4386,7 +4386,7 @@ void ParseQWC(cluster_t *cluster, sv_t *qtv, viewer_t *v, netmsg_t *m)
 			return;
 #ifdef TEMPORALCORTEX
 		case clctc_timeperiod:
-			v->bspnum = MSG_ReadShort();
+			v->bspnum = ReadShort(m);
 			break;
 #endif
 

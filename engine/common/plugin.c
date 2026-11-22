@@ -1875,7 +1875,7 @@ void Plug_Shutdown(qboolean preliminary)
 }
 
 #ifdef TEMPORALCORTEX
-static short Plug_Num_Loaded_BSPs()
+static short Plug_Num_Loaded_BSPs(void)
 {
 #ifdef HAVE_SERVER
 	return tc_sv_loaded_bsps;
@@ -1884,7 +1884,7 @@ static short Plug_Num_Loaded_BSPs()
 #endif
 }
 
-static short Plug_Num_UnLoaded_BSPs()
+static short Plug_Num_UnLoaded_BSPs(void)
 {
 #ifdef HAVE_SERVER
 	return tc_sv_unloaded_bsps;
@@ -1893,7 +1893,7 @@ static short Plug_Num_UnLoaded_BSPs()
 #endif
 }
 
-static short Plug_CurrentBSPIndex()
+static short Plug_CurrentBSPIndex(void)
 {
 #ifdef HAVE_SERVER
 	return tc_sv_current_bsp_index;
@@ -1902,7 +1902,7 @@ static short Plug_CurrentBSPIndex()
 #endif
 }
 
-static short* Plug_Worldmodel_Indices()
+static short* Plug_Worldmodel_Indices(void)
 {
 #ifdef HAVE_SERVER
 	return sv.world.worldmodel_indices;

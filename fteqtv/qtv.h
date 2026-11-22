@@ -546,6 +546,9 @@ typedef struct viewer_s {
 	int menuop;
 	int fwdval;	//for scrolling up/down the menu using +forward/+back :)
 	int firstconnect;
+#ifdef TEMPORALCORTEX
+	short	bspnum;
+#endif
 } viewer_t;
 
 typedef struct

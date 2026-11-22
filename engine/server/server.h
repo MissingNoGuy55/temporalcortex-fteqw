@@ -1187,14 +1187,14 @@ void SV_FullClientUpdate (client_t *client, client_t *to);
 char *SV_PlayerPublicAddress(client_t *cl);
 
 #ifdef TEMPORALCORTEX
-short SV_NumModelPrecaches();
-short SV_NumSoundPrecaches();
-short SV_NumParticlePrecaches();
+short SV_NumModelPrecaches(void);
+short SV_NumSoundPrecaches(void);
+short SV_NumParticlePrecaches(void);
 precache_t *SV_FindPrecacheByName(const char* name, precache_t *head, short timeperiod);
 precache_t *SV_FindPrecacheByIndex(short index, precache_t *head);
 precache_t *SV_AddPrecache(const char* name, precache_t* head, enum precache_e type, short timeperiod);
-void SV_ClearStringPrecaches();
-void SV_InitStringPrecaches();
+void SV_ClearStringPrecaches(void);
+void SV_InitStringPrecaches(void);
 #endif
 
 void SV_GeneratePublicServerinfo(char *info, const char *endinfo);

@@ -87,6 +87,19 @@
 
 
 //the clcs sent via the udp connections
+#ifdef TEMPORALCORTEX
+enum {
+	clc_bad		= 0,
+	clc_nop		= 1,
+	clc_disconnect	= 2,		//NQ only
+	clc_move	= 3,		// [[usercmd_t]
+	clc_stringcmd	= 4,		// [string] message
+	clc_delta	= 5,		// [byte] sequence number, requests delta compression of message
+	clc_tmove	= 6,		// teleport request, spectator only
+	clc_upload	= 7,		// teleport request, spectator only
+	clctc_timeperiod = 128
+};
+#else
 enum {
 	clc_bad		= 0,
 	clc_nop		= 1,
@@ -97,6 +110,7 @@ enum {
 	clc_tmove	= 6,		// teleport request, spectator only
 	clc_upload	= 7		// teleport request, spectator only
 };
+#endif
 
 //these are the clcs sent upstream via the tcp streams
 enum {

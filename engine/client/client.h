@@ -1226,8 +1226,8 @@ char *CL_TryingToConnect(void);
 void CL_ExecInitialConfigs(char *defaultexec, qboolean fullvidrestart);
 
 #ifdef TEMPORALCORTEX
-short CL_NumModelPrecaches();
-short CL_NumSoundPrecaches();
+short CL_NumModelPrecaches(void);
+short CL_NumSoundPrecaches(void);
 precache_t *CL_FindPrecacheByModelName(const char* name, precache_t *head);
 precache_t *CL_FindPrecacheByIndex(short modelindex, precache_t *head);
 precache_t *CL_AddPrecache(const char* name, precache_t *head, enum precache_e type, short timeperiod, qboolean csqc);
@@ -1905,7 +1905,7 @@ qboolean Media_RegisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *fun
 qboolean Media_UnregisterEncoder(struct plugin_s *plug, media_encoder_funcs_t *funcs);
 
 #ifdef TEMPORALCORTEX
-void CLTC_WriteSetTemporalCacheMessage();
+void CLTC_WriteSetTemporalCacheMessage(void);
 void CL_WriteTemporalCache (sizebuf_t *msg, int payloadoffset);
 void CL_WriteTemporalCacheCmd (usercmd_t *pcmd);
 void CL_WriteRecordTemporalCacheMessage (sizebuf_t *msg, int seq);
@@ -1919,11 +1919,11 @@ int CLTC_Record_Lightstyles(sizebuf_t *buf, int seq);
 int CLTC_RecordInitialPlayers(sizebuf_t *buf, int seq, qboolean isnq);
 int CLTC_RecordInitialStats(sizebuf_t *buf, int seq, qboolean isnq);
 
-void CLTC_ClearDLights();
+void CLTC_ClearDLights(void);
 
-void CL_InitPrecaches();
-void CL_ClearPrecaches();
+void CL_InitPrecaches(void);
+void CL_ClearPrecaches(void);
 void CL_ClearModelPrecaches(qboolean csqc);
-void CL_ClearSoundPrecaches();
+void CL_ClearSoundPrecaches(void);
 void CL_SetFog(int ftype, int argc, float density, float r, float g, float b, float alpha, float depthbias, short timeperiod);
 #endif
