@@ -766,6 +766,7 @@ SET(FTE_COMMON_FILES
 	engine/common/config_freecs.h
 	engine/common/config_fteqw_noweb.h
 	engine/common/config_fteqwtc.h
+	engine/common/com_timetravel.h
 
 	#useless headers that I'll never search for
 	engine/client/api_menu.h
@@ -855,6 +856,8 @@ SET(FTE_COMMON_FILES
 	engine/server/sv_move.c
 	engine/server/sv_phys.c
 	engine/server/world.c
+
+	engine/common/com_timetravel.c
 	
 	${FTE_QCVM_FILES}
 	engine/qclib/hash.c
