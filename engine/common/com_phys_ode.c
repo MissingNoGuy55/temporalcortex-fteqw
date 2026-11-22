@@ -2843,8 +2843,13 @@ static void QDECL World_ODE_Start(world_t *world)
 	r_meshroll.value = cvarfuncs->GetFloat("r_meshroll");
 #endif
 
+#ifdef TEMPORALCORTEX
+	VectorAvg(world->worldmodel[tc_sv_current_bsp_index]->mins, world->worldmodel[tc_sv_current_bsp_index]->maxs, center);
+	VectorSubtract(world->worldmodel[tc_sv_current_bsp_index]->maxs, center, extents);
+#else
 	VectorAvg(world->worldmodel->mins, world->worldmodel->maxs, center);
 	VectorSubtract(world->worldmodel->maxs, center, extents);
+#endif
 	ctx->dworld = dWorldCreate();
 	ctx->space = dQuadTreeSpaceCreate(NULL, center, extents, bound(1, cvarfuncs->GetFloat("physics_ode_quadtree_depth"), 10));
 	ctx->contactgroup = dJointGroupCreate(0);
