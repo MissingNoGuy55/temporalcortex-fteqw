@@ -57,6 +57,9 @@ static int VectorCompare (const vec3_t v1, const vec3_t v2)
 
 cvar_t *cvar_r_meshpitch;
 cvar_t *cvar_r_meshroll;
+#ifdef TEMPORALCORTEX
+short tc_sv_current_bsp_index;
+#endif
 #endif
 
 static rbeplugfuncs_t *rbefuncs;
