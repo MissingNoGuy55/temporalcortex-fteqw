@@ -809,7 +809,11 @@ static void VARGS PFQ2_StartSound (q2edict_t *entity, int channel, int sound_num
 	SVQ2_StartSound (NULL, entity, channel, sound_num, volume, attenuation, timeofs);
 }
 
+#ifdef TEMPORALCORTEX
+static q2trace_t VARGS SVQ2_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, q2edict_t *passedict, int contentmask, short timeperiod)
+#else
 static q2trace_t VARGS SVQ2_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, q2edict_t *passedict, int contentmask)
+#endif
 {
 	q2trace_t ret;
 	trace_t tr;
@@ -817,7 +821,12 @@ static q2trace_t VARGS SVQ2_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_
 		mins = vec3_origin;
 	if (!maxs)
 		maxs = vec3_origin;
+
+#ifdef TEMPORALCORTEX
+	tr = WorldQ2_Move(&sv.world, start, mins, maxs, end, contentmask, passedict, timeperiod);
+#else
 	tr = WorldQ2_Move(&sv.world, start, mins, maxs, end, contentmask, passedict);
+#endif
 	ret.allsolid = tr.allsolid;
 	ret.startsolid = tr.startsolid;
 	ret.contents = tr.contents;
@@ -831,12 +840,21 @@ static q2trace_t VARGS SVQ2_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_
 	return ret;
 }
 
+#ifdef TEMPORALCORTEX
+static int VARGS SVQ2_PointContents (vec3_t p, short timeperiod)
+{
+	q2trace_t tr = SVQ2_Trace(p, vec3_origin, vec3_origin, p, NULL, ~0, timeperiod);
+	return tr.contents;
+//	return CM_PointContents(p, 0);
+}
+#else
 static int VARGS SVQ2_PointContents (vec3_t p)
 {
 	q2trace_t tr = SVQ2_Trace(p, vec3_origin, vec3_origin, p, NULL, ~0);
 	return tr.contents;
-//	return CM_PointContents(p, 0);
+	//	return CM_PointContents(p, 0);
 }
+#endif
 
 static cvar_t *VARGS Q2Cvar_Get (const char *var_name, const char *value, int flags)
 {

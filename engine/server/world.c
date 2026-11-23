@@ -2965,7 +2965,11 @@ trace_t World_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t e
 	return clip.trace;
 }
 #ifdef Q2SERVER
+#ifdef TEMPORALCORTEX
+trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hitcontentsmask, q2edict_t *passedict, short timeperiod)
+#else
 trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int hitcontentsmask, q2edict_t *passedict)
+#endif
 {
 	moveclip_t	clip;
 
@@ -2973,7 +2977,7 @@ trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t
 
 // clip to world
 #ifdef TEMPORALCORTEX
-	w->worldmodel[tc_sv_current_bsp_index]->funcs.NativeTrace(w->worldmodel[tc_sv_current_bsp_index], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+	w->worldmodel[timeperiod]->funcs.NativeTrace(w->worldmodel[timeperiod], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
 #else
 	w->worldmodel->funcs.NativeTrace(w->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
 #endif

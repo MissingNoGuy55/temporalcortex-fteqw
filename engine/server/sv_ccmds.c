@@ -4010,37 +4010,85 @@ void SV_ChangeTimePeriod_f(void)
 	for (i = 0; i < svs.allocated_client_slots; i++)
 	{
 		client_t* client = &svs.clients[i];
-		edict_t* clientedict = client->edict;
 
-		if (!clientedict)
-			break;
-
-		tr = World_Move(&sv.world, clientedict->v->origin, clientedict->v->mins, clientedict->v->maxs, clientedict->v->origin, MOVE_NORMAL, (wedict_t*)clientedict, bspnum);
-
-		if (tr.allsolid)
+		switch(svs.gametype)
 		{
-			switch(bspnum)
+			case GT_PROGS:
+			case GT_Q1QVM:
+			case GT_HALFLIFE:
 			{
-				case TIME_PERIOD_PRESENT:
-					timeperiod = "present";
+				edict_t* clientedict = client->edict;
+
+				if (!clientedict)
 					break;
-				case TIME_PERIOD_PAST:
-					timeperiod = "past";
-					break;
-				case TIME_PERIOD_FUTURE:
-					timeperiod = "future";
-					break;
-				default:
-					timeperiod = "unknown";
-					break;
+
+				tr = World_Move(&sv.world, clientedict->v->origin, clientedict->v->mins, clientedict->v->maxs, clientedict->v->origin, MOVE_NORMAL, (wedict_t*)clientedict, bspnum);
+
+				if (tr.allsolid)
+				{
+					switch(bspnum)
+					{
+						case TIME_PERIOD_PRESENT:
+							timeperiod = "present";
+							break;
+						case TIME_PERIOD_PAST:
+							timeperiod = "past";
+							break;
+						case TIME_PERIOD_FUTURE:
+							timeperiod = "future";
+							break;
+						default:
+							timeperiod = "unknown";
+							break;
+					}
+
+					if (svs.allocated_client_slots == 1)
+						snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", timeperiod);
+					else
+						snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, timeperiod);
+
+					stuck = true;
+				}
+
+				break;
 			}
+			case GT_QUAKE2:
+			{
+				q2edict_t* clientedict = client->q2edict;
 
-			if (svs.allocated_client_slots == 1)
-				snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", timeperiod);
-			else
-				snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, timeperiod);
+				if (!clientedict)
+					break;
 
-			stuck = true;
+				tr = WorldQ2_Move(&sv.world, clientedict->s.origin, clientedict->mins, clientedict->maxs, clientedict->s.origin, MOVE_NORMAL, (q2edict_t*)clientedict, bspnum);
+
+				if (tr.allsolid)
+				{
+					switch(bspnum)
+					{
+						case TIME_PERIOD_PRESENT:
+							timeperiod = "present";
+							break;
+						case TIME_PERIOD_PAST:
+							timeperiod = "past";
+							break;
+						case TIME_PERIOD_FUTURE:
+							timeperiod = "future";
+							break;
+						default:
+							timeperiod = "unknown";
+							break;
+					}
+
+					if (svs.allocated_client_slots == 1)
+						snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", timeperiod);
+					else
+						snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, timeperiod);
+
+					stuck = true;
+				}
+
+				break;
+			}
 		}
 	}
 

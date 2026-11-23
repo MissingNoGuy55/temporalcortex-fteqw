@@ -203,7 +203,11 @@ q2trace_t	VARGS CLQ2_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 	return q2t;
 }
 
+#ifdef TEMPORALCORTEX
+int		VARGS CLQ2_PMpointcontents (vec3_t point, short bspnum)
+#else
 int		VARGS CLQ2_PMpointcontents (vec3_t point)
+#endif
 {
 	int			i;
 	entity_state_t	*ent;
@@ -212,7 +216,7 @@ int		VARGS CLQ2_PMpointcontents (vec3_t point)
 	int			contents;
 	vec3_t		axis[3], relpos;
 #ifdef TEMPORALCORTEX
-	contents = cl.worldmodel[tc_cl_current_bsp_index]->funcs.PointContents(cl.worldmodel[tc_cl_current_bsp_index], NULL, point);
+	contents = cl.worldmodel[bspnum]->funcs.PointContents(cl.worldmodel[bspnum], NULL, point);
 #else
 	contents = cl.worldmodel->funcs.PointContents(cl.worldmodel, NULL, point);
 #endif

@@ -70,7 +70,11 @@ typedef struct q2pmove_s
 
 	// callbacks to test the world
 	q2trace_t		(VARGS *trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
+#ifdef TEMPORALCORTEX
+	int			(VARGS *pointcontents) (vec3_t point, short bspnum);
+#else
 	int			(VARGS *pointcontents) (vec3_t point);
+#endif
 } q2pmove_t;
 
 void VARGS Q2_Pmove (q2pmove_t *pmove);
@@ -215,8 +219,13 @@ typedef struct
 	void	(VARGS *setmodel) (q2edict_t *ent, const char *name);
 
 	// collision detection
+#ifdef TEMPORALCORTEX
+	q2trace_t	(VARGS *trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, q2edict_t *passent, int contentmask, short timeperiod);
+	int		(VARGS *pointcontents) (vec3_t point, short timeperiod);
+#else
 	q2trace_t	(VARGS *trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, q2edict_t *passent, int contentmask);
 	int		(VARGS *pointcontents) (vec3_t point);
+#endif
 	qboolean	(VARGS *inPVS) (vec3_t p1, vec3_t p2);
 	qboolean	(VARGS *inPHS) (vec3_t p1, vec3_t p2);
 	void		(VARGS *SetAreaPortalState) (unsigned int portalnum, qboolean open);

@@ -4573,7 +4573,11 @@ static void Q2BSP_MarkLights (dlight_t *light, dlightbitmask_t bit, mnode_t *nod
 
 // mark the polygons
 #ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	surf = cl.worldmodel[tc_sv_current_bsp_index]->surfaces + node->firstsurface;
+#elif defined(HAVE_CLIENT)
 	surf = cl.worldmodel[tc_cl_current_bsp_index]->surfaces + node->firstsurface;
+#endif
 #else
 	surf = cl.worldmodel->surfaces + node->firstsurface;
 #endif
@@ -7891,6 +7895,35 @@ qbyte *R_MarkLeaves_Q2 (model_t *mod, int viewclusters[2])
 		cvis[portal] = vis;
 	}
 
+#ifdef TEMPORALCORTEX
+	// Missi: NOTE: It's important that this is done before vissequence is
+	// incremented, as visframes will desync every time time travel happens,
+	// as the vis system does not run on all BSPs at once. There is always
+	// a desynced node in a BSP that is not being rendered (2026.11.22)
+	if (tc_cl_pvscache_dirty)
+	{
+		// mark everything
+		for (i=0 ; i<mod->numleafs ; i++)
+		{
+			mod->leafs[i].visframe = vissequence;
+		}
+		for (i=0 ; i<mod->numnodes ; i++)
+		{
+			mod->nodes[i].visframe = vissequence;
+		}
+
+		// Missi: Now cull it all. We need to use PVM_REPLACE here, as two BSPs never share
+		// the same vis data. This is also to solve an edge case where two BSPs with overlapping
+		// area numbers in the same place causing the renderer to think that we never
+		// time traveled (2026.11.22)
+		vis = CM_ClusterPVS (mod, viewclusters[0], &curframevis[portal], PVM_REPLACE);
+
+		tc_cl_pvscache_dirty = false;
+
+		return vis;
+	}
+#endif
+
 	vissequence++;
 
 	for (i=0,leaf=mod->leafs ; i<mod->numleafs ; i++, leaf++)
@@ -7910,6 +7943,7 @@ qbyte *R_MarkLeaves_Q2 (model_t *mod, int viewclusters[2])
 			} while (node);
 		}
 	}
+
 	return vis;
 }
 static void Surf_RecursiveQ2WorldNode (mnode_t *node)

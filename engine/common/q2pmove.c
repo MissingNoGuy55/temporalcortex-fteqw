@@ -756,19 +756,42 @@ void PMQ2_CatagorizePosition (void)
 	sample1 = sample2 / 2;
 
 	point[2] = q2pml.origin[2] + q2pm->mins[2] + 1;	
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	cont = q2pm->pointcontents (point, tc_sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+	cont = q2pm->pointcontents (point, tc_cl_current_bsp_index);
+#endif
+#else
 	cont = q2pm->pointcontents (point);
-
+#endif
 	if (cont & MASK_WATER)
 	{
 		q2pm->watertype = cont;
 		q2pm->waterlevel = 1;
 		point[2] = q2pml.origin[2] + q2pm->mins[2] + sample1;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+		cont = q2pm->pointcontents (point, tc_sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+		cont = q2pm->pointcontents (point, tc_cl_current_bsp_index);
+#endif
+#else
 		cont = q2pm->pointcontents (point);
+#endif
 		if (cont & MASK_WATER)
 		{
 			q2pm->waterlevel = 2;
 			point[2] = q2pml.origin[2] + q2pm->mins[2] + sample2;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+			cont = q2pm->pointcontents (point, tc_sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+			cont = q2pm->pointcontents (point, tc_cl_current_bsp_index);
+#endif
+#else
 			cont = q2pm->pointcontents (point);
+#endif
 			if (cont & MASK_WATER)
 				q2pm->waterlevel = 3;
 		}
@@ -864,12 +887,28 @@ void PMQ2_CheckSpecialMovement (void)
 
 	VectorMA (q2pml.origin, 30, flatforward, spot);
 	spot[2] += 4;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	cont = q2pm->pointcontents (spot, tc_sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+	cont = q2pm->pointcontents (spot, tc_cl_current_bsp_index);
+#endif
+#else
 	cont = q2pm->pointcontents (spot);
+#endif
 	if (!(cont & Q2CONTENTS_SOLID))
 		return;
 
 	spot[2] += 16;
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+	cont = q2pm->pointcontents (spot, tc_sv_current_bsp_index);
+#elif defined(HAVE_CLIENT)
+	cont = q2pm->pointcontents (spot, tc_cl_current_bsp_index);
+#endif
+#else
 	cont = q2pm->pointcontents (spot);
+#endif
 	if (cont)
 		return;
 	// jump out of water

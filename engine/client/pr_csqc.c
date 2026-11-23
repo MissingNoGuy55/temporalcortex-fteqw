@@ -10137,6 +10137,7 @@ qboolean CSQC_TC_ChangeLevelName(const char* newname)
 
 	eval->string = PR_SetString(csqcprogs, newname);
 
+
 	return true;
 }
 
