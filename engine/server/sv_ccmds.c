@@ -4052,6 +4052,7 @@ void SV_ChangeTimePeriod_f(void)
 
 				break;
 			}
+#ifdef Q2SERVER
 			case GT_QUAKE2:
 			{
 				q2edict_t* clientedict = client->q2edict;
@@ -4089,6 +4090,7 @@ void SV_ChangeTimePeriod_f(void)
 
 				break;
 			}
+#endif
 		}
 	}
 
