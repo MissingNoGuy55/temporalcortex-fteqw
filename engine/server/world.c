@@ -2978,11 +2978,13 @@ trace_t WorldQ2_Move (world_t *w, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t
 // clip to world
 #ifdef TEMPORALCORTEX
 	w->worldmodel[timeperiod]->funcs.NativeTrace(w->worldmodel[timeperiod], 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
+
+	clip.trace.ent = &ge->edicts[sv.world.world_indices[timeperiod]];
 #else
 	w->worldmodel->funcs.NativeTrace(w->worldmodel, 0, NULLFRAMESTATE, NULL, start, end, mins, maxs, false, hitcontentsmask, &clip.trace);
-#endif
-	clip.trace.ent = ge->edicts;
 
+	clip.trace.ent = ge->edicts;
+#endif
 	if (clip.trace.fraction == 0)
 		return clip.trace;
 

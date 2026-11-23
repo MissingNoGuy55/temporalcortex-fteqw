@@ -3890,6 +3890,9 @@ void SV_ChangeTimePeriod_f(void)
 
 	bspnum = Q_atoi(arg);
 
+	if (bspnum == tc_sv_current_bsp_index)
+		return;
+
 	// Missi: HACK: Prevent time travel in Airship with a special message, but also check the gamedir
 	// so we don't mess with mods (2026.11.21)
 	if (!Q_strncmp(InfoBuf_ValueForKey(&svs.info, "*gamedir"), "temporalcortex", 14) && !Q_strncmp(InfoBuf_ValueForKey(&svs.info, "map"), "airship", 7))
@@ -4056,13 +4059,16 @@ void SV_ChangeTimePeriod_f(void)
 			case GT_QUAKE2:
 			{
 				q2edict_t* clientedict = client->q2edict;
+				unsigned int viewcontents;
+				int area, cluster;
+
 
 				if (!clientedict)
 					break;
 
-				tr = WorldQ2_Move(&sv.world, clientedict->s.origin, clientedict->mins, clientedict->maxs, clientedict->s.origin, MOVE_NORMAL, (q2edict_t*)clientedict, bspnum);
+				sv.world.worldmodel[bspnum]->funcs.InfoForPoint (sv.world.worldmodel[bspnum], clientedict->s.origin, &area, &cluster, &viewcontents);
 
-				if (tr.allsolid)
+				if (cluster == -1)
 				{
 					switch(bspnum)
 					{
@@ -4095,7 +4101,16 @@ void SV_ChangeTimePeriod_f(void)
 	}
 
 	if (stuck)
+	{
+		for (i = 0; i < svs.allocated_client_slots; i++)
+#ifdef HAVE_CLIENT
+			SCR_CenterPrint(i, printstring, true);
+#elif defined(HAVE_SERVER)
+			Con_Printf(printstring);
+#endif
+
 		return;
+	}
 
 	SV_ChangeTimePeriod(bspnum);
 }
