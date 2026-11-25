@@ -12005,3 +12005,97 @@ YOU SHOULD NOT EDIT THIS FILE BY HAND
 "\x37\x00\x00\x00\x32\x00\x00\x00\x36\x00\x00\x00\x3E\x00\x03\x00\x30\x00\x00\x00\x37\x00\x00\x00\xFD\x00\x01\x00\x38\x00\x01\x00"
 ""},
 #endif
+#ifdef D3D9QUAKE
+{QR_DIRECT3D9, 9, "temporalcortex_timetravelwarp",
+"!!cvarf tc_r_timetravel_warp_intensity\n"
+"!!samps diffuse\n"
+
+"struct a2v {\n"
+"float4 pos: POSITION;\n"
+"float2 tc: TEXCOORD0;\n"
+"};\n"
+"struct v2f {\n"
+"#ifndef FRAGMENT_SHADER\n"
+"float4 pos: POSITION;\n"
+"#endif\n"
+"float2 tc: TEXCOORD0;\n"
+"};\n"
+"#ifdef VERTEX_SHADER\n"
+"float4x4  m_modelviewprojection;\n"
+"v2f main (a2v inp)\n"
+"{\n"
+"v2f outp;\n"
+"outp.pos = mul(m_modelviewprojection, inp.pos);\n"
+"outp.tc = inp.tc;\n"
+"return outp;\n"
+"}\n"
+"#endif\n"
+
+"#ifdef FRAGMENT_SHADER\n"
+"float cvar_tc_r_timetravel_warp_intensity;\n"
+"float e_time;\n"
+"sampler s_diffuse;\n"
+"float4 main (v2f inp) : COLOR0\n"
+"{\n"
+"float2 ntc = inp.tc + sin(inp.tc.yx+e_time)*0.125;\n"
+"float3 ts = tex2D(s_diffuse, ntc).xyz;\n"
+
+"#ifdef ALPHA\n"
+"return float4(ts, float(ALPHA));\n"
+"#else\n"
+"return float4(ts, cvar_tc_r_timetravel_warp_intensity);\n"
+"#endif\n"
+"}\n"
+"#endif\n"
+},
+#endif
+#ifdef D3D11QUAKE
+{QR_DIRECT3D11, 11, "temporalcortex_timetravelwarp",
+"!!samps diffuse\n"
+//!!cvarf r_wateralpha
+
+"struct a2v\n"
+"{\n"
+"float4 pos: POSITION;\n"
+"float2 tc: TEXCOORD0;\n"
+"};\n"
+"struct v2f\n"
+"{\n"
+"float4 pos: SV_POSITION;\n"
+"float2 tc: TEXCOORD0;\n"
+"};\n"
+
+"#include <ftedefs.h>\n"
+
+"#ifdef VERTEX_SHADER\n"
+"v2f main (a2v inp)\n"
+"{\n"
+"v2f outp;\n"
+"outp.pos = mul(m_model, inp.pos);\n"
+"outp.pos = mul(m_view, outp.pos);\n"
+"outp.pos = mul(m_projection, outp.pos);\n"
+"outp.tc = inp.tc;\n"
+"return outp;\n"
+"}\n"
+"#endif\n"
+
+"#ifdef FRAGMENT_SHADER\n"
+//	float cvar_r_wateralpha;
+//	float e_time;
+"SamplerState s_diffuse;\n"
+"Texture2D t_diffuse;\n"
+"float4 main (v2f inp) : SV_TARGET\n"
+"{\n"
+"float2 ntc = inp.tc + sin(inp.tc.yx+e_time)*0.125;\n"
+"float4 r;\n"
+"r = t_diffuse.Sample(s_diffuse, ntc);\n"
+"#ifdef ALPHA\n"
+"r.a = float(ALPHA);\n"
+"#else\n"
+//		r.a *= r_wateralpha;
+"#endif\n"
+"return r;\n"
+"}\n"
+"#endif\n"
+},
+#endif
