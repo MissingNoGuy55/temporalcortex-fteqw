@@ -64,7 +64,7 @@ jobs:
             make_targets: "m-rel sv-rel qtvtc-rel qcc-rel"
             args: "FTE_CONFIG=fteqwtc"
             os: ubuntu-latest
-            packages: "libpng-dev libasound2-dev libgl-dev libegl1-mesa-dev libwayland-dev libxcursor-dev libxi-dev libxkbcommon-dev libxrandr-dev libxss-dev"
+            packages: "libpng-dev libasound2-dev libvorbis-dev libgl-dev libegl1-mesa-dev libwayland-dev libxcursor-dev libxi-dev libxkbcommon-dev libxrandr-dev libxss-dev"
           - name: win32
             fte_target: win32
             make_targets: "m-rel sv-rel qcc-rel"
