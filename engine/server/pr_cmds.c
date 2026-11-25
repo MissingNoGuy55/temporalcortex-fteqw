@@ -1288,13 +1288,13 @@ void PR_LoadGlabalStruct(qboolean muted)
 	for (i = 0; i < countof(buttonfields); i++)
 	{
 #ifdef TEMPORALCORTEX
-		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[tc_sv_current_bsp_index], buttonfields[i].fieldname, ev_float, NULL);
+		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts[sv.world.world_indices[tc_sv_current_bsp_index]], buttonfields[i].fieldname, ev_float, NULL);
 #else
 		eval_t *val = svprogfuncs->GetEdictFieldValue(svprogfuncs, (edict_t*)&sv.world.edicts, buttonfields[i].fieldname, ev_float, NULL);
 #endif
 		if (val)
 #ifdef TEMPORALCORTEX
-			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[tc_sv_current_bsp_index].v;
+			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[sv.world.world_indices[tc_sv_current_bsp_index]].v;
 #else
 			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts->v;
 #endif
@@ -1469,9 +1469,9 @@ static progsnum_t AddProgs(const char *name)
 #endif
 		if (val)
 #ifdef TEMPORALCORTEX
-			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts[tc_sv_current_bsp_index].v;
+			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts[sv.world.world_indices[tc_sv_current_bsp_index]].v;
 #else
-			buttonfields[i].offset = (float*)val - (float*)&sv.world.edicts->v;
+			buttonfields[i].offset = (float*)val - (float*)sv.world.edicts->v;
 #endif
 		else
 			buttonfields[i].offset = -1;
