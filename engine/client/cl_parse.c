@@ -8918,9 +8918,6 @@ void CLQW_ParseServerMessage (void)
 			Q_strncpyz(cl.levelname, MSG_ReadString(), sizeof(cl.levelname));
 
 			CSQC_TC_ChangeLevelName(cl.levelname);
-
-			MSG_WriteByte (&cls.netchan.message, clctc_timeperiod);
-			MSG_WriteShort (&cls.netchan.message, bspindex);
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:
@@ -9615,9 +9612,6 @@ isillegible:
 				CSQC_TC_ChangeLevelName(cl.levelname);
 
 				tc_cl_pvscache_dirty = true;
-
-				MSG_WriteByte (&cls.netchan.message, clcq2tc_timeperiod);
-				MSG_WriteShort (&cls.netchan.message, bspindex);
 				break;
 			}
 			else
@@ -10888,15 +10882,25 @@ void CLNQ_ParseServerMessage (void)
 		// Missi (2025.9.21)
 		case svctc_timeperiod:
 			bspindex = MSG_ReadShort();
-			track = MSG_ReadShort();
-			Media_NumberedTrack( track, track, bspindex );
-
-			Q_strcpy(cl.levelname, MSG_ReadString());
 
 			S_GetMusicInfo(0, &time, &duration, title, sizeof(title));
+			tc_snd_positions[tc_cl_current_bsp_index] = time;
 
-			MSG_WriteByte( &cls.netchan.message, clctc_timeperiod );
-			MSG_WriteShort( &cls.netchan.message, bspindex );
+			R_SetSky(cl.skyname[bspindex], bspindex);
+
+			// Missi: Any Dlights at this point are considered stale, and the renderer will crash
+			// if it tries to render stale shadow data for them (2026.7.30)
+			CLTC_ClearDLights();
+
+			tc_cl_current_bsp_index = bspindex;
+			track = MSG_ReadShort();
+			Media_NumberedTrack(track, track, bspindex);
+
+			memset(cl.levelname, 0, sizeof(cl.levelname));
+
+			Q_strncpyz(cl.levelname, MSG_ReadString(), sizeof(cl.levelname));
+
+			CSQC_TC_ChangeLevelName(cl.levelname);
 			break;
 		// Missi (2026.1.15)
 		case svctc_gamespeed:

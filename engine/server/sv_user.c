@@ -9199,11 +9199,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 			}
 			SV_AckEntityFrame(cl, cl->delta_sequence);
 			break;
-#ifdef TEMPORALCORTEX
-		case clctc_timeperiod:
-			tc_sv_current_bsp_index = MSG_ReadShort();
-			break;
-#endif
 		}
 	}
 
@@ -9529,18 +9524,6 @@ nextseat:
 #ifdef VOICECHAT
 		case clcq2_voicechat:
 			SV_VoiceReadPacket();
-			break;
-#endif
-
-#ifdef TEMPORALCORTEX
-		case clcq2tc_timeperiod:
-			tc_sv_current_bsp_index = MSG_ReadShort();
-#ifdef Q2SERVER
-			if (ge)
-			{
-				ge->current_bsp_index = tc_sv_current_bsp_index;
-			}
-#endif
 			break;
 #endif
 
@@ -9987,12 +9970,6 @@ void SVNQ_ExecuteClientMessage (client_t *cl)
 			/*host_client->edict->v->origin[1] =*/ MSG_ReadFloat();
 			/*host_client->edict->v->origin[2] =*/ MSG_ReadFloat();
 			break;
-#ifdef TEMPORALCORTEX
-		// Missi: See comment in SV_ExecuteClientMessage (2025.12.6)
-		case clctc_timeperiod:
-			tc_sv_current_bsp_index = MSG_ReadShort();
-			break;
-#endif
 		safedefault:
 			Con_Printf ("SVNQ_ReadClientMessage: unknown command char %i\n", c);
 			SV_DropClient (cl);

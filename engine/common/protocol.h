@@ -542,10 +542,7 @@ enum clcq2_ops_e
 	//fte-extended
 	clcq2_stringcmd_seat = 30,
 #ifdef VOICECHAT
-	clcq2_voicechat = 31,
-#endif
-#ifdef TEMPORALCORTEX
-	clcq2tc_timeperiod = 34,
+	clcq2_voicechat = 31
 #endif
 };
 
@@ -584,10 +581,6 @@ enum {
 #define clcfte_brushedit		84
 #define clcfte_move				85	//part of PEXT2_VRINPUTS. replaces clc_move+clcfte_prydoncursor+clcdp_ackframe
 #define clcfte_stringcmd_seat	86
-
-#ifdef TEMPORALCORTEX
-#define clctc_timeperiod		128 // Missi: Only used for savegames. See sv_user.c and SV_ExecuteClientMessage for more info (2025.12.6)
-#endif
 
 #define VRM_LOSS	(1u<<0)	//for server packetloss reports
 #define VRM_DELAY	(1u<<1)	//for server to compute lag properly.

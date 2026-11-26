@@ -3761,57 +3761,62 @@ void SV_ChangeTimePeriod( int bspindex )
 		return;
 	}
 
-	if (svs.gametype == GT_PROGS)
+	switch(svs.gametype)
 	{
-		worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
-
-		if ( !worldEdict )
-			return;
-
-		for ( i = 0; i < sv.allocated_client_slots; i++ )
+		case GT_PROGS:
 		{
-			ed = svs.clients[i].edict;
+			worldEdict = (edict_t *)EDICT_NUM_PB(svprogfuncs, sv.world.world_indices[bspindex]);
 
-			if (!ed)
-				break;
+			if ( !worldEdict )
+				return;
 
-			ed->bspnum = bspindex;
-			ed->xv->timeperiod = bspindex;
+			for ( i = 0; i < sv.allocated_client_slots; i++ )
+			{
+				ed = svs.clients[i].edict;
+
+				if (!ed)
+					break;
+
+				ed->bspnum = bspindex;
+				ed->xv->timeperiod = bspindex;
+			}
+
+			// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
+			// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
+			for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps; i < sv.world.num_edicts; i++ )
+			{
+				ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
+
+				// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
+				if ((int)ed->v->flags & FL_MONSTER)
+					ed->v->enemy = pr_global_struct->world;
+			}
+
+			track = worldEdict->v->sounds;
+			break;
 		}
-
-		// Missi: This for loop is a giant hack to make enemies forget about players that move to another time period...
-		// It works as intended though, as tc_sv_current_bsp_index and tc_cl_current_bsp_index need to stay in-sync. (2025.9.22)
-		for ( i = sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps; i < sv.world.num_edicts; i++ )
-		{
-			ed = (edict_t*)EDICT_NUM_PB( svprogfuncs, i );
-
-			// Missi: Skip anything that isn't strictly a monster. (2026.5.31)
-			if ((int)ed->v->flags & FL_MONSTER)
-				ed->v->enemy = pr_global_struct->world;
-		}
-
-		track = worldEdict->v->sounds;
-
-	}
 #ifdef Q2SERVER
-	else if (svs.gametype == GT_QUAKE2)
-	{
-		q2WorldEdict = Q2EDICT_NUM(sv.world.world_indices[bspindex]);
-
-		if ( !q2WorldEdict )
-			return;
-
-		for ( i = 0; i < sv.allocated_client_slots; i++ )
+		case GT_QUAKE2:
 		{
-			q2ed = svs.clients[i].q2edict;
-			q2ed->bspnum = bspindex;
-		}
+			q2WorldEdict = Q2EDICT_NUM(sv.world.world_indices[bspindex]);
 
-		track = q2WorldEdict->s.sound;
-	}
+			if ( !q2WorldEdict )
+				return;
+
+			for ( i = 0; i < sv.allocated_client_slots; i++ )
+			{
+				q2ed = svs.clients[i].q2edict;
+				q2ed->bspnum = bspindex;
+			}
+
+			track = q2WorldEdict->s.sound;
+			break;
+		}
 #endif
-	else
-		track = 0;
+		default:
+			track = 0;
+			break;
+	}
 
 	if (svs.gametype != GT_QUAKE3)
 	{
@@ -3826,6 +3831,13 @@ void SV_ChangeTimePeriod( int bspindex )
 	}
 
 	tc_sv_current_bsp_index = bspindex;
+
+#ifdef Q2SERVER
+	if (ge)
+	{
+		ge->current_bsp_index = tc_sv_current_bsp_index;
+	}
+#endif
 }
 
 void SV_ChangeTimePeriod_SaveGame( int bspindex )
