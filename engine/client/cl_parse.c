@@ -2344,6 +2344,10 @@ downloadlist_t *CL_DownloadFailed(const char *name, qdownload_t *qdl, enum dlfai
 void CLQ3TC_SetClientTimePeriod(short bspnum)
 {
 	tc_cl_current_bsp_index = bspnum;
+
+	// Missi: Only needed for Q2/Q3, which tend to cache area nodes (2026.11.26)
+	if (cls.protocol == CP_QUAKE2 || cls.protocol == CP_QUAKE3)
+		tc_cl_pvscache_dirty = true;
 }
 #endif
 #endif

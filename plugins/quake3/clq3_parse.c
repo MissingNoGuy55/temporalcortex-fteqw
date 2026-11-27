@@ -444,7 +444,7 @@ model_t* CLQ3TC_FindPrecache(const char *name)
 
 void CLQ3TC_ParseTimePeriod(void)
 {
-	short bspnum_old;
+	static short bspnum;
 	int i;
 
 	for (i = 0; i < countof(ccs.worldmodel_indices); i++)
@@ -452,9 +452,9 @@ void CLQ3TC_ParseTimePeriod(void)
 
 	tc_cl3_current_bsp_index = msgfuncs->ReadShort();
 
-	if (bspnum_old != tc_cl3_current_bsp_index)
+	if (bspnum != tc_cl3_current_bsp_index)
 	{
-		bspnum_old = tc_cl3_current_bsp_index;
+		bspnum = tc_cl3_current_bsp_index;
 
 #ifdef HAVE_CLIENT
 		ccs.worldmodel = ccs.model_precache[ccs.worldmodel_indices[tc_cl3_current_bsp_index]];

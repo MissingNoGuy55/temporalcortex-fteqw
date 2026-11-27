@@ -7672,6 +7672,35 @@ qbyte *R_MarkLeaves_Q3 (model_t *mod, int clusters[2])
 	int portal = r_refdef.recurse;
 	cminfo_t	*prv = mod->meshinfo;
 
+#ifdef TEMPORALCORTEX
+	// Missi: NOTE: It's important that this is done before vissequence is
+	// incremented, as visframes will desync every time time travel happens,
+	// as the vis system does not run on all BSPs at once. There is always
+	// a desynced node in a BSP that is not being rendered (2026.11.22)
+	if (tc_cl_pvscache_dirty)
+	{
+		// mark everything
+		for (i=0 ; i<mod->numleafs ; i++)
+		{
+			mod->leafs[i].visframe = vissequence;
+		}
+		for (i=0 ; i<mod->numnodes ; i++)
+		{
+			mod->nodes[i].visframe = vissequence;
+		}
+
+		// Missi: Now cull it all. We need to use PVM_REPLACE here, as two BSPs never share
+		// the same vis data. This is also to solve an edge case where two BSPs with overlapping
+		// area numbers in the same place causing the renderer to think that we never
+		// time traveled (2026.11.22)
+		vis = CM_ClusterPVS (mod, clusters[0], &curframevis[portal], PVM_REPLACE);
+
+		tc_cl_pvscache_dirty = false;
+
+		return vis;
+	}
+#endif
+
 	if (!portal)
 	{
 		if (prv->oldclusters[0] == clusters[0] && !r_novis.value && clusters[0] != -1)
