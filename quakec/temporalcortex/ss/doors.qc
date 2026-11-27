@@ -364,8 +364,11 @@ void() LinkDoors =
 
 			return;
 		}
-
+#ifdef TEMPORALCORTEX
+		if (EntitiesTouching(self,t) && getentitytimeperiod(self) == getentitytimeperiod(t))
+#else
 		if (EntitiesTouching(self,t))
+#endif
 		{
 			if (t.enemy)
 				objerror ("cross connected doors");

@@ -518,7 +518,7 @@ void() trigger_timetravel_think =
 			{
 				//dprint(ftos(vlen(foundent.origin - org)));
 				//dprint("\n");
-				//dprint(ftos(vlen(self.absmax - self.absmin) * 0.5));
+				//dprint(ftos(vlen((self.absmax - self.absmin) * 0.5)));
 				//dprint("\n");
 
 				WriteByte (MSG_MULTICAST, SVC_CGAMEPACKET);
@@ -527,7 +527,7 @@ void() trigger_timetravel_think =
 
 				multicast(org, MULTICAST_PVS);
 
-				if (vlen(foundent.origin - org) > vlen(self.absmax - self.absmin) * 0.5)
+				if (vlen(foundent.origin - org) > vlen((self.absmax - self.absmin) * 0.5))
 				{
 					total_transport_ents[transport_idx] = world;
 
