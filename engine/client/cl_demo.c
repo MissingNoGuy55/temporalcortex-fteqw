@@ -2100,8 +2100,6 @@ static void CLQW_RecordServerData(sizebuf_t *buf, int *seq)
 
 #ifdef TEMPORALCORTEX
 	MSG_WriteShort (buf, tc_cl_loaded_bsps);
-	MSG_WriteShort (buf, tc_cl_unloaded_bsps);
-
 	MSG_WriteShort (buf, tc_cl_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
@@ -2387,8 +2385,6 @@ void CLNQ_WriteServerData(sizebuf_t *buf)	//for demo recording
 
 #ifdef TEMPORALCORTEX
 	MSG_WriteShort (buf, tc_cl_loaded_bsps);
-	MSG_WriteShort (buf, tc_cl_unloaded_bsps);
-
 	MSG_WriteShort (buf, tc_cl_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)

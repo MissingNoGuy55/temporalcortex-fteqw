@@ -393,8 +393,6 @@ void SV_New_f (void)
 	ClientReliableWrite_String (host_client, gamedir);
 #ifdef TEMPORALCORTEX
 	ClientReliableWrite_Short (host_client, tc_sv_loaded_bsps);
-	ClientReliableWrite_Short (host_client, tc_sv_unloaded_bsps);
-
 	ClientReliableWrite_Short (host_client, tc_sv_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
@@ -871,8 +869,6 @@ void SVNQ_New_f (void)
 #ifdef TEMPORALCORTEX
 	// Missi: Write the number of worlds loaded. (2026.1.14)
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_loaded_bsps);
-	MSG_WriteShort (&host_client->netchan.message, tc_sv_unloaded_bsps);
-
 	MSG_WriteShort (&host_client->netchan.message, tc_sv_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)

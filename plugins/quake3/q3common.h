@@ -57,7 +57,6 @@ typedef struct	//merge?
 #ifdef TEMPORALCORTEX
 extern short tc_sv3_current_bsp_index;
 extern short tc_sv3_loaded_bsps;
-extern short tc_sv3_unloaded_bsps;
 extern short *tc_sv3_worldmodel_indices;
 extern short *tc_sv3_world_indices;
 #ifdef HAVE_CLIENT

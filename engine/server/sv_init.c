@@ -45,7 +45,6 @@ int sv_max_staticsounds;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_SERVER
 short tc_sv_loaded_bsps;
-short tc_sv_unloaded_bsps;
 short tc_sv_current_bsp_index;
 #endif
 #endif
@@ -322,7 +321,7 @@ void SVQ1_CreateBaseline (void)
 		// create baselines for all player slots,
 		// and any other edict that has a visible model
 #ifdef TEMPORALCORTEX
-		if (entnum >= sv.allocated_client_slots+tc_sv_loaded_bsps-tc_sv_unloaded_bsps && !svent->v->modelindex)
+		if (entnum > sv.allocated_client_slots+tc_sv_loaded_bsps && !svent->v->modelindex)
 #else
 		if (entnum > sv.allocated_client_slots+1 && !svent->v->modelindex)
 #endif
@@ -333,13 +332,13 @@ void SVQ1_CreateBaseline (void)
 	//
 		SV_Snapshot_BuildStateQ1(&svent->baseline, svent, NULL, NULL);
 #ifdef TEMPORALCORTEX
-		if (entnum > tc_sv_loaded_bsps-tc_sv_unloaded_bsps && entnum <= sv.allocated_client_slots + tc_sv_loaded_bsps-tc_sv_unloaded_bsps)
+		if (entnum > tc_sv_loaded_bsps && entnum <= sv.allocated_client_slots + tc_sv_loaded_bsps)
 #else
 		if (entnum > 1 && entnum <= sv.allocated_client_slots)
 #endif
 		{
 #ifdef TEMPORALCORTEX
-			if (entnum > tc_sv_loaded_bsps-tc_sv_unloaded_bsps && entnum <= 16 + tc_sv_loaded_bsps-tc_sv_unloaded_bsps)
+			if (entnum > tc_sv_loaded_bsps && entnum <= 16 + tc_sv_loaded_bsps)
 #else
 			if (entnum > 1 && entnum <= 16 + 1)
 #endif
@@ -986,7 +985,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_CLIENT
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 	tc_cl_current_bsp_index = TIME_PERIOD_PRESENT;
 
 	for (i = 0; i < MAX_TIME_PERIODS; i++)
@@ -994,7 +992,6 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 #endif
 #ifdef HAVE_SERVER
 	tc_sv_loaded_bsps = 0;
-	tc_sv_unloaded_bsps = 0;
 	tc_sv_current_bsp_index = TIME_PERIOD_PRESENT;
 #endif
 #endif
@@ -1379,10 +1376,7 @@ void SV_SpawnServer (const char *server, const char *startspot, qboolean noents,
 	for ( t = 0; t < MAX_TIME_PERIODS; t++ )
 	{
 		if (!sv.world.worldmodel[t])
-		{
-			tc_sv_unloaded_bsps++;
 			continue;
-		}
 
 		//make sure our map's package is loaded.
 		FS_LoadMapPackFile(sv.world.worldmodel[t]->name, sv.world.worldmodel[t]->archive);

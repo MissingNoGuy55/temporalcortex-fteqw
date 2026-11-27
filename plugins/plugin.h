@@ -215,13 +215,6 @@ typedef struct	//core stuff
 	F(void*,	GMalloc,			(struct zonegroup_s *ctx, size_t size));
 	F(void,		GFree,				(struct zonegroup_s *ctx, void *ptr));
 	F(void,		GFreeAll,			(struct zonegroup_s *ctx));
-
-#ifdef TEMPORALCORTEX
-	F(short,	NumLoadedBSPs,		(void));
-	F(short,	NumUnLoadedBSPs,	(void));
-	F(short,	CurrentBSPIndex,	(void));
-	F(short*,	WorldmodelIndices,	(void));
-#endif
 #define plugcorefuncs_name "Core"
 } plugcorefuncs_t;
 
@@ -519,6 +512,11 @@ typedef struct	//for collision stuff
 	F(void,			DropClient,			(struct client_s *drop));
 	F(void,			ExtractFromUserinfo,(struct client_s *cl, qboolean verbose));
 	F(qboolean,		ChallengePasses,	(int challenge));
+#ifdef TEMPORALCORTEX
+	F(short,		NumLoadedBSPs,		(void));
+	F(short,		CurrentBSPIndex,	(void));
+	F(short*,		WorldmodelIndices,	(void));
+#endif
 #define plugworldfuncs_name "World"
 } plugworldfuncs_t;
 

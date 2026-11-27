@@ -4,7 +4,6 @@
 #ifdef TEMPORALCORTEX
 short tc_sv3_current_bsp_index;
 short tc_sv3_loaded_bsps;
-short tc_sv3_unloaded_bsps;
 short *tc_sv3_worldmodel_indices;
 short *tc_sv3_world_indices;
 #endif
@@ -2003,10 +2002,9 @@ qboolean SVQ3_InitGame(server_static_t *server_state_static, server_t *server_st
 	sv3.server_state = server_state;
 	sv3.world = &server_state->world;
 #ifdef TEMPORALCORTEX
-	tc_sv3_current_bsp_index = plugfuncs->CurrentBSPIndex();
-	tc_sv3_loaded_bsps = plugfuncs->NumLoadedBSPs();
-	tc_sv3_unloaded_bsps = plugfuncs->NumUnLoadedBSPs();
-	tc_sv3_worldmodel_indices = plugfuncs->WorldmodelIndices();
+	tc_sv3_current_bsp_index = worldfuncs->CurrentBSPIndex();
+	tc_sv3_loaded_bsps = worldfuncs->NumLoadedBSPs();
+	tc_sv3_worldmodel_indices = worldfuncs->WorldmodelIndices();
 
 	if (sv3.world->worldmodel[tc_sv3_current_bsp_index]->type == mod_heightmap)
 	{
@@ -2338,7 +2336,7 @@ void SVQ3_WriteSnapshotToClient(client_t *client, sizebuf_t *msg)
 	SVQ3_EmitPacketEntities(client, oldsnap, snap, msg);
 
 #ifdef TEMPORALCORTEX
-	bspnum = plugfuncs->CurrentBSPIndex();
+	bspnum = worldfuncs->CurrentBSPIndex();
 
 	if (bspnum != tc_sv3_current_bsp_index)
 	{

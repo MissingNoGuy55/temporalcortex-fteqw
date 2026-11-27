@@ -1766,8 +1766,6 @@ void SV_MVD_SendInitialGamestate(mvddest_t *dest)
 
 #ifdef TEMPORALCORTEX
 	MSG_WriteShort (&buf, tc_sv_loaded_bsps);
-	MSG_WriteShort (&buf, tc_sv_unloaded_bsps);
-
 	MSG_WriteShort (&buf, tc_sv_current_bsp_index);
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)

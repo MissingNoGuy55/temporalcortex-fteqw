@@ -16,23 +16,14 @@ typedef enum
 // may be the past or the future, depending on if xxx_past.bsp was found. (2026.7.1)
 extern short tc_sv_loaded_bsps;
 
-// Missi: Amount of BSPs that are not loaded. Also applies to amount of empty worldmodels that were found
-// in sv.world.worldmodel. (2026.5.30)
-extern short tc_sv_unloaded_bsps;
-
 // Missi: Incremented as each BSP is parsed in SV_SpawnServer, then reset back to 0. Changes with "changetimeperiod" console command. (2026.7.1)
 extern short tc_sv_current_bsp_index;
 #endif
 #ifdef HAVE_CLIENT
 
 extern short tc_cl_loaded_bsps;
-
-extern short tc_cl_unloaded_bsps;
-
 extern short tc_cl_current_bsp_index;
-
 extern short tc_cl_current_mus_index;
-
 extern int tc_cl_pvscache_dirty;
 
 #endif

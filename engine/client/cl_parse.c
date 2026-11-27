@@ -3741,8 +3741,6 @@ static void CLQW_ParseServerData (void)
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 	tc_cl_loaded_bsps = MSG_ReadShort();
-	tc_cl_unloaded_bsps = MSG_ReadShort();
-
 	tc_cl_current_bsp_index = MSG_ReadShort();
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
@@ -4078,8 +4076,6 @@ static void CLQ2_ParseServerData (void)
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 	tc_cl_loaded_bsps = MSG_ReadShort();
-	tc_cl_unloaded_bsps = MSG_ReadShort();
-
 	tc_cl_current_bsp_index = MSG_ReadShort();
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)
@@ -4098,7 +4094,7 @@ static void CLQ2_ParseServerData (void)
 	// parse player entity number
 	cl.playerview[0].playernum = MSG_ReadShort ();
 #ifdef TEMPORALCORTEX
-	cl.playerview[0].viewentity = cl.playerview[0].playernum+(tc_cl_loaded_bsps - tc_cl_unloaded_bsps);
+	cl.playerview[0].viewentity = cl.playerview[0].playernum+tc_cl_loaded_bsps;
 #else
 	cl.playerview[0].viewentity = cl.playerview[0].playernum+1;
 #endif
@@ -4115,7 +4111,7 @@ static void CLQ2_ParseServerData (void)
 		{
 			cl.playerview[i].playernum = MSG_ReadShort ();
 #ifdef TEMPORALCORTEX
-			cl.playerview[i].viewentity = cl.playerview[i].playernum+(tc_cl_loaded_bsps - tc_cl_unloaded_bsps);
+			cl.playerview[i].viewentity = cl.playerview[i].playernum+tc_cl_loaded_bsps;
 #else
 			cl.playerview[i].viewentity = cl.playerview[i].playernum+1;
 #endif
@@ -4458,8 +4454,6 @@ static void CLNQ_ParseServerData(void)		//Doesn't change gamedir - use with caut
 #ifdef TEMPORALCORTEX
 	// Missi: Read the number of worlds loaded from the server. (2026.1.14)
 	tc_cl_loaded_bsps = MSG_ReadShort();
-	tc_cl_unloaded_bsps = MSG_ReadShort();
-
 	tc_cl_current_bsp_index = MSG_ReadShort();
 
 	for (int t = 0; t < MAX_TIME_PERIODS; t++)

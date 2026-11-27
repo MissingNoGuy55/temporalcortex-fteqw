@@ -4035,8 +4035,8 @@ void SV_ChangeTimePeriod_f(void)
 	{
 		client_t* client = &svs.clients[i];
 
-		if (svs.clients->protocol == SCP_BAD)
-			break;
+		if (!svs.clients->spawned)
+			break;	// Missi: For the edge case of legitimate players joining after bots (2026.11.27)
 
 		switch(svs.gametype)
 		{

@@ -49,7 +49,6 @@ extern int	r_blockvidrestart;
 #ifdef TEMPORALCORTEX
 #ifdef HAVE_CLIENT
 short tc_cl_loaded_bsps;
-short tc_cl_unloaded_bsps;
 short tc_cl_current_bsp_index;
 short tc_cl_current_mus_index;
 #endif
@@ -1980,7 +1979,6 @@ static void CL_BeginServerConnect(char *chain, int port, qboolean noproxy, enum 
 
 #ifdef TEMPORALCORTEX
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 #endif
 
 	SCR_SetLoadingStage(LS_CONNECTION);
@@ -2022,7 +2020,6 @@ void CL_BeginServerReconnect(void)
 
 #ifdef TEMPORALCORTEX
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 #endif
 
 	NET_InitClient(false);
@@ -2851,7 +2848,6 @@ void CL_Disconnect (const char *reason)
 		cl.worldmodel[i] = NULL;
 
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 #else
 		cl.worldmodel = NULL;
 #endif
@@ -2908,7 +2904,6 @@ void CL_Disconnect (const char *reason)
 	Alias_WipeStuffedAliases();
 #ifdef TEMPORALCORTEX
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 
 	if ( cls.temporalcacheoutfile )
 	{
@@ -4147,7 +4142,6 @@ void CL_Reconnect_f (void)
 {
 #ifdef TEMPORALCORTEX
 	tc_cl_loaded_bsps = 0;
-	tc_cl_unloaded_bsps = 0;
 #endif
 
 	if (cls.download && cls.download->method <= DL_QWPENDING)  // don't change when downloading

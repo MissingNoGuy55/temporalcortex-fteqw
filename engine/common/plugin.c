@@ -1884,15 +1884,6 @@ static short Plug_Num_Loaded_BSPs(void)
 #endif
 }
 
-static short Plug_Num_UnLoaded_BSPs(void)
-{
-#ifdef HAVE_SERVER
-	return tc_sv_unloaded_bsps;
-#elif defined(HAVE_CLIENT)
-	return tc_cl_unloaded_bsps;
-#endif
-}
-
 static short Plug_CurrentBSPIndex(void)
 {
 #ifdef HAVE_SERVER
@@ -1933,13 +1924,6 @@ plugcorefuncs_t plugcorefuncs =
 	ZG_Malloc,
 	ZG_Free,
 	ZG_FreeGroup,
-
-#ifdef TEMPORALCORTEX
-	Plug_Num_Loaded_BSPs,
-	Plug_Num_UnLoaded_BSPs,
-	Plug_CurrentBSPIndex,
-	Plug_Worldmodel_Indices,
-#endif
 };
 
 static void *QDECL PlugBI_GetEngineInterface(const char *interfacename, size_t structsize)
@@ -2124,6 +2108,23 @@ static void *QDECL PlugBI_GetEngineInterface(const char *interfacename, size_t s
 			InfoBuf_ValueForKey,
 			Info_ValueForKey,
 			Info_SetValueForKey,
+#ifdef TEMPORALCORTEX
+#ifdef HAVE_SERVER
+			SV_DropClient,
+			SV_ExtractFromUserinfo,
+			SV_ChallengePasses,
+			Plug_Num_Loaded_BSPs,
+			Plug_CurrentBSPIndex,
+			Plug_Worldmodel_Indices,
+#else
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+#endif
+#else
 #ifdef HAVE_SERVER
 			SV_DropClient,
 			SV_ExtractFromUserinfo,
@@ -2132,6 +2133,7 @@ static void *QDECL PlugBI_GetEngineInterface(const char *interfacename, size_t s
 			NULL,
 			NULL,
 			NULL,
+#endif
 #endif
 		};
 		if (structsize == sizeof(funcs))
