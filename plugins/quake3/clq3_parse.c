@@ -444,8 +444,7 @@ model_t* CLQ3TC_FindPrecache(const char *name)
 
 void CLQ3TC_ParseTimePeriod(void)
 {
-	char cmd[128];
-	static short bspnum_old;
+	short bspnum_old;
 	int i;
 
 	for (i = 0; i < countof(ccs.worldmodel_indices); i++)
@@ -462,11 +461,8 @@ void CLQ3TC_ParseTimePeriod(void)
 #elif defined(HAVE_SERVER)
 		ccs.worldmodel = sv3.world->worldmodel[tc_cl3_current_bsp_index];
 #endif
-		Con_DPrintf("%d\n", tc_cl3_current_bsp_index);
-		Con_DPrintf("%s\n", ccs.worldmodel->name);
 
-		snprintf(cmd, sizeof(cmd), "changetimeperiod %i", tc_cl3_current_bsp_index);
-		cmdfuncs->AddText(cmd, false);
+		clientfuncs->SetClientTimePeriod(tc_cl3_current_bsp_index);
 	}
 }
 #endif

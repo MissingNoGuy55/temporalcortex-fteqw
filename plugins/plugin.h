@@ -332,6 +332,9 @@ typedef struct	//q1 client/network info
 	qboolean (*DownloadBegun)(qdownload_t *dl);
 	void (*DownloadFinished)(qdownload_t *dl);
 	downloadlist_t *(*DownloadFailed)(const char *name, qdownload_t *qdl, enum dlfailreason_e failreason);
+#ifdef TEMPORALCORTEX
+	void (*SetClientTimePeriod)(short bspnum);
+#endif
 #define plugclientfuncs_name "Client2"
 } plugclientfuncs_t;
 

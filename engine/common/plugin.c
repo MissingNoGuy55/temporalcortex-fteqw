@@ -2252,6 +2252,11 @@ static void *QDECL PlugBI_GetEngineInterface(const char *interfacename, size_t s
 			DL_Begun,
 			CL_DownloadFinished,
 			CL_DownloadFailed,
+#ifdef TEMPORALCORTEX
+#ifdef Q3CLIENT
+			CLQ3TC_SetClientTimePeriod,
+#endif
+#endif
 		};
 		if (structsize == sizeof(funcs))
 			return &funcs;

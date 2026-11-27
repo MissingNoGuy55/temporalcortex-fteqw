@@ -28,7 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define INVALID_SOCKET -1
 #endif
 
-
+#ifdef TEMPORALCORTEX
+#ifdef Q3SERVER
+#include "../plugins/quake3/q3common.h"
+#endif
+#endif
 
 int	sv_allow_cheats;
 qboolean SV_MayCheat(void)
@@ -3818,17 +3822,16 @@ void SV_ChangeTimePeriod( int bspindex )
 			break;
 	}
 
-	if (svs.gametype != GT_QUAKE3)
-	{
-		if (svs.gametype == GT_PROGS)
-			MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
-		else if (svs.gametype == GT_QUAKE2)
-			MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
+	if (svs.gametype == GT_PROGS)
+		MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+#ifdef Q2SERVER
+	else if (svs.gametype == GT_QUAKE2)
+		MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
+#endif
 
-		MSG_WriteShort (&sv.reliable_datagram, bspindex);
-		MSG_WriteShort (&sv.reliable_datagram, track);
-		MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
-	}
+	MSG_WriteShort (&sv.reliable_datagram, bspindex);
+	MSG_WriteShort (&sv.reliable_datagram, track);
+	MSG_WriteString (&sv.reliable_datagram, sv.mapname[bspindex]);
 
 	tc_sv_current_bsp_index = bspindex;
 
@@ -3876,7 +3879,13 @@ void SV_ChangeTimePeriod_SaveGame( int bspindex )
 
 	tc_sv_current_bsp_index = bspindex;
 
-	MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+	if (svs.gametype == GT_PROGS)
+		MSG_WriteByte (&sv.reliable_datagram, svctc_timeperiod);
+#ifdef Q2SERVER
+	else if (svs.gametype == GT_QUAKE2)
+		MSG_WriteByte (&sv.reliable_datagram, svcq2tc_timeperiod);
+#endif
+
 	MSG_WriteShort (&sv.reliable_datagram, bspindex);
 	MSG_WriteShort (&sv.reliable_datagram, track);
 	MSG_WriteString (&sv.reliable_datagram, sv.modelname[bspindex]);
@@ -4026,6 +4035,9 @@ void SV_ChangeTimePeriod_f(void)
 	{
 		client_t* client = &svs.clients[i];
 
+		if (svs.clients->protocol == SCP_BAD)
+			break;
+
 		switch(svs.gametype)
 		{
 			case GT_PROGS:
@@ -4109,6 +4121,49 @@ void SV_ChangeTimePeriod_f(void)
 				break;
 			}
 #endif
+#ifdef Q3SERVER
+			case GT_QUAKE3:
+			{
+				q3client_frame_t *frame = (q3client_frame_t*)client->frameunion.q3frames;
+				unsigned int viewcontents;
+				int area, cluster;
+
+				if (!frame)
+					break;
+
+				sv.world.worldmodel[bspnum]->funcs.InfoForPoint (sv.world.worldmodel[bspnum], frame->ps.origin, &area, &cluster, &viewcontents);
+
+				if (cluster == -1)
+				{
+					switch(bspnum)
+					{
+						case TIME_PERIOD_PRESENT:
+							timeperiod = "present";
+							break;
+						case TIME_PERIOD_PAST:
+							timeperiod = "past";
+							break;
+						case TIME_PERIOD_FUTURE:
+							timeperiod = "future";
+							break;
+						default:
+							timeperiod = "unknown";
+							break;
+					}
+
+					if (svs.allocated_client_slots == 1)
+						snprintf(printstring, sizeof(printstring), CON_WARNING "You would be stuck if you went to the %s!\n", timeperiod);
+					else
+						snprintf(printstring, sizeof(printstring), CON_WARNING "Player %d (\"%s\") would be stuck if we all went to the %s!\n", i+1, svs.clients[i].name, timeperiod);
+
+					stuck = true;
+				}
+
+				break;
+			}
+#endif
+			default:
+				break;
 		}
 	}
 

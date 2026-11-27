@@ -2339,6 +2339,15 @@ downloadlist_t *CL_DownloadFailed(const char *name, qdownload_t *qdl, enum dlfai
 	return failed;
 }
 
+#ifdef TEMPORALCORTEX
+#ifdef Q3CLIENT
+void CLQ3TC_SetClientTimePeriod(short bspnum)
+{
+	tc_cl_current_bsp_index = bspnum;
+}
+#endif
+#endif
+
 #ifdef PEXT_CHUNKEDDOWNLOADS
 
 int CL_DownloadRate(void)

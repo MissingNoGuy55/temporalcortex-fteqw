@@ -1446,6 +1446,9 @@ qboolean CL_CheckDLFile(const char *filename);
 qboolean CL_CheckOrEnqueDownloadFile (const char *filename, const char *localname, unsigned int flags);
 qboolean CL_EnqueDownload(const char *filename, const char *localname, unsigned int flags);
 downloadlist_t *CL_DownloadFailed(const char *name, qdownload_t *qdl, enum dlfailreason_e failreason);
+#ifdef TEMPORALCORTEX
+void CLQ3TC_SetClientTimePeriod(short bspnum);
+#endif
 int CL_DownloadRate(void);
 void CL_GetDownloadSizes(unsigned int *filecount, qofs_t *totalsize, qboolean *somesizesunknown);
 qboolean CL_ParseOOBDownload(void);

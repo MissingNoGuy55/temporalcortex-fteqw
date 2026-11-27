@@ -2269,6 +2269,9 @@ void SVQ3_WriteSnapshotToClient(client_t *client, sizebuf_t *msg)
 	q3client_frame_t	*snap;
 	int				delta;
 	int				i;
+#ifdef TEMPORALCORTEX
+	static int		bspnum;
+#endif
 
 	// this is the frame we are transmitting
 	snap = client->frameunion.q3frames;
@@ -2335,17 +2338,21 @@ void SVQ3_WriteSnapshotToClient(client_t *client, sizebuf_t *msg)
 	SVQ3_EmitPacketEntities(client, oldsnap, snap, msg);
 
 #ifdef TEMPORALCORTEX
-	msgfuncs->WriteBits(msg, svcq3tc_timeperiod, 8);
+	bspnum = plugfuncs->CurrentBSPIndex();
 
-	tc_sv3_current_bsp_index = plugfuncs->CurrentBSPIndex();
-
-	for (i = 0; i < countof(sv3.world->worldmodel_indices); i++)
+	if (bspnum != tc_sv3_current_bsp_index)
 	{
-		//Con_DPrintf("Worldmodel index #%d: %d\n", i, sv3.world->worldmodel_indices[i]);
-		msgfuncs->WriteBits(msg, sv3.world->worldmodel_indices[i], 16);
-	}
+		msgfuncs->WriteBits(msg, svcq3tc_timeperiod, 8);
+		tc_sv3_current_bsp_index = bspnum;
 
-	msgfuncs->WriteBits(msg, tc_sv3_current_bsp_index, 16);
+		for (i = 0; i < countof(sv3.world->worldmodel_indices); i++)
+		{
+			//Con_DPrintf("Worldmodel index #%d: %d\n", i, sv3.world->worldmodel_indices[i]);
+			msgfuncs->WriteBits(msg, sv3.world->worldmodel_indices[i], 16);
+		}
+
+		msgfuncs->WriteBits(msg, bspnum, 16);
+	}
 #endif
 
 //	while( msg.cursize < sv_padPackets->integer ) { // FIXME?
